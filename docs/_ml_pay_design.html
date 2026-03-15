@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>THE WEST — Hotel OS with Payments & Taxes</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+        :root {
+            --bg: #02040a;
+            --card: #050814;
+            --accent: #00ff88;
+            --accent-soft: #b7ffdd;
+            --muted: #7a8b8f;
+            --border: #0b1c24;
+            --code-bg: #050b12;
+            --danger: #ff4b6a;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+            background: radial-gradient(circle at top, #04121a 0, #02040a 55%, #000000 100%);
+            color: #e9fdf4;
+            -webkit-font-smoothing: antialiased;
+            padding: 24px 12px 32px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 1100px;
+            background: linear-gradient(145deg, rgba(0, 0, 0, 0.9), rgba(2, 10, 8, 0.98));
+            border-radius: 18px;
+            border: 1px solid rgba(0, 255, 136, 0.12);
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.85);
+            padding: 20px 20px 24px;
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr);
+            gap: 16px;
+        }
+
+        header {
+            grid-column: 1 / -1;
+            margin-bottom: 6px;
+        }
+
+        h1,
+        h2,
+        h3 {
+            font-family: "IBM Plex Sans", system-ui, sans-serif;
+            margin: 0 0 8px;
+            letter-spacing: 0.02em;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: var(--accent);
+            margin-bottom: 2px;
+        }
+
+        h2 {
+            font-size: 16px;
+            margin-top: 14px;
+            border-bottom: 1px solid rgba(0, 255, 136, 0.16);
+            padding-bottom: 3px;
+        }
+
+        h3 {
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        p {
+            margin: 0 0 8px;
+            color: #e3f7ee;
+            line-height: 1.5;
+            font-size: 13px;
+        }
+
+        .subtitle {
+            color: var(--accent-soft);
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+
+        .tagline {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .panel {
+            background: var(--card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 10px 12px;
+        }
+
+        label {
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--muted);
+            margin-bottom: 3px;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            background: #020712;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 255, 136, 0.18);
+            padding: 6px 8px;
+            color: #e9fdf4;
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px rgba(0, 255, 136, 0.25);
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .row>div {
+            flex: 1;
+        }
+
+        .small {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+        }
+
+        .checkbox-row input[type="checkbox"] {
+            width: auto;
+            height: auto;
+            border-radius: 4px;
+        }
+
+        .checkbox-row span {
+            font-size: 12px;
+            color: #e9fdf4;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(0, 255, 136, 0.4);
+            background: rgba(0, 255, 136, 0.08);
+            color: var(--accent-soft);
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 6px;
+        }
+
+        .btn:hover {
+            background: rgba(0, 255, 136, 0.16);
+        }
+
+        .btn-danger {
+            border-color: rgba(255, 75, 106, 0.6);
+            color: #ffc2cf;
+            background: rgba(255, 75, 106, 0.08);
+        }
+
+        .btn-danger:hover {
+            background: rgba(255, 75, 106, 0.16);
+        }
+
+        .list {
+            max-height: 220px;
+            overflow: auto;
+            margin-top: 6px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #020712;
+            padding: 6px;
+            font-size: 12px;
+        }
+
+        .list-item {
+            padding: 4px 6px;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            gap: 6px;
+        }
+
+        .list-item:hover {
+            border-color: rgba(0, 255, 136, 0.25);
+            background: rgba(0, 255, 136, 0.04);
+        }
+
+        .list-item.active {
+            border-color: var(--accent);
+            background: rgba(0, 255, 136, 0.12);
+        }
+
+        .pill {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 999px;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            color: var(--accent-soft);
+            background: rgba(0, 255, 136, 0.06);
+            white-space: nowrap;
+        }
+
+        .pill-danger {
+            border-color: rgba(255, 75, 106, 0.6);
+            color: #ffc2cf;
+            background: rgba(255, 75, 106, 0.08);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .value {
+            font-size: 13px;
+            font-weight: 500;
+            color: #f3fff9;
+        }
+
+        .value-muted {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .log {
+            max-height: 120px;
+            overflow: auto;
+            font-size: 11px;
+            color: var(--muted);
+            background: #020712;
+            border-radius: 8px;
+            border: 1px dashed rgba(0, 255, 136, 0.25);
+            padding: 6px 8px;
+            margin-top: 6px;
+            white-space: pre-wrap;
+        }
+
+        .section-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .divider {
+            border-top: 1px dashed rgba(0, 255, 136, 0.18);
+            margin: 8px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <header>
+            <h1>THE WEST — Hotel OS</h1>
+            <div class="subtitle">Rooms · Bookings · Payments · Per-Room Taxes</div>
+            <div class="tagline">Single-page prototype with per-room payment interface and toggleable city/state taxes.
+            </div>
+        </header>
+
+        <!-- LEFT: Rooms & Bookings -->
+        <section class="panel">
+            <div class="section-title">Rooms & bookings</div>
+            <div class="row">
+                <div>
+                    <label for="roomSelect">Room</label>
+                    <select id="roomSelect"></select>
+                </div>
+                <div>
+                    <label>&nbsp;</label>
+                    <button class="btn" id="newBookingBtn">New booking for room</button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="row">
+                <div>
+                    <label for="firstName">First name</label>
+                    <input id="firstName" placeholder="Ava" />
+                </div>
+                <div>
+                    <label for="lastName">Last name</label>
+                    <input id="lastName" placeholder="Morris" />
+                </div>
+            </div>
+
+            <div class="row">
+                <div>
+                    <label for="checkIn">Check-in</label>
+                    <input id="checkIn" type="date" />
+                </div>
+                <div>
+                    <label for="checkOut">Check-out</label>
+                    <input id="checkOut" type="date" />
+                </div>
+            </div>
+
+            <div class="row">
+                <div>
+                    <label for="rate">Nightly rate</label>
+                    <input id="rate" type="number" step="0.01" min="0" placeholder="129" />
+                    <div class="small">Used for room subtotal & tax calculations.</div>
+                </div>
+                <div>
+                    <label>Nights</label>
+                    <div class="value" id="nightsValue">0</div>
+                    <div class="small">Computed from check-in / check-out.</div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <h3>Current bookings</h3>
+            <div class="list" id="bookingList"></div>
+        </section>
+
+        <!-- RIGHT: Payments & Taxes -->
+        <section class="panel">
+            <div class="section-title">Payment & tax interface</div>
+
+            <h3>Room subtotal</h3>
+            <div class="grid-3">
+                <div>
+                    <div class="small">Nightly rate</div>
+                    <div class="value" id="summaryRate">$0.00</div>
+                </div>
+                <div>
+                    <div class="small">Nights</div>
+                    <div class="value" id="summaryNights">0</div>
+                </div>
+                <div>
+                    <div class="small">Room subtotal</div>
+                    <div class="value" id="summaryRoomTotal">$0.00</div>
+                </div>
+            </div>
+
+            <h3 style="margin-top:10px;">Taxes (per room)</h3>
+            <div class="grid-2">
+                <div>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="stateEnabled" />
+                        <span>State tax</span>
+                    </div>
+                    <label for="stateRate">State rate (%)</label>
+                    <input id="stateRate" type="number" step="0.01" min="0" placeholder="5.50" />
+                    <div class="small">Applied only if enabled.</div>
+                </div>
+                <div>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="cityEnabled" />
+                        <span>City tax</span>
+                    </div>
+                    <label for="cityRate">City rate (%)</label>
+                    <input id="cityRate" type="number" step="0.01" min="0" placeholder="2.75" />
+                    <div class="small">Applied only if enabled.</div>
+                </div>
+            </div>
+
+            <div class="grid-3" style="margin-top:8px;">
+                <div>
+                    <div class="small">State tax amount</div>
+                    <div class="value" id="stateAmount">$0.00</div>
+                </div>
+                <div>
+                    <div class="small">City tax amount</div>
+                    <div class="value" id="cityAmount">$0.00</div>
+                </div>
+                <div>
+                    <div class="small">Total tax</div>
+                    <div class="value" id="totalTax">$0.00</div>
+                </div>
+            </div>
+
+            <h3 style="margin-top:10px;">Charges & payments</h3>
+            <div class="grid-2">
+                <div>
+                    <label for="chargeType">Add charge</label>
+                    <input id="chargeType" placeholder="room, fee, minibar..." />
+                    <input id="chargeAmount" type="number" step="0.01" min="0" placeholder="50.00"
+                        style="margin-top:4px;" />
+                    <button class="btn" id="addChargeBtn">Add charge</button>
+                </div>
+                <div>
+                    <label for="paymentMethod">Add payment</label>
+                    <input id="paymentMethod" placeholder="card, cash, folio..." />
+                    <input id="paymentAmount" type="number" step="0.01" min="0" placeholder="100.00"
+                        style="margin-top:4px;" />
+                    <button class="btn" id="addPaymentBtn">Add payment</button>
+                </div>
+            </div>
+
+            <div class="grid-3" style="margin-top:8px;">
+                <div>
+                    <div class="small">Extra charges</div>
+                    <div class="value" id="chargesTotal">$0.00</div>
+                </div>
+                <div>
+                    <div class="small">Payments</div>
+                    <div class="value" id="paymentsTotal">$0.00</div>
+                </div>
+                <div>
+                    <div class="small">Total stay</div>
+                    <div class="value" id="stayTotal">$0.00</div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="grid-2">
+                <div>
+                    <div class="small">Balance due</div>
+                    <div class="value" id="balanceDue">$0.00</div>
+                </div>
+                <div style="text-align:right;">
+                    <button class="btn" id="saveBookingBtn">Save booking</button>
+                    <button class="btn btn-danger" id="deleteBookingBtn">Delete booking</button>
+                </div>
+            </div>
+
+            <h3 style="margin-top:10px;">Charges</h3>
+            <div class="list" id="chargesList"></div>
+
+            <h3 style="margin-top:10px;">Payments</h3>
+            <div class="list" id="paymentsList"></div>
+
+            <div class="log" id="log"></div>
+        </section>
+    </div>
+
+    <script>
+        // Simple in-memory store for this prototype.
+        // You can swap this for Dexie/IndexedDB easily.
+        const state = {
+            rooms: Array.from({ length: 12 }, (_, i) => 101 + i),
+            bookings: [], // one booking per room in this prototype
+            activeRoom: null,
+            activeBooking: null
+        };
+
+        const $ = id => document.getElementById(id);
+
+        function log(msg) {
+            const el = $("log");
+            const ts = new Date().toLocaleTimeString();
+            el.textContent = `[${ts}] ${msg}\n` + el.textContent;
+        }
+
+        function formatMoney(n) {
+            return "$" + (Number(n) || 0).toFixed(2);
+        }
+
+        function computeNights(checkIn, checkOut) {
+            if (!checkIn || !checkOut) return 0;
+            const a = new Date(checkIn);
+            const b = new Date(checkOut);
+            const ms = b - a;
+            if (ms <= 0) return 0;
+            return Math.round(ms / (1000 * 60 * 60 * 24));
+        }
+
+        function computeBookingFinancials(b) {
+            const nights = computeNights(b.checkIn, b.checkOut);
+            const rate = Number(b.rate) || 0;
+            const roomTotal = rate * nights;
+
+            const stateEnabled = !!b.tax.stateEnabled;
+            const cityEnabled = !!b.tax.cityEnabled;
+            const stateRate = Number(b.tax.stateRate) || 0;
+            const cityRate = Number(b.tax.cityRate) || 0;
+
+            const stateAmount = stateEnabled ? roomTotal * stateRate : 0;
+            const cityAmount = cityEnabled ? roomTotal * cityRate : 0;
+            const totalTax = stateAmount + cityAmount;
+
+            const chargesTotal = (b.charges || []).reduce((s, c) => s + Number(c.amount || 0), 0);
+            const paymentsTotal = (b.payments || []).reduce((s, p) => s + Number(p.amount || 0), 0);
+
+            const stayTotal = roomTotal + totalTax + chargesTotal;
+            const balanceDue = stayTotal - paymentsTotal;
+
+            b.nights = nights;
+            b.roomTotal = roomTotal;
+            b.tax.stateAmount = stateAmount;
+            b.tax.cityAmount = cityAmount;
+            b.tax.totalTax = totalTax;
+            b.chargesTotal = chargesTotal;
+            b.paymentsTotal = paymentsTotal;
+            b.stayTotal = stayTotal;
+            b.balanceDue = balanceDue;
+        }
+
+        function renderRooms() {
+            const sel = $("roomSelect");
+            sel.innerHTML = "";
+            state.rooms.forEach(r => {
+                const opt = document.createElement("option");
+                opt.value = r;
+                opt.textContent = r;
+                sel.appendChild(opt);
+            });
+            state.activeRoom = state.rooms[0];
+            sel.value = state.activeRoom;
+        }
+
+        function renderBookings() {
+            const list = $("bookingList");
+            list.innerHTML = "";
+            state.bookings.forEach(b => {
+                const div = document.createElement("div");
+                div.className = "list-item" + (state.activeBooking && state.activeBooking.room === b.room ? " active" : "");
+                const left = document.createElement("div");
+                left.innerHTML = `<strong>Room ${b.room}</strong> — ${b.name.first || ""} ${b.name.last || ""}`;
+                const right = document.createElement("div");
+                right.innerHTML = `<span class="pill">${b.nights || 0} nights</span>`;
+                div.appendChild(left);
+                div.appendChild(right);
+                div.onclick = () => { state.activeBooking = b; loadBookingIntoUI(); };
+                list.appendChild(div);
+            });
+        }
+
+        function loadBookingIntoUI() {
+            const b = state.activeBooking;
+            if (!b) {
+                $("firstName").value = "";
+                $("lastName").value = "";
+                $("checkIn").value = "";
+                $("checkOut").value = "";
+                $("rate").value = "";
+                $("stateEnabled").checked = false;
+                $("cityEnabled").checked = false;
+                $("stateRate").value = "";
+                $("cityRate").value = "";
+                $("chargesList").innerHTML = "";
+                $("paymentsList").innerHTML = "";
+                updateSummaryUI();
+                return;
+            }
+            $("roomSelect").value = b.room;
+            $("firstName").value = b.name.first || "";
+            $("lastName").value = b.name.last || "";
+            $("checkIn").value = b.checkIn || "";
+            $("checkOut").value = b.checkOut || "";
+            $("rate").value = b.rate || "";
+
+            $("stateEnabled").checked = !!b.tax.stateEnabled;
+            $("cityEnabled").checked = !!b.tax.cityEnabled;
+            $("stateRate").value = (Number(b.tax.stateRate || 0) * 100).toFixed(2);
+            $("cityRate").value = (Number(b.tax.cityRate || 0) * 100).toFixed(2);
+
+            renderCharges();
+            renderPayments();
+            updateSummaryUI();
+        }
+
+        function renderCharges() {
+            const b = state.activeBooking;
+            const list = $("chargesList");
+            list.innerHTML = "";
+            if (!b || !b.charges || !b.charges.length) {
+                list.textContent = "No extra charges.";
+                return;
+            }
+            b.charges.forEach((c, idx) => {
+                const div = document.createElement("div");
+                div.className = "list-item";
+                div.innerHTML = `<span>${c.type || "charge"}</span><span>${formatMoney(c.amount)}</span>`;
+                div.onclick = () => {
+                    b.charges.splice(idx, 1);
+                    computeBookingFinancials(b);
+                    renderCharges();
+                    updateSummaryUI();
+                    log(`Removed charge from room ${b.room}.`);
+                };
+                list.appendChild(div);
+            });
+        }
+
+        function renderPayments() {
+            const b = state.activeBooking;
+            const list = $("paymentsList");
+            list.innerHTML = "";
+            if (!b || !b.payments || !b.payments.length) {
+                list.textContent = "No payments recorded.";
+                return;
+            }
+            b.payments.forEach((p, idx) => {
+                const div = document.createElement("div");
+                div.className = "list-item";
+                div.innerHTML = `<span>${p.method || "payment"}</span><span>${formatMoney(p.amount)}</span>`;
+                div.onclick = () => {
+                    b.payments.splice(idx, 1);
+                    computeBookingFinancials(b);
+                    renderPayments();
+                    updateSummaryUI();
+                    log(`Removed payment from room ${b.room}.`);
+                };
+                list.appendChild(div);
+            });
+        }
+
+        function updateSummaryUI() {
+            const b = state.activeBooking || {
+                rate: Number($("rate").value) || 0,
+                checkIn: $("checkIn").value,
+                checkOut: $("checkOut").value,
+                tax: {
+                    stateEnabled: $("stateEnabled").checked,
+                    cityEnabled: $("cityEnabled").checked,
+                    stateRate: (Number($("stateRate").value) || 0) / 100,
+                    cityRate: (Number($("cityRate").value) || 0) / 100
+                },
+                charges: [],
+                payments: []
+            };
+            computeBookingFinancials(b);
+
+            $("nightsValue").textContent = b.nights || 0;
+            $("summaryRate").textContent = formatMoney(b.rate || 0);
+            $("summaryNights").textContent = b.nights || 0;
+            $("summaryRoomTotal").textContent = formatMoney(b.roomTotal || 0);
+
+            $("stateAmount").textContent = formatMoney(b.tax.stateAmount || 0);
+            $("cityAmount").textContent = formatMoney(b.tax.cityAmount || 0);
+            $("totalTax").textContent = formatMoney(b.tax.totalTax || 0);
+
+            $("chargesTotal").textContent = formatMoney(b.chargesTotal || 0);
+            $("paymentsTotal").textContent = formatMoney(b.paymentsTotal || 0);
+            $("stayTotal").textContent = formatMoney(b.stayTotal || 0);
+            $("balanceDue").textContent = formatMoney(b.balanceDue || 0);
+        }
+
+        function createNewBookingForRoom(room) {
+            const today = new Date();
+            const tomorrow = new Date(today.getTime() + 86400000);
+            const fmt = d => d.toISOString().slice(0, 10);
+
+            const b = {
+                room,
+                name: { first: "", last: "" },
+                checkIn: fmt(today),
+                checkOut: fmt(tomorrow),
+                rate: 129,
+                tax: {
+                    stateEnabled: true,
+                    cityEnabled: false,
+                    stateRate: 0.055,
+                    cityRate: 0.0275,
+                    stateAmount: 0,
+                    cityAmount: 0,
+                    totalTax: 0
+                },
+                charges: [],
+                payments: []
+            };
+            computeBookingFinancials(b);
+            const existingIdx = state.bookings.findIndex(x => x.room === room);
+            if (existingIdx >= 0) state.bookings[existingIdx] = b;
+            else state.bookings.push(b);
+            state.activeBooking = b;
+            renderBookings();
+            loadBookingIntoUI();
+            log(`Created new booking for room ${room}.`);
+        }
+
+        // Event wiring
+        $("roomSelect").addEventListener("change", e => {
+            state.activeRoom = Number(e.target.value);
+            const existing = state.bookings.find(b => b.room === state.activeRoom);
+            state.activeBooking = existing || null;
+            if (!existing) log(`Room ${state.activeRoom} has no booking yet.`);
+            loadBookingIntoUI();
+        });
+
+        ["firstName", "lastName", "checkIn", "checkOut", "rate"].forEach(id => {
+            $(id).addEventListener("input", () => {
+                if (!state.activeBooking) return;
+                state.activeBooking.name.first = $("firstName").value;
+                state.activeBooking.name.last = $("lastName").value;
+                state.activeBooking.checkIn = $("checkIn").value;
+                state.activeBooking.checkOut = $("checkOut").value;
+                state.activeBooking.rate = Number($("rate").value) || 0;
+                computeBookingFinancials(state.activeBooking);
+                renderBookings();
+                updateSummaryUI();
+            });
+        });
+
+        ["stateEnabled", "cityEnabled", "stateRate", "cityRate"].forEach(id => {
+            $(id).addEventListener("input", () => {
+                if (!state.activeBooking) return;
+                state.activeBooking.tax.stateEnabled = $("stateEnabled").checked;
+                state.activeBooking.tax.cityEnabled = $("cityEnabled").checked;
+                state.activeBooking.tax.stateRate = (Number($("stateRate").value) || 0) / 100;
+                state.activeBooking.tax.cityRate = (Number($("cityRate").value) || 0) / 100;
+                computeBookingFinancials(state.activeBooking);
+                updateSummaryUI();
+            });
+        });
+
+        $("addChargeBtn").addEventListener("click", () => {
+            if (!state.activeBooking) { log("No active booking selected."); return; }
+            const type = $("chargeType").value.trim() || "charge";
+            const amount = Number($("chargeAmount").value) || 0;
+            if (amount <= 0) { log("Charge amount must be > 0."); return; }
+            state.activeBooking.charges.push({ type, amount });
+            computeBookingFinancials(state.activeBooking);
+            renderCharges();
+            updateSummaryUI();
+            $("chargeAmount").value = "";
+            log(`Added charge ${formatMoney(amount)} (${type}) to room ${state.activeBooking.room}.`);
+        });
+
+        $("addPaymentBtn").addEventListener("click", () => {
+            if (!state.activeBooking) { log("No active booking selected."); return; }
+            const method = $("paymentMethod").value.trim() || "payment";
+            const amount = Number($("paymentAmount").value) || 0;
+            if (amount <= 0) { log("Payment amount must be > 0."); return; }
+            state.activeBooking.payments.push({ method, amount, timestamp: new Date().toISOString() });
+            computeBookingFinancials(state.activeBooking);
+            renderPayments();
+            updateSummaryUI();
+            $("paymentAmount").value = "";
+            log(`Recorded payment ${formatMoney(amount)} (${method}) for room ${state.activeBooking.room}.`);
+        });
+
+        $("saveBookingBtn").addEventListener("click", () => {
+            if (!state.activeBooking) { log("No active booking to save."); return; }
+            computeBookingFinancials(state.activeBooking);
+            renderBookings();
+            updateSummaryUI();
+            log(`Saved booking for room ${state.activeBooking.room}. (In this prototype, data is in-memory only.)`);
+        });
+
+        $("deleteBookingBtn").addEventListener("click", () => {
+            if (!state.activeBooking) { log("No active booking to delete."); return; }
+            const room = state.activeBooking.room;
+            state.bookings = state.bookings.filter(b => b.room !== room);
+            state.activeBooking = null;
+            renderBookings();
+            loadBookingIntoUI();
+            log(`Deleted booking for room ${room}.`);
+        });
+
+        $("newBookingBtn").addEventListener("click", () => {
+            const room = Number($("roomSelect").value);
+            createNewBookingForRoom(room);
+        });
+
+        // Init
+        renderRooms();
+        createNewBookingForRoom(state.activeRoom);
+    </script>
+</body>
+
+</html>
