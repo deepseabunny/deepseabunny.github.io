@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>THE WEST — Terminal Guest Registry Prototype Documentation</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+        :root {
+            --bg: #02040a;
+            --card: #050814;
+            --accent: #00ff88;
+            --accent-soft: #b7ffdd;
+            --muted: #7a8b8f;
+            --border: #0b1c24;
+            --code-bg: #050b12;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+            background: radial-gradient(circle at top, #04121a 0, #02040a 55%, #000000 100%);
+            color: #e9fdf4;
+            -webkit-font-smoothing: antialiased;
+            padding: 32px 16px 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .doc {
+            width: 100%;
+            max-width: 900px;
+            background: linear-gradient(145deg, rgba(0, 0, 0, 0.9), rgba(2, 10, 8, 0.98));
+            border-radius: 18px;
+            border: 1px solid rgba(0, 255, 136, 0.12);
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.85);
+            padding: 26px 24px 30px;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4 {
+            font-family: "IBM Plex Sans", system-ui, sans-serif;
+            margin: 0 0 10px;
+            letter-spacing: 0.02em;
+        }
+
+        h1 {
+            font-size: 26px;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        h2 {
+            font-size: 18px;
+            margin-top: 22px;
+            border-bottom: 1px solid rgba(0, 255, 136, 0.16);
+            padding-bottom: 4px;
+        }
+
+        h3 {
+            font-size: 15px;
+            margin-top: 16px;
+        }
+
+        p {
+            margin: 0 0 10px;
+            color: #e3f7ee;
+            line-height: 1.55;
+            font-size: 14px;
+        }
+
+        .subtitle {
+            color: var(--accent-soft);
+            font-size: 13px;
+            margin-bottom: 18px;
+        }
+
+        .tagline {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 18px;
+        }
+
+        ul,
+        ol {
+            margin: 6px 0 10px 20px;
+            padding: 0;
+            color: #e3f7ee;
+            font-size: 14px;
+        }
+
+        li {
+            margin-bottom: 4px;
+        }
+
+        .section-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 10px 12px;
+            margin: 10px 0 14px;
+        }
+
+        code {
+            font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+            font-size: 12px;
+            background: var(--code-bg);
+            padding: 2px 4px;
+            border-radius: 4px;
+            border: 1px solid rgba(0, 255, 136, 0.12);
+            color: var(--accent-soft);
+        }
+
+        pre {
+            background: var(--code-bg);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 136, 0.16);
+            padding: 10px 12px;
+            overflow: auto;
+            font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+            font-size: 12px;
+            color: var(--accent-soft);
+            margin: 8px 0 12px;
+        }
+
+        .pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 6px 0 10px;
+        }
+
+        .pill {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(0, 255, 136, 0.25);
+            color: var(--accent-soft);
+            background: rgba(0, 255, 136, 0.06);
+        }
+
+        .footer {
+            margin-top: 18px;
+            padding-top: 10px;
+            border-top: 1px dashed rgba(0, 255, 136, 0.18);
+            font-size: 11px;
+            color: var(--muted);
+        }
+    </style>
+</head>
+
+<body>
+    <article class="doc">
+        <header>
+            <div class="section-label">Prototype documentation</div>
+            <h1>THE WEST — Terminal Guest Registry</h1>
+            <div class="subtitle">First Prototype Documentation</div>
+            <p class="tagline">
+                A browser-based, terminal-inspired guest registry and 30-day room timeline, backed by IndexedDB via
+                Dexie.js.
+            </p>
+            <div class="pill-row">
+                <div class="pill">Single-page HTML</div>
+                <div class="pill">Dexie / IndexedDB</div>
+                <div class="pill">One booking per room</div>
+                <div class="pill">Date-based availability</div>
+                <div class="pill">Simulated REST API</div>
+            </div>
+        </header>
+
+        <section>
+            <h2>1. System overview</h2>
+            <p>
+                THE WEST is a browser-based hotel operations console that simulates guest intake, room assignment,
+                current
+                occupancy, future bookings, a 30-day room timeline, and a small REST-like API surface. It runs entirely
+                in
+                the browser, using IndexedDB (via Dexie.js) for persistence—no backend required.
+            </p>
+            <p>
+                The prototype models a hotel as a fixed set of rooms, each with one active booking record. Future
+                bookings
+                overwrite the room’s record, allowing the system to simulate forward occupancy pressure without
+                introducing
+                multi-booking complexity. The UI is terminal-inspired, prioritizing immediacy, low friction, and high
+                visibility for operators.
+            </p>
+            <p>Core goals:</p>
+            <ul>
+                <li>Provide a fast, local, persistent guest registry.</li>
+                <li>Model occupancy using date-based logic instead of record existence.</li>
+                <li>Expose a clear operational snapshot: now, future, total.</li>
+                <li>Support “Generate Full” and future booking simulation.</li>
+                <li>Keep everything in a single, inspectable HTML file.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>2. Data model</h2>
+            <h3>2.1 Booking record</h3>
+            <p>Each room has one active booking record at any time, shaped roughly as:</p>
+            <pre>{
+  "room": 101,
+  "name": { "first": "Ava", "last": "Morris" },
+  "phone": "555-0101",
+  "zip": "85001",
+  "notes": "VIP arriving late",
+  "flags": ["VIP"],
+  "checkIn": "2026-03-12T15:00",
+  "checkOut": "2026-03-14T11:00"
+}</pre>
+
+            <h3>2.2 Dexie schema</h3>
+            <p>The Dexie schema is intentionally simple:</p>
+            <pre>db.version(3).stores({
+  guests: "room"
+});</pre>
+            <ul>
+                <li><strong>Primary key:</strong> <code>room</code></li>
+                <li>Exactly one record per room.</li>
+                <li>Future bookings overwrite the room’s record.</li>
+                <li>The 30-day timeline uses these records to render occupancy.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>3. Operational model</h2>
+            <h3>3.1 One booking per room</h3>
+            <p>
+                The system intentionally avoids multi-booking per room. Each room has a single record representing
+                either
+                the current stay or the next future stay. This keeps reasoning about occupancy straightforward and makes
+                the timeline easy to interpret.
+            </p>
+
+            <h3>3.2 Generate Full behavior</h3>
+            <ul>
+                <li><strong>First click:</strong> fills all rooms with current guests.</li>
+                <li><strong>Subsequent clicks:</strong> generate future guests and overwrite room records.</li>
+                <li>Total records stay roughly equal to the number of rooms.</li>
+                <li>The timeline shows future occupancy based on the latest record per room.</li>
+            </ul>
+
+            <h3>3.3 Date-based availability</h3>
+            <p>A room is considered occupied today if:</p>
+            <pre>today >= checkIn AND today &lt; checkOut</pre>
+            <p>Availability is defined as “not occupied today”—past and future bookings do not block assignment.</p>
+
+            <h3>3.4 Status counts</h3>
+            <p>The header shows a three-part snapshot:</p>
+            <pre>IndexedDB • {now} now / {future} future / {total} total</pre>
+            <ul>
+                <li><strong>now:</strong> guests currently in-house today.</li>
+                <li><strong>future:</strong> guests whose check-in date is after today.</li>
+                <li><strong>total:</strong> all booking records in IndexedDB.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>4. UI components</h2>
+
+            <h3>4.1 Terminal header</h3>
+            <p>
+                Displays a pseudo-shell prompt, subsystem label, IndexedDB status, now/future/total counts, and quick
+                actions:
+            </p>
+            <ul>
+                <li><strong>Generate Full / Future:</strong> generate current or future hotel state.</li>
+                <li><strong>API Panel:</strong> open the simulated REST console.</li>
+            </ul>
+
+            <h3>4.2 Guest intake form</h3>
+            <p>Fields:</p>
+            <ul>
+                <li>First name, last name</li>
+                <li>Phone, ZIP</li>
+                <li>Check-in, check-out (with sensible defaults if omitted)</li>
+                <li>Notes</li>
+                <li>Flags (stored as an array of strings)</li>
+                <li>Room selector (only rooms free today are assignable)</li>
+            </ul>
+
+            <h3>4.3 Registry list</h3>
+            <p>
+                Shows all bookings, sorted by room and check-in date. Each entry displays guest name, room, phone,
+                flags,
+                stay dates, and a notes preview. Clicking an entry opens the edit panel for that booking.
+            </p>
+
+            <h3>4.4 Room grid</h3>
+            <p>
+                A compact grid of rooms shows current-day occupancy at a glance. Rooms occupied today are highlighted;
+                free rooms remain neutral. This grid is driven by the same date-based logic as the room selector and
+                availability API.
+            </p>
+
+            <h3>4.5 30-day timeline</h3>
+            <p>
+                An ASCII-style timeline renders 30 days from today for each room, using blocks for occupied days and
+                light
+                characters for free days:
+            </p>
+            <pre>Room 101 | ███░░░░░░░░░░░░░░░░░░░░</pre>
+            <p>This gives a quick visual sense of current and future occupancy pressure.</p>
+
+            <h3>4.6 System log</h3>
+            <p>
+                A scrolling log captures operational events: booking creation, updates, deletions, API calls, and
+                generator
+                actions. Entries are timestamped and prepend to keep the latest activity visible.
+            </p>
+        </section>
+
+        <section>
+            <h2>5. API panel (simulated REST)</h2>
+            <p>
+                The right-side API panel simulates a small REST API over the same Dexie-backed data. It’s designed for
+                inspection, testing, and future integration thinking.
+            </p>
+
+            <h3>5.1 Endpoints</h3>
+            <ul>
+                <li>GET /guests</li>
+                <li>GET /rooms/available</li>
+                <li>POST /guests</li>
+                <li>PUT /guests/:id</li>
+                <li>DELETE /guests/:id</li>
+                <li>GET /search?q=</li>
+                <li>GET /timeline</li>
+                <li>GET /export</li>
+                <li>POST /import</li>
+            </ul>
+
+            <h3>5.2 Request / response</h3>
+            <ul>
+                <li><strong>Request:</strong> free-form JSON or query string, depending on endpoint.</li>
+                <li><strong>Response:</strong> pretty-printed JSON or raw export string in a resizable textarea.</li>
+            </ul>
+            <p>
+                All endpoints are thin wrappers around Dexie operations, making the API panel a live window into the
+                same
+                state the UI uses.
+            </p>
+        </section>
+
+        <section>
+            <h2>6. Availability logic</h2>
+            <p>
+                The system’s notion of availability is fully date-based. A room is unavailable only if it is occupied
+                today; future or past bookings alone do not block assignment.
+            </p>
+            <p>Canonical logic:</p>
+            <pre>today >= checkIn AND today &lt; checkOut</pre>
+            <p>
+                This logic is shared across the room selector, room grid, and <code>GET /rooms/available</code>
+                endpoint,
+                keeping the operational story consistent.
+            </p>
+        </section>
+
+        <section>
+            <h2>7. Edit panel</h2>
+            <p>
+                The edit panel allows operators to adjust an existing booking’s guest details, notes, flags, and dates.
+                Room number remains fixed under the one-booking-per-room model. Actions include:
+            </p>
+            <ul>
+                <li>Update guest details and stay dates.</li>
+                <li>Adjust flags and notes.</li>
+                <li>Delete the booking entirely.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>8. Future directions</h2>
+            <p>Potential expansions on top of this prototype include:</p>
+            <ul>
+                <li>Multi-booking per room with overlap detection.</li>
+                <li>Turnover windows and housekeeping scheduling.</li>
+                <li>Multi-property or multi-wing support.</li>
+                <li>Operator roles and permissions.</li>
+                <li>WebSocket-based shared timeline for multiple operators.</li>
+                <li>Forecasting and occupancy pressure modeling.</li>
+                <li>Export to CSV, ICS, or external PMS systems.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>9. Philosophy</h2>
+            <p>
+                THE WEST is built around clarity, operational truth, and minimal friction. It favors a terminal-style
+                aesthetic, local persistence, and fast iteration over heavy frameworks or opaque backends. The prototype
+                is intentionally small, inspectable, and honest about the world it models.
+            </p>
+            <p>
+                It serves as a foundation for deeper operational intelligence: forecasting, turnover modeling, and
+                eventually multi-agent collaboration around a shared, truthful state of the hotel.
+            </p>
+        </section>
+
+        <section>
+            <h2>10. API Samples</h2>
+            <p>
+                This section provides example requests and responses for every simulated REST endpoint
+                in <strong>THE WEST</strong>. All endpoints operate directly on the Dexie-backed IndexedDB store.
+            </p>
+
+            <!-- GET /guests -->
+            <h3>10.1 GET /guests</h3>
+            <p>Retrieve all guest booking records.</p>
+            <pre><code>GET /guests</code></pre>
+            <pre>{
+  "room": 101,
+  "name": { "first": "Ava", "last": "Morris" },
+  "phone": "555-0101",
+  "zip": "85001",
+  "notes": "VIP arriving late",
+  "flags": ["VIP"],
+  "checkIn": "2026-03-12T15:00",
+  "checkOut": "2026-03-14T11:00"
+}</pre>
+
+            <!-- GET /rooms/available -->
+            <h3>10.2 GET /rooms/available</h3>
+            <p>Return rooms not occupied today.</p>
+            <pre><code>GET /rooms/available</code></pre>
+            <pre>[102, 104, 110, 122]</pre>
+
+            <!-- POST /guests -->
+            <h3>10.3 POST /guests</h3>
+            <p>Create a new booking.</p>
+            <pre><code>POST /guests</code></pre>
+            <pre>{
+  "room": 110,
+  "name": { "first": "Rae", "last": "Khan" },
+  "phone": "555-0110",
+  "zip": "85010",
+  "notes": "Requested DND",
+  "flags": ["DND"],
+  "checkIn": "2026-03-12T15:00",
+  "checkOut": "2026-03-14T11:00"
+}</pre>
+            <pre>{
+  "success": true,
+  "room": 110
+}</pre>
+
+            <!-- PUT /guests/:id -->
+            <h3>10.4 PUT /guests/:id</h3>
+            <p>Update an existing booking.</p>
+            <pre><code>PUT /guests/110</code></pre>
+            <pre>{
+  "room": 110,
+  "name": { "first": "Rae", "last": "Khan" },
+  "phone": "555-0110",
+  "zip": "85010",
+  "notes": "Extended stay",
+  "flags": ["DND"],
+  "checkIn": "2026-03-12T15:00",
+  "checkOut": "2026-03-16T11:00"
+}</pre>
+            <pre>{
+  "success": true,
+  "updated": 110
+}</pre>
+
+            <!-- DELETE /guests/:id -->
+            <h3>10.5 DELETE /guests/:id</h3>
+            <p>Delete a booking.</p>
+            <pre><code>DELETE /guests/110</code></pre>
+            <pre>{
+  "success": true
+}</pre>
+
+            <!-- GET /search -->
+            <h3>10.6 GET /search?q=</h3>
+            <p>Search guests by name, phone, room, notes, or flags.</p>
+            <pre><code>GET /search?q=VIP</code></pre>
+            <pre>[
+  {
+    "room": 101,
+    "name": { "first": "Ava", "last": "Morris" },
+    "flags": ["VIP"]
+  }
+]</pre>
+
+            <!-- GET /timeline -->
+            <h3>10.7 GET /timeline</h3>
+            <p>Return 30-day occupancy map.</p>
+            <pre><code>GET /timeline</code></pre>
+            <pre>{
+  "days": ["03-12", "03-13", "03-14", "..."],
+  "rooms": {
+    "101": ["█","█","░","..."],
+    "102": ["░","░","░","..."]
+  }
+}</pre>
+
+            <!-- GET /export -->
+            <h3>10.8 GET /export</h3>
+            <p>Export all booking data as JSON.</p>
+            <pre><code>GET /export</code></pre>
+            <pre>"[{ ... full JSON export ... }]"</pre>
+
+            <!-- POST /import -->
+            <h3>10.9 POST /import</h3>
+            <p>Import a full booking dataset.</p>
+            <pre><code>POST /import</code></pre>
+            <pre>[
+  {
+    "room": 101,
+    "name": { "first": "Ava", "last": "Morris" },
+    "phone": "555-0101",
+    "zip": "85001",
+    "notes": "VIP arriving late",
+    "flags": ["VIP"],
+    "checkIn": "2026-03-12T15:00",
+    "checkOut": "2026-03-14T11:00"
+  }
+]</pre>
+            <pre>{
+  "success": true
+}</pre>
+
+        </section>
+
+        <footer class="footer">
+            THE WEST — API Samples Documentation · Single-file HTML · Dexie / IndexedDB
+        </footer>
+    </article>
+</body>
+
+</html>
