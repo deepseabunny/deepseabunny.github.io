@@ -1,149 +1,178 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <title>THE WEST — Terminal OS Page</title>
-  <style>
-    body {
-      margin: 0;
-      background: #000;
-      color: #00ff99;
-      font-family: "Fira Code", monospace;
-    }
+    <meta charset="UTF-8" />
+    <title>THE WEST — Terminal OS Page</title>
+    <style>
+        body {
+            margin: 0;
+            background: #000;
+            color: #00ff99;
+            font-family: "Fira Code", monospace;
+        }
 
-    .terminal {
-      box-sizing: border-box;
-      padding: 16px 20px;
-      max-width: 960px;
-      margin: 20px auto;
-      border: 1px solid #00ff99;
-      background: #020202;
-    }
+        .terminal {
+            box-sizing: border-box;
+            padding: 16px 20px;
+            max-width: 960px;
+            margin: 20px auto;
+            border: 1px solid #00ff99;
+            background: #020202;
+        }
 
-    .title-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
+        .title-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
 
-    .title-bar .dots span {
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      margin-right: 6px;
-    }
+        .title-bar .dots span {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
 
-    .dot-red { background: #ff5f57; }
-    .dot-yellow { background: #febc2e; }
-    .dot-green { background: #28c840; }
+        .dot-red {
+            background: #ff5f57;
+        }
 
-    .path {
-      font-size: 12px;
-      opacity: 0.8;
-      margin-bottom: 12px;
-    }
+        .dot-yellow {
+            background: #febc2e;
+        }
 
-    .doc-links {
-      display: flex;
-      gap: 12px;
-      margin: 16px 0;
-    }
+        .dot-green {
+            background: #28c840;
+        }
 
-    .link-btn {
-      background: transparent;
-      border: 1px solid #00ff99;
-      color: #00ff99;
-      padding: 6px 14px;
-      font-family: "Fira Code", monospace;
-      cursor: pointer;
-      transition: 0.2s;
-    }
+        .path {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 12px;
+        }
 
-    .link-btn:hover {
-      background: #00ff99;
-      color: #000;
-    }
+        .doc-links {
+            display: flex;
+            gap: 12px;
+            margin: 16px 0;
+        }
 
-    .block-title {
-      margin: 16px 0 4px;
-      font-weight: bold;
-    }
+        .link-btn {
+            background: transparent;
+            border: 1px solid #00ff99;
+            color: #00ff99;
+            padding: 6px 14px;
+            font-family: "Fira Code", monospace;
+            cursor: pointer;
+            transition: 0.2s;
+        }
 
-    .block {
-      border-left: 2px solid #00ff99;
-      padding-left: 10px;
-      margin-bottom: 10px;
-      white-space: pre-wrap;
-      font-size: 13px;
-      line-height: 1.4;
-    }
+        .link-btn:hover {
+            background: #00ff99;
+            color: #000;
+        }
 
-    .footer {
-      margin-top: 20px;
-      font-size: 11px;
-      opacity: 0.7;
-    }
-  </style>
+        .block-title {
+            margin: 16px 0 4px;
+            font-weight: bold;
+        }
+
+        .block {
+            border-left: 2px solid #00ff99;
+            padding-left: 10px;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 11px;
+            opacity: 0.7;
+        }
+    </style>
 </head>
 
 <body>
-  <div class="terminal">
+    <div class="terminal">
 
-    <!-- Title Bar -->
-    <div class="title-bar">
-      <div class="dots">
-        <span class="dot-red"></span>
-        <span class="dot-yellow"></span>
-        <span class="dot-green"></span>
-      </div>
-      <div>THE WEST — Terminal OS Page</div>
-      <div>v1.0</div>
+        <!-- Title Bar -->
+        <div class="title-bar">
+            <div class="dots">
+                <span class="dot-red"></span>
+                <span class="dot-yellow"></span>
+                <span class="dot-green"></span>
+            </div>
+            <div>THE WEST — Terminal OS Page</div>
+            <div>v1.0</div>
+        </div>
+
+        <!-- File Path -->
+        <div class="path">/sys/docs/index.html</div>
+
+        <!-- Navigation Buttons -->
+        <div class="doc-links">
+            <button class="link-btn" onclick="window.open('./_ml_the_west_scope.html', '_blank')">
+                Business
+            </button>
+
+            <button class="link-btn" onclick="window.open('./_ml_read.html', '_blank')">
+                ReadMe
+            </button>
+
+            <button class="link-btn" onclick="window.open('./ml_registration.html', '_blank')">
+                Registration
+            </button>
+
+            <button class="link-btn" onclick="window.open('./_ml_pay_design.html', '_blank')">
+                Payment
+            </button>
+
+        </div>
+
+        <!-- Content Block -->
+        <div class="block-title">The West Index Page</div>
+        <div class="block">
+            This is a standalone terminal‑OS themed page for THE WEST.
+
+            Explore the following above:
+            - Business, details on possible business operation
+            - ReadMe, details on operation the designed system
+            - Registration, UI/mock API for guest onboarding and its parts
+            - Payment, expoloration on payments during onboarding
+
+        </div>
+
+
+        <!-- File Path -->
+        <div class="path">/sys/docs/byte-syze-lahri.html</div>
+
+        <!-- Navigation Buttons -->
+        <div class="doc-links">
+            <button class="link-btn" onclick="window.open('./byte-syze-lahri.html', '_blank')">
+                Business
+            </button>
+        </div>
+
+        <!-- Content Block -->
+        <div class="block-title">The Standalone Lahri/Cart</div>
+        <div class="block">
+            Explore the following above:
+            - Business, details on possible business operation
+
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            > cat index.html
+            > end of file
+        </div>
+
     </div>
-
-    <!-- File Path -->
-    <div class="path">/sys/docs/index.html</div>
-
-    <!-- Navigation Buttons -->
-    <div class="doc-links">
-      <button class="link-btn" onclick="window.open('./_ml_the_west_scope.html', '_blank')">
-        Business
-      </button>
-
-      <button class="link-btn" onclick="window.open('./_ml_read.html', '_blank')">
-        ReadMe
-      </button>
-
-      <button class="link-btn" onclick="window.open('./ml_registration.html', '_blank')">
-        Registration
-      </button>
-
-      <button class="link-btn" onclick="window.open('./_ml_pay_design.html', '_blank')">
-        Payment
-      </button>
-      
-     </div>
-
-    <!-- Content Block -->
-    <div class="block-title">The West Index Page</div>
-    <div class="block">
-This is a standalone terminal‑OS themed page for THE WEST.
-
-Explore the following above:
-- Business, details on possible business operation
-- ReadMe, details on operation the designed system
-- Registration, UI/mock API for guest onboarding and its parts
-- Payment, expoloration on payments during onboarding
-
-    </div>
-
-    <!-- Footer -->
-    <div class="footer">
-      > cat index.html  
-      > end of file
-    </div>
-
-  </div>
 </body>
+
 </html>
