@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>THE WEST — Core Data Specification (Terminal Theme)</title>
+    <meta name="description"
+        content="THE WEST core data specification in a terminal-inspired single-page HTML document." />
+    <style>
+        /* Terminal WebOS / Retro Terminal Theme */
+        :root {
+            --bg: #00070a;
+            --panel: #021014;
+            --glass: rgba(255, 255, 255, 0.02);
+            --muted: #6fb6b9;
+            --accent: #39ffda;
+            --accent-2: #7ef0e6;
+            --text: #cfeff0;
+            --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            --radius: 6px;
+            --max-width: 1200px;
+            --terminal-border: rgba(57, 255, 218, 0.06);
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            background: linear-gradient(180deg, var(--bg), #00121a);
+            color: var(--text);
+            font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+        }
+
+        .frame {
+            max-width: var(--max-width);
+            margin: 28px auto;
+            padding: 18px;
+            border-radius: 10px;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0.00));
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            box-shadow: 0 18px 60px rgba(0, 0, 0, 0.7);
+        }
+
+        /* Terminal window */
+        .terminal {
+            background: linear-gradient(180deg, #001217, #001a20);
+            border-radius: 8px;
+            padding: 14px;
+            border: 1px solid var(--terminal-border);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02), 0 8px 30px rgba(0, 0, 0, 0.6);
+        }
+
+        .term-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px
+        }
+
+        .dots {
+            display: flex;
+            gap: 6px
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%
+        }
+
+        .dot.red {
+            background: #ff6b6b;
+            box-shadow: 0 0 8px rgba(255, 107, 107, 0.12)
+        }
+
+        .dot.yellow {
+            background: #ffd166;
+            box-shadow: 0 0 8px rgba(255, 209, 102, 0.08)
+        }
+
+        .dot.green {
+            background: #7cffb2;
+            box-shadow: 0 0 8px rgba(124, 255, 178, 0.06)
+        }
+
+        .term-title {
+            font-family: var(--mono);
+            color: var(--muted);
+            font-size: 13px;
+            margin-left: auto
+        }
+
+        .prompt {
+            font-family: var(--mono);
+            color: var(--accent);
+            font-weight: 700
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 12px
+        }
+
+        .panel {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent);
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            font-family: var(--mono);
+            font-size: 13px
+        }
+
+        .panel h2 {
+            margin: 0 0 8px 0;
+            color: var(--accent-2);
+            font-size: 13px
+        }
+
+        .panel h3 {
+            margin: 8px 0;
+            color: var(--accent);
+            font-size: 12px
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 12px
+        }
+
+        pre.doc {
+            background: #001a1c;
+            color: var(--text);
+            padding: 12px;
+            border-radius: 6px;
+            overflow: auto;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            font-family: var(--mono);
+            font-size: 13px;
+            line-height: 1.45
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px
+        }
+
+        th,
+        td {
+            padding: 8px 6px;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.03);
+            text-align: left;
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--muted)
+        }
+
+        th {
+            color: var(--accent-2);
+            font-weight: 600
+        }
+
+        ul.small {
+            margin: 8px 0 8px 18px;
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        .kbd {
+            background: #001a1d;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--accent-2)
+        }
+
+        .line {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(57, 255, 218, 0.06), transparent);
+            margin: 12px 0;
+            border-radius: 2px
+        }
+
+        footer {
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 12px;
+            text-align: center
+        }
+
+        @media (max-width:980px) {
+            .content {
+                grid-template-columns: 1fr
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="frame" role="main" aria-labelledby="doc-title">
+        <div class="terminal" role="region" aria-label="THE WEST documentation terminal">
+            <div class="term-header">
+                <div class="dots" aria-hidden="true">
+                    <div class="dot red"></div>
+                    <div class="dot yellow"></div>
+                    <div class="dot green"></div>
+                </div>
+                <div class="term-title">THE WEST — core-data.spec</div>
+            </div>
+
+            <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">
+                <div class="prompt">the-west$</div>
+                <div style="font-family:var(--mono);color:var(--muted);font-size:13px">core data specification —
+                    terminal theme</div>
+            </div>
+
+            <div class="content" id="content">
+                <!-- LEFT: quick nav / summary -->
+                <aside class="panel" aria-labelledby="summary">
+                    <h2 id="summary">Summary</h2>
+                    <div class="muted">Deterministic, UI‑agnostic data model for a single‑property guest registry. One
+                        booking per room. Date‑based occupancy. 30‑day timeline. IndexedDB persistence recommended.
+                    </div>
+
+                    <div class="line" aria-hidden="true"></div>
+
+                    <h3>Key invariants</h3>
+                    <ul class="small">
+                        <li>One booking per room — overwrite semantics.</li>
+                        <li>Occupied today if <code>D ≥ checkIn</code> and <code>D &lt; checkOut</code>.</li>
+                        <li>Availability is today‑centric.</li>
+                        <li>Bulk writes must be transactional.</li>
+                    </ul>
+
+                    <div class="line" aria-hidden="true"></div>
+
+                    <h3>API surface</h3>
+                    <ul class="small">
+                        <li><code>GET /guests</code></li>
+                        <li><code>GET /rooms/available</code></li>
+                        <li><code>POST /guests</code>, <code>PUT /guests/:id</code></li>
+                        <li><code>DELETE /guests/:id</code></li>
+                        <li><code>GET /timeline</code>, <code>GET /export</code>, <code>POST /import</code></li>
+                    </ul>
+
+                    <div class="line" aria-hidden="true"></div>
+
+                    <h3>Notes</h3>
+                    <div class="muted">This spec is intentionally minimal to keep operational reasoning simple and
+                        inspectable. Extend via hooks (audit log, multi‑booking module) without changing core invariants
+                        unless migrating.</div>
+                </aside>
+
+                <!-- RIGHT: full doc -->
+                <main class="panel" aria-labelledby="doc-title">
+                    <h2 id="doc-title">THE WEST — Core Data Specification</h2>
+
+                    <div class="line" aria-hidden="true"></div>
+
+                    <h3>System Overview</h3>
+                    <div class="muted">Provide a deterministic, inspectable, local data model representing a hotel as a
+                        fixed set of rooms with one active booking record per room. Occupancy is derived from dates; the
+                        data layer is the single source of truth for any UI or simulated REST surface.</div>
+
+                    <div class="line" aria-hidden="true"></div>
+
+                    <h3>Data Model</h3>
+                    <pre class="doc"><code>{
+  "room": 101,
+  "name": { "first": "Ava", "last": "Morris" },
+  "phone": "555-0101",
+  "zip": "85001",
+  "notes": "VIP arriving late",
+  "flags": ["VIP"],
+  "checkIn": "2026-03-12T15:00",
+  "checkOut": "2026-03-14T11:00"
+}</code></pre>
+
+                    <table aria-label="Field definitions">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th>Type</th>
+                                <th>Required</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>room</td>
+                                <td class="mono">integer</td>
+                                <td>Yes</td>
+                                <td>Primary key; must exist in room list</td>
+                            </tr>
+                            <tr>
+                                <td>name.first</td>
+                                <td class="mono">string</td>
+                                <td>Yes</td>
+                                <td>Non‑empty</td>
+                            </tr>
+                            <tr>
+                                <td>name.last</td>
+                                <td class="mono">string</td>
+                                <td>Yes</td>
+                                <td>Non‑empty</td>
+                            </tr>
+                            <tr>
+                                <td>checkIn</td>
+                                <td class="mono">ISO datetime</td>
+                                <td>Yes</td>
+                                <td>Local ISO string</td>
+                            </tr>
+                            <tr>
+                                <td>checkOut</td>
+                                <td class="mono">ISO datetime</td>
+                                <td>Yes</td>
+                                <td>Must be after checkIn</td>
+                            </tr>
+                            <tr>
+                                <td>flags</td>
+                                <td class="mono">array</td>
+                                <td>No</td>
+                                <td>Tags (VIP, DND)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="line" aria-hidden="true"></div>
+
+                    <h3>Core Invariants</h3>
+                    <ul class="small">
+                        <li><strong>One Booking Per Room</strong> — overwrite semantics; no implicit history.</li>
+                        <li><strong>Date-Based Occupancy</strong> — day-level rule: <code>D ≥ checkIn</code> and
+                            <code>D &lt; checkOut</code>.</li>
+                        <li><strong>Availability</strong> — only "occupied today" blocks assignment.</li>
+                        <li><strong>Determinism</strong> — timeline and counts are pure functions of stored records and
+                            clock.</li>
+                        <li><strong>Atomic Writes</strong> — generator/import must be transactional.</li>
+                    </ul>
+
+                    <div class="line" aria-hidden="true"></div>
+
+                    <h3>Timeline Math</h3>
+                    <div class="muted">Timeline window: default 30 days starting at local <code>today</code>. For each
+                        day D (midnight local), a booking occupies D if booking interval
+                        <code>[checkIn, checkOut)</code> intersects day interval <code>[D, D+1day)</code>. Render with
+                        <code>█</code> for occupied and <code>░</code> for free.</div>
+
+                    <pre class="doc"><code>{
+  "days": ["03-12","03-13","03-14","..."],
+  "rooms": {
+    "101": ["█","█","░","..."],
+    "102": ["░","░","░","..."]
+  }
+}</code></pre>
+
+                    <div class="line" aria-hidden="true"></div>
+
+                    <h3>API Semantics</h3>
+                    <ul class="small">
+                        <li><code>GET /guests</code> — return all booking records.</li>
+                        <li><code>GET /rooms/available</code> — rooms not occupied today.</li>
+                        <li><code>POST /guests</code> / <code>PUT /guests/:id</code> — validate then write (overwrite).
+                        </li>
+                        <li><code>DELETE /guests/:id</code> — remove record.</li>
+                        <li><code>GET /timeline</code> — deterministic timeline response.</li>
+                        <li><code>POST /import</code> — validate all records; write transactionally or abort.</li>
+                    </ul>
+
+                    <div class="line" aria-hidden="true"></div>
+
+                    <h3>Validation & Error Codes</h3>
+                    <ul class="small">
+                        <li><strong>Rules:</strong> room ∈ roomList; name.first/name.last non-empty; checkIn/checkOut
+                            valid ISO; checkOut &gt; checkIn; flags array if present.</li>
+                        <li><strong>Errors:</strong> <code>ERR_INVALID_PAYLOAD</code>, <code>ERR_MISSING_FIELD</code>,
+                            <code>ERR_INVALID_ROOM</code>, <code>ERR_INVALID_DATES</code>,
+                            <code>ERR_INVALID_FLAGS</code>, <code>ERR_IMPORT_VALIDATION</code>,
+                            <code>ERR_DB_WRITE</code>.</li>
+                        <li>Return structured JSON:
+                            <code>{ "error": "&lt;code&gt;", "message": "&lt;human message&gt;" }</code>.</li>
+                    </ul>
+
+                    <div class="line" aria-hidden="true"></div>
+
+                    <h3>Persistence & Migration</h3>
+                    <div class="muted">Recommended: IndexedDB via Dexie.js with <code>guests</code> store keyed by
+                        <code>room</code>. Bulk operations must use transactions. Maintain <code>db.version(n)</code>
+                        migrations and validate transformed records.</div>
+
+                    <div class="line" aria-hidden="true"></div>
+
+                    <h3>Testing Guidance</h3>
+                    <ul class="small">
+                        <li>Unit tests: validation, boundary occupancy, timeline correctness across DST/month
+                            boundaries.</li>
+                        <li>Integration tests: import aborts on invalid records; deterministic generator
+                            reproducibility; status counts correctness.</li>
+                        <li>Use seeded PRNG for deterministic test data.</li>
+                    </ul>
+
+                    <div class="line" aria-hidden="true"></div>
+
+                    <h3>Extension Hooks</h3>
+                    <ul class="small">
+                        <li>Audit log store <code>events</code> for operator history.</li>
+                        <li>Multi‑booking module as separate layer; keep core invariants unless migrating.</li>
+                        <li>Housekeeping windows and turnover fields as optional extensions.</li>
+                        <li>Multi‑property support via <code>propertyId</code> partitioning.</li>
+                    </ul>
+
+                    <div class="line" aria-hidden="true"></div>
+
+                    <h3>Examples</h3>
+                    <pre class="doc"><code>POST /guests
+{
+  "room": 110,
+  "name": { "first": "Rae", "last": "Khan" },
+  "phone": "555-0110",
+  "zip": "85010",
+  "notes": "Requested DND",
+  "flags": ["DND"],
+  "checkIn": "2026-03-12T15:00",
+  "checkOut": "2026-03-14T11:00"
+}
+
+Response:
+{ "success": true, "room": 110 }</code></pre>
+
+                    <div class="line" aria-hidden="true"></div>
+
+                    <h3>Appendix — Implementation Notes</h3>
+                    <ul class="small">
+                        <li>Timezone: use runtime local timezone; document for integrators.</li>
+                        <li>Clock source: <code>new Date()</code>; allow injection for tests.</li>
+                        <li>Inspectability: expose validation and schema helpers for UIs.</li>
+                        <li>Security: core spec assumes local-only; add auth/rate-limiting when exposing network APIs.
+                        </li>
+                    </ul>
+
+                </main>
+            </div>
+
+            <div style="margin-top:12px;display:flex;gap:12px;align-items:center">
+                <div class="kbd">theme: terminal-webos</div>
+                <div class="muted" style="margin-left:auto">THE WEST • core-data.spec • single page</div>
+            </div>
+
+            <footer style="margin-top:12px">
+                <div class="muted">Inspect, extend, and implement the data layer. UI is thin — the data model is the
+                    truth.</div>
+            </footer>
+        </div>
+    </div>
+</body>
+
+</html>
