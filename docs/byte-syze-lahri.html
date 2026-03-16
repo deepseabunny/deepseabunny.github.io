@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BYTE SYZE LAHRI — Terminal OS Dossier</title>
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: #00ff99;
+      font-family: "Fira Code", monospace;
+    }
+
+    .terminal {
+      box-sizing: border-box;
+      padding: 16px 20px;
+      max-width: 960px;
+      margin: 20px auto;
+      border: 1px solid #00ff99;
+      background: #020202;
+    }
+
+    .title-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .title-bar .dots span {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    .dot-red { background: #ff5f57; }
+    .dot-yellow { background: #febc2e; }
+    .dot-green { background: #28c840; }
+
+    .path {
+      font-size: 12px;
+      opacity: 0.8;
+      margin-bottom: 12px;
+    }
+
+    .block-title {
+      margin: 16px 0 4px;
+      font-weight: bold;
+    }
+
+    .block {
+      border-left: 2px solid #00ff99;
+      padding-left: 10px;
+      margin-bottom: 12px;
+      white-space: pre-wrap;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .footer {
+      margin-top: 20px;
+      font-size: 11px;
+      opacity: 0.7;
+    }
+
+    .doc-links {
+      display: flex;
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .link-btn {
+      background: transparent;
+      border: 1px solid #00ff99;
+      color: #00ff99;
+      padding: 6px 14px;
+      font-family: "Fira Code", monospace;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .link-btn:hover {
+      background: #00ff99;
+      color: #000;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="terminal">
+
+    <!-- Title Bar -->
+    <div class="title-bar">
+      <div class="dots">
+        <span class="dot-red"></span>
+        <span class="dot-yellow"></span>
+        <span class="dot-green"></span>
+      </div>
+      <div>BYTE SYZE LAHRI — Business Dossier</div>
+      <div>v0.9</div>
+    </div>
+
+    <!-- File Path -->
+    <div class="path">/sys/docs/byte-syze-lahri.html</div>
+
+    <!-- Section 1 -->
+    <div class="block-title">1. EXECUTIVE SUMMARY</div>
+    <div class="block">
+BYTE SYZE LAHRI is a micro‑food operation optimized for speed, portability, and
+single‑item specialization. Designed for youth sports venues, school events, and
+community gatherings, the LAHRI cart delivers a $10 entry price point with a
+simple, high‑margin 3‑item output menu.
+
+Core asset: a modified golf‑cart food truck with fast reset cycles and minimal
+kitchen requirements.
+    </div>
+
+    <!-- Section 2 -->
+    <div class="block-title">2. PRODUCT MODEL</div>
+    <div class="block">
+IN:  $10
+OUT:
+  - Pizza Slice (pre-cooked, vendor-loaded)
+  - Soft Drink (fountain)
+  - Cookie (warm)
+  - Cookie + Ice Cream (premium)
+
+"Single Food Specializes" categories:
+  - Bowls
+  - Sandwiches
+  - Locho
+  - Noodles
+  - Pizza Slice
+  - Treats
+
+Each category is modular and can be swapped depending on venue demand.
+    </div>
+
+    <!-- Section 3 -->
+    <div class="block-title">3. COST STRUCTURE</div>
+    <div class="block">
+CAPEX:
+  LAHRI Cart (modified golf cart) .......... MAX $10,000
+
+RECURRING COGS:
+  Pizza Slice .............................. ~$1.00
+  Soft Drink ............................... ~$0.50
+  Cookie + Ice Cream ....................... ~$1.00
+
+OPERATIONS:
+  Cart amortization (5 yrs) ............... ~$5.50/day
+  Automated vending amortization .......... ~$1.65/day
+  Energy (warmers, fountain, battery) ..... ~$50/day
+    </div>
+
+    <!-- Section 4 -->
+    <div class="block-title">4. DAILY COST SUMMARY</div>
+    <div class="block">
+Cart amortization ............... $5.50/day
+Automation amortization ......... $1.65/day
+Energy .......................... $50.00/day
+
+TOTAL DAILY COST ................ $57.15/day
+    </div>
+
+    <!-- Section 5 -->
+    <div class="block-title">5. REVENUE MODEL</div>
+    <div class="block">
+Assumptions:
+  - 6-hour operation window
+  - 50 units sold
+  - $10 per sale
+
+Revenue:
+  50 * $10 = $500/day
+
+COGS:
+  50 units * ~$1 = ~$50/day
+
+Gross Margin:
+  $500 - $50 = $450/day
+
+Subtract ops:
+  $450 - $57.15 ≈ $392.85/day
+
+Rounded:
+  ≈ $300–$400/day per cart (automated)
+    </div>
+
+    <!-- Section 6 -->
+    <div class="block-title">6. UNIT ECONOMICS</div>
+    <div class="block">
+Revenue per cart/day ............ ~$500
+Net profit per cart/day ......... ~$300–$400
+Net profit per cart/month ....... ~$9,000–$12,000
+Net profit per cart/year ........ ~$108,000–$144,000
+    </div>
+
+    <!-- Section 7 -->
+    <div class="block-title">7. SCALING MODEL</div>
+    <div class="block">
+1 cart  → $108k–$144k/yr
+5 carts → $540k–$720k/yr
+10 carts → $1.08M–$1.44M/yr
+
+Scaling advantages:
+  - Bulk ingredient purchasing
+  - Shared maintenance crew
+  - Centralized charging + cleaning
+  - Multi-venue rotation schedule
+    </div>
+
+    <!-- Section 8 -->
+    <div class="block-title">8. OPERATIONS MODEL</div>
+    <div class="block">
+KITCHEN:
+  - Minimal prep
+  - Pre-cooked pizza loaded from vendor
+  - Warmers + fountain + cookie heater
+  - 10-minute reset cycle
+
+CART:
+  - Golf-cart chassis
+  - Battery-powered warmers
+  - Modular food bay
+  - POS terminal or automated vending
+
+VENUE:
+  - Youth sports fields
+  - School events
+  - Community centers
+  - Parking lots
+  - Seasonal fairs
+    </div>
+
+    <!-- Section 9 -->
+    <div class="block-title">9. RISK + MITIGATION</div>
+    <div class="block">
+Low foot traffic ............... rotate venues  
+Ingredient spoilage ............ vendor-loaded slices  
+Labor volatility ............... automation  
+Weather ......................... indoor partnerships  
+Cart downtime ................... modular parts  
+    </div>
+
+    <!-- Section 10 -->
+    <div class="block-title">10. PHILOSOPHY</div>
+    <div class="block">
+Small menu. Fast service. High margin.
+One cart = one specialty.
+Reset fast. Move fast. Serve fast.
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      > cat byte-syze-lahri.html  
+      > end of file
+    </div>
+
+  </div>
+</body>
+</html>
