@@ -604,7 +604,6 @@
 
                         <div class="actions-row" style="margin-top:12px">
                             <button type="submit" class="btn">Register</button>
-                            <button type="button" id="loadSample" class="btn ghost">Load Sample</button>
                             <button type="button" id="clearForm" class="btn ghost">Clear</button>
                         </div>
                     </form>
@@ -1015,15 +1014,6 @@
             { room: 122, name: { first: 'Sam', last: 'Ivers' }, phone: '555-0122', zip: '85022', notes: 'Issue with heater', flags: ['ISSUE'] }
         ];
 
-        $('loadSample').addEventListener('click', async () => {
-            const now = new Date();
-            for (const g of sampleGuests) {
-                const ci = new Date(now); const co = new Date(now); co.setDate(co.getDate() + 2);
-                await API.createGuest({ ...g, checkIn: ci.toISOString(), checkOut: co.toISOString() });
-            }
-            log('Sample guests loaded'); toast('Sample loaded'); await refreshAll();
-        });
-
         $('clearAll').addEventListener('click', async () => {
             if (!confirm('Clear all guest data?')) return;
             await db.guests.clear();
@@ -1196,14 +1186,7 @@
             await refreshAll();
         }
 
-        $('generateFull').addEventListener('click', async () => {
-            if (!(await API.getGuests()).length) {
-                if (!confirm('Generate a full current hotel state and overwrite existing data?')) return;
-            } else {
-                if (!confirm('Add future guests on top of existing state?')) return;
-            }
-            await generateFullHotel();
-        });
+        
 
         (async function init() {
             editPanel.classList.remove('open'); editPanel.setAttribute('aria-hidden', 'true');
