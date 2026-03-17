@@ -221,6 +221,22 @@
     .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
     .actions-row{display:flex;gap:8px;flex-wrap:wrap}
     .small-note{font-size:12px;color:var(--accent-soft)}
+
+    /* allow flex/grid children to shrink */
+.grid-2 > * { min-width: 0; }
+
+/* ensure form controls can shrink and wrap instead of forcing overflow */
+input, select, textarea { min-width: 0; max-width: 100%; box-sizing: border-box; }
+
+/* allow header and action rows to wrap */
+.header-right, .actions-row { flex-wrap: wrap; gap: 8px; }
+
+/* break long words / content */
+.entry, .muted, .status, .pill { overflow-wrap: anywhere; word-break: break-word; }
+
+/* prevent timeline / long strings from expanding layout */
+.timeline, .log, .api-textarea { white-space: pre-wrap; word-break: break-word; }
+
   </style>
 </head>
 
