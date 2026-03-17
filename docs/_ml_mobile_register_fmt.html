@@ -826,7 +826,7 @@
                                 if (d >= ci && d < co) { occupied = true; break; }
                             }
                         }
-                        row.push(occupied ? '█' : '░');
+                        row.push(occupied ? '███' : '░░░░');
                     }
                     roomMap[room] = row;
                 }
@@ -928,7 +928,7 @@
             const rooms = Object.keys(data.rooms).sort((a, b) => parseInt(a) - parseInt(b));
             rooms.forEach(room => {
                 const row = document.createElement('div');
-                row.textContent = `Room ${room} | ${data.rooms[room].join('')}`;
+                row.textContent = `Room ${room} |  ${data.rooms[room].join('')}`;
                 tl.appendChild(row);
             });
         }
