@@ -921,7 +921,7 @@
             tl.appendChild(header);
 
             const data = await API.getTimeline(7);
-            const daysLabel = 'Days:       ' + data.days.map(d => d.slice(8)).join(' ');
+            const daysLabel = 'Days:       ' + data.days.map(d => d.slice(8)).join('  ');
             const daysEl = document.createElement('div'); daysEl.textContent = daysLabel;
             tl.appendChild(daysEl);
 
