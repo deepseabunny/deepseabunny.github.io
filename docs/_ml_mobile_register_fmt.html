@@ -917,11 +917,11 @@
         async function renderTimeline() {
             const tl = $('timeline'); tl.innerHTML = '';
             const header = document.createElement('div'); header.className = 'timeline-header';
-            header.textContent = '█ = occupied, ░ = free (7 days from today)';
+            header.textContent = '█ = occupied, ░ = free (8 days from today)';
             tl.appendChild(header);
 
-            const data = await API.getTimeline(7);
-            const daysLabel = 'Days:       ' + data.days.map(d => d.slice(8)).join(' ');
+            const data = await API.getTimeline(8);
+            const daysLabel = 'Days:       ' + data.days.map(d => d.slice(8)).join('  ');
             const daysEl = document.createElement('div'); daysEl.textContent = daysLabel;
             tl.appendChild(daysEl);
 
