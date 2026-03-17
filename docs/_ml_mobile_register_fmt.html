@@ -527,6 +527,18 @@
             white-space: pre-wrap;
             word-break: break-word;
         }
+
+        /* Add to your existing CSS */
+        .room {
+            transition: all 0.2s ease;
+            cursor: default;
+        }
+
+        .room:not(.occ):hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 8px var(--accent-soft);
+            border-color: var(--accent-soft);
+        }
     </style>
 </head>
 
@@ -906,6 +918,17 @@
                 const tile = document.createElement('div');
                 tile.className = 'room' + (occ.includes(r) ? ' occ' : '');
                 tile.textContent = r;
+
+                // Add click handler for available rooms
+                if (!occ.includes(r)) {
+                    tile.style.cursor = 'pointer';
+                    tile.addEventListener('click', () => {
+                        // Set the room selection dropdown to this room
+                        $('roomSelect').value = r;
+                        // Optional: provide visual feedback
+                        toast(`Room ${r} selected`);
+                    });
+                }
                 grid.appendChild(tile);
             });
             $('availableCount').textContent = `${rooms.filter(r => !occ.includes(r)).length} free`;
