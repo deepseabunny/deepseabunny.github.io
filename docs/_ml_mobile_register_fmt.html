@@ -921,14 +921,14 @@
             tl.appendChild(header);
 
             const data = await API.getTimeline(7);
-            const daysLabel = 'Days:       ' + data.days.map(d => d.slice(8)).join('');
+            const daysLabel = 'Days:       ' + data.days.map(d => d.slice(8)).join(' ');
             const daysEl = document.createElement('div'); daysEl.textContent = daysLabel;
             tl.appendChild(daysEl);
 
             const rooms = Object.keys(data.rooms).sort((a, b) => parseInt(a) - parseInt(b));
             rooms.forEach(room => {
                 const row = document.createElement('div');
-                row.textContent = `Room ${room} |  ${data.rooms[room].join('')}`;
+                row.textContent = `Room ${room} |  ${data.rooms[room].join(' ')}`;
                 tl.appendChild(row);
             });
         }
