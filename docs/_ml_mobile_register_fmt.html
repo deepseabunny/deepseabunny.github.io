@@ -546,6 +546,33 @@
         </header>
 
         <main class="main">
+
+            <aside class="sidebar" aria-label="Sidebar">
+                <div class="card">
+                    <div style="display:flex;justify-content:space-between;align-items:center">
+                        <div>
+                            <div class="section-title" style="margin:0">Availability</div>
+                            <div class="muted" style="margin-top:4px">Rooms free / occupied</div>
+                        </div>
+                        <div style="text-align:right">
+                            <div class="pill" id="availableCount">0 free</div>
+                            <div style="height:6px"></div>
+                            <div class="pill" id="occupiedCount">0 occ</div>
+                        </div>
+                    </div>
+                    <div class="room-grid" id="roomGrid" style="margin-top:12px"></div>
+                </div>
+
+                <div class="card">
+                    <div class="section-title" style="margin:0">Stats</div>
+                    <div style="margin-top:8px;color:var(--accent-soft);font-size:13px">
+                        Total: <strong id="statTotal">0</strong><br>
+                        VIPs: <strong id="statVIP">0</strong><br>
+                        Monthly: <strong id="statMonthly">0</strong>
+                    </div>
+                </div>
+            </aside>
+
             <section class="terminal" aria-label="Terminal UI">
                 <div class="section-title">Guest Intake</div>
                 <div class="block">
@@ -619,7 +646,7 @@
                     <div class="registry-list" id="registryList"></div>
                 </div>
 
-                <div class="section-title">Room Timeline (30 days)</div>
+                <div class="section-title">Room Timeline (7 days)</div>
                 <div class="block">
                     <div class="timeline" id="timeline">
                         <div class="timeline-header">Generating timeline…</div>
@@ -634,21 +661,6 @@
 
             <aside class="sidebar" aria-label="Sidebar">
                 <div class="card">
-                    <div style="display:flex;justify-content:space-between;align-items:center">
-                        <div>
-                            <div class="section-title" style="margin:0">Availability</div>
-                            <div class="muted" style="margin-top:4px">Rooms free / occupied</div>
-                        </div>
-                        <div style="text-align:right">
-                            <div class="pill" id="availableCount">0 free</div>
-                            <div style="height:6px"></div>
-                            <div class="pill" id="occupiedCount">0 occ</div>
-                        </div>
-                    </div>
-                    <div class="room-grid" id="roomGrid" style="margin-top:12px"></div>
-                </div>
-
-                <div class="card">
                     <div class="section-title" style="margin:0">Quick Actions</div>
                     <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
                         <button id="exportBtn" class="btn ghost">Export</button>
@@ -657,14 +669,6 @@
                     </div>
                 </div>
 
-                <div class="card">
-                    <div class="section-title" style="margin:0">Stats</div>
-                    <div style="margin-top:8px;color:var(--accent-soft);font-size:13px">
-                        Total: <strong id="statTotal">0</strong><br>
-                        VIPs: <strong id="statVIP">0</strong><br>
-                        Monthly: <strong id="statMonthly">0</strong>
-                    </div>
-                </div>
             </aside>
         </main>
     </div>
