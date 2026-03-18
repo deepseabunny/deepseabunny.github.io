@@ -793,7 +793,7 @@
             async createGuest(g) { await db.guests.put(g); return g; },
             async updateGuest(room, data) { await db.guests.put({ room, ...data }); return { room, ...data }; },
             async deleteGuest(room) { await db.guests.delete(room); return { success: true }; },
-            async getRooms() { return [101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143]; },
+            async getRooms() { return [101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143]; },
             async getAvailableRooms() {
                 const rooms = await this.getRooms();
                 const guests = await this.getGuests();
