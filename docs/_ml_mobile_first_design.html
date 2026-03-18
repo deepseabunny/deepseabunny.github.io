@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>THE WEST — SPA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+        :root {
+            --radius: 14px;
+            --gap: 14px;
+            --tile-min: 130px;
+
+            --bg: #f7f7f8;
+            --bg-elevated: #ffffff;
+            --accent: #2563eb;
+            --accent-soft: rgba(37, 99, 235, 0.08);
+            --text: #111827;
+            --muted: #6b7280;
+            --border: #d1d5db;
+            --shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.08);
+
+            --available: #22c55e;
+            --occupied: #ef4444;
+            --future: #f59e0b;
+            --oos: #6b7280;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #020617;
+                --bg-elevated: #020617;
+                --accent: #3b82f6;
+                --accent-soft: rgba(59, 130, 246, 0.12);
+                --text: #f9fafb;
+                --muted: #9ca3af;
+                --border: #1f2937;
+                --shadow-soft: 0 10px 25px rgba(0, 0, 0, 0.45);
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+                "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 0 12px 24px;
+        }
+
+        header {
+            padding: 16px 0 10px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 20px;
+            margin: 0;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            padding-bottom: 8px;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            padding-bottom: 8px;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+
+        .section-subtitle {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .tile-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(var(--tile-min), 1fr));
+            gap: var(--gap);
+            padding-bottom: 16px;
+        }
+
+        .room-tile {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border-radius: var(--radius);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-soft);
+            padding: 10px 10px 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.12s ease-out, box-shadow 0.12s ease-out,
+                border-color 0.12s ease-out, background 0.12s ease-out;
+        }
+
+        .room-tile:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
+            border-color: rgba(148, 163, 184, 0.7);
+        }
+
+        .room-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .room-number {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+        }
+
+        .room-status {
+            font-size: 11px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 7px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.03);
+            border: 1px solid rgba(148, 163, 184, 0.5);
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+        }
+
+        .status-available .status-dot {
+            background: var(--available);
+        }
+
+        .status-occupied .status-dot {
+            background: var(--occupied);
+        }
+
+        .status-future .status-dot {
+            background: var(--future);
+        }
+
+        .status-oos .status-dot {
+            background: var(--oos);
+        }
+
+        .room-footer {
+            font-size: 10px;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 4px;
+        }
+
+        .room-meta-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--muted);
+        }
+
+        .room-meta-value {
+            font-size: 11px;
+            color: var(--text);
+        }
+
+        .btn {
+            border-radius: 999px;
+            border: none;
+            padding: 10px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: background 0.12s ease-out, transform 0.08s ease-out,
+                box-shadow 0.12s ease-out;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb, #4f46e5);
+            color: white;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.45);
+            width: 100%;
+        }
+
+        .btn-primary:active {
+            transform: translateY(1px);
+            box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
+        }
+
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 10px;
+        }
+
+        label {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 9px 11px;
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.7);
+            background: var(--bg-elevated);
+            color: var(--text);
+            font-size: 13px;
+            outline: none;
+            resize: vertical;
+        }
+
+        input:focus,
+        textarea:focus {
+            border-color: rgba(59, 130, 246, 0.8);
+            box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.4);
+        }
+
+        .hint {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .card {
+            border-radius: var(--radius);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-soft);
+            padding: 14px 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            background: rgba(15, 23, 42, 0.03);
+            border: 1px solid rgba(148, 163, 184, 0.7);
+            color: var(--muted);
+        }
+
+        .search-bar {
+            position: relative;
+        }
+
+        .search-bar input {
+            padding-left: 32px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .result-section-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--muted);
+            margin-top: 8px;
+            margin-bottom: 4px;
+        }
+
+        .result-item {
+            border-radius: 12px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: background 0.12s ease-out, border-color 0.12s ease-out,
+                transform 0.08s ease-out;
+        }
+
+        .result-item:hover {
+            background: rgba(15, 23, 42, 0.03);
+            border-color: rgba(148, 163, 184, 0.8);
+            transform: translateY(-1px);
+        }
+
+        .result-main {
+            font-size: 13px;
+            color: var(--text);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .result-sub {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.7);
+            color: var(--text);
+        }
+
+        .badge-room {
+            border-color: rgba(59, 130, 246, 0.7);
+        }
+
+        .badge-guest {
+            border-color: rgba(34, 197, 94, 0.7);
+        }
+
+        .empty-state {
+            font-size: 12px;
+            color: var(--muted);
+            text-align: center;
+            margin-top: 16px;
+        }
+
+        .bottom-nav {
+            display: flex;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .bottom-nav button {
+            flex: 1;
+            font-size: 11px;
+            padding: 8px 6px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.02);
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            cursor: pointer;
+        }
+
+        .bottom-nav button.active {
+            border-color: rgba(59, 130, 246, 0.8);
+            color: #1d4ed8;
+            background: var(--accent-soft);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .bottom-nav button.active {
+                color: #bfdbfe;
+            }
+        }
+
+        /* History screen */
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-bottom: 12px;
+        }
+
+        .history-item {
+            border-radius: 12px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-soft);
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 12px;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .history-title {
+            font-weight: 500;
+            font-size: 13px;
+        }
+
+        .history-meta {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .code-block {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 11px;
+            background: rgba(15, 23, 42, 0.03);
+            border-radius: 8px;
+            padding: 6px 8px;
+            overflow-x: auto;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            white-space: pre;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <header>
+            <h1>THE WEST</h1>
+        </header>
+
+        <main>
+            <!-- Screen 1: Availability -->
+            <section id="screen-availability" class="screen active">
+                <div>
+                    <div class="section-title">Today’s Availability</div>
+                    <div class="section-subtitle" id="todayLabel"></div>
+                </div>
+                <div class="tile-list" id="roomList"></div>
+            </section>
+
+            <!-- Screen 2: Registration / Folio -->
+            <section id="screen-registration" class="screen">
+                <div>
+                    <div class="section-title" id="regRoomTitle">Room — Guest Registration</div>
+                    <div class="section-subtitle" id="regModeLabel">New registration</div>
+                </div>
+
+                <div class="card">
+                    <div class="pill">
+                        <span>💳</span>
+                        <span>Mag‑stripe reader placeholder</span>
+                    </div>
+                    <div class="hint">
+                        When a USB mag‑stripe reader is connected, it will act like a keyboard.
+                        Swiping a card will type track data into a hidden field, which we can
+                        parse and auto‑fill this form in a future iteration.
+                    </div>
+                    <input type="text" id="magStripeInput"
+                        style="opacity:0;position:absolute;pointer-events:none;height:0;width:0;" autocomplete="off" />
+                </div>
+
+                <div class="card">
+                    <div class="pill">
+                        <span>✍️</span>
+                        <span>Guest details & folio</span>
+                    </div>
+                    <form id="manualForm">
+                        <div class="field-group">
+                            <label for="roomNumberInput">Room number</label>
+                            <input id="roomNumberInput" type="number" />
+                        </div>
+
+                        <div class="field-group">
+                            <label for="guestName">Guest name</label>
+                            <input id="guestName" required placeholder="Guest name" />
+                        </div>
+                        <div class="field-group">
+                            <label for="guestId">ID / Document number</label>
+                            <input id="guestId" placeholder="Optional" />
+                        </div>
+                        <div class="field-group">
+                            <label for="guestPhone">Phone</label>
+                            <input id="guestPhone" placeholder="Optional" />
+                        </div>
+
+                        <div class="field-group">
+                            <label for="address1">Address line 1</label>
+                            <input id="address1" placeholder="Street address" />
+                        </div>
+                        <div class="field-group">
+                            <label for="address2">Address line 2</label>
+                            <input id="address2" placeholder="Apt, suite, etc. (optional)" />
+                        </div>
+
+                        <div class="field-group">
+                            <label for="city">City</label>
+                            <input id="city" placeholder="City" />
+                        </div>
+                        <div class="field-group">
+                            <label for="state">State</label>
+                            <input id="state" placeholder="State" />
+                        </div>
+                        <div class="field-group">
+                            <label for="zip">ZIP</label>
+                            <input id="zip" placeholder="ZIP code" />
+                        </div>
+
+                        <div class="field-group">
+                            <label for="checkIn">Check‑in</label>
+                            <input id="checkIn" type="date" required />
+                        </div>
+
+                        <div class="field-group">
+                            <label for="nights">Nights of stay</label>
+                            <input id="nights" type="number" min="1" value="1" required />
+                        </div>
+
+                        <div class="field-group">
+                            <label for="notes">Notes</label>
+                            <textarea id="notes" rows="3" placeholder="Special requests, vehicle info, etc."></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" id="saveButton">
+                            Save guest & assign room
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Screen 3: Search -->
+            <section id="screen-search" class="screen">
+                <div>
+                    <div class="section-title">Search</div>
+                    <div class="section-subtitle">Find rooms and guests quickly, then edit their folio.</div>
+                </div>
+
+                <div class="card">
+                    <div class="search-bar">
+                        <span class="search-icon">🔍</span>
+                        <input id="searchInput" placeholder="Search rooms or guests" />
+                    </div>
+                </div>
+
+                <div id="searchResults">
+                    <div class="result-section-title">Rooms</div>
+                    <div id="roomResults"></div>
+                    <div class="result-section-title">Guests</div>
+                    <div id="guestResults"></div>
+                </div>
+
+                <div class="empty-state" id="searchEmpty" style="display:none;">
+                    No matches found. Try searching by room number or guest name.
+                </div>
+            </section>
+
+            <!-- Screen 5: History -->
+            <section id="screen-history" class="screen">
+                <div>
+                    <div class="section-title">History</div>
+                    <div class="section-subtitle">Full JSON diff of all guest and room changes.</div>
+                </div>
+                <div class="history-list" id="historyList"></div>
+                <div class="empty-state" id="historyEmpty" style="display:none;">
+                    No history yet. Changes will appear here as you use the app.
+                </div>
+            </section>
+        </main>
+
+        <div class="bottom-nav">
+            <button id="navAvailability" class="active">Availability</button>
+            <button id="navRegistration">Registration</button>
+            <button id="navSearch">Search</button>
+            <button id="navHistory">History</button>
+        </div>
+    </div>
+
+    <script>
+        const DB_NAME = "westOS";
+        const DB_VERSION = 2;
+        let db = null;
+
+        function openDb() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+
+                req.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains("rooms")) {
+                        const rooms = db.createObjectStore("rooms", { keyPath: "number" });
+                        rooms.createIndex("status", "status", { unique: false });
+                    }
+                    if (!db.objectStoreNames.contains("guests")) {
+                        const guests = db.createObjectStore("guests", { keyPath: "id", autoIncrement: true });
+                        guests.createIndex("name", "name", { unique: false });
+                        guests.createIndex("roomNumber", "roomNumber", { unique: false });
+                    }
+                    if (!db.objectStoreNames.contains("history")) {
+                        const history = db.createObjectStore("history", { keyPath: "id", autoIncrement: true });
+                        history.createIndex("timestamp", "timestamp", { unique: false });
+                    }
+                };
+
+                req.onsuccess = (event) => {
+                    db = event.target.result;
+                    resolve(db);
+                };
+
+                req.onerror = (event) => {
+                    reject(event.target.error);
+                };
+            });
+        }
+
+        function tx(storeName, mode = "readonly") {
+            return db.transaction(storeName, mode).objectStore(storeName);
+        }
+
+        function seedRoomsIfEmpty() {
+            return new Promise((resolve, reject) => {
+                const store = tx("rooms");
+                const countReq = store.count();
+                countReq.onsuccess = () => {
+                    if (countReq.result > 0) {
+                        resolve();
+                        return;
+                    }
+                    const writeStore = tx("rooms", "readwrite");
+                    const roomNumbers = [];
+                    for (let n = 101; n <= 143; n++) roomNumbers.push(n);
+                    let remaining = roomNumbers.length;
+                    roomNumbers.forEach((num) => {
+                        const room = {
+                            number: num,
+                            status: "available",
+                            guestName: "",
+                            notes: ""
+                        };
+                        const addReq = writeStore.add(room);
+                        addReq.onsuccess = () => {
+                            remaining--;
+                            if (remaining === 0) resolve();
+                        };
+                        addReq.onerror = (e) => reject(e.target.error);
+                    });
+                };
+                countReq.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        function getAllRooms() {
+            return new Promise((resolve, reject) => {
+                const store = tx("rooms");
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        function getRoom(number) {
+            return new Promise((resolve, reject) => {
+                const store = tx("rooms");
+                const req = store.get(number);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        function updateRoom(room) {
+            return new Promise((resolve, reject) => {
+                const store = tx("rooms", "readwrite");
+                const req = store.put(room);
+                req.onsuccess = () => resolve();
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        function addGuest(guest) {
+            return new Promise((resolve, reject) => {
+                const store = tx("guests", "readwrite");
+                const req = store.add(guest);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        function updateGuest(guest) {
+            return new Promise((resolve, reject) => {
+                const store = tx("guests", "readwrite");
+                const req = store.put(guest);
+                req.onsuccess = () => resolve();
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        function getGuestById(id) {
+            return new Promise((resolve, reject) => {
+                const store = tx("guests");
+                const req = store.get(id);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        function getAllGuests() {
+            return new Promise((resolve, reject) => {
+                const store = tx("guests");
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        function addHistoryEntry(entry) {
+            return new Promise((resolve, reject) => {
+                const store = tx("history", "readwrite");
+                const req = store.add(entry);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        function getAllHistory() {
+            return new Promise((resolve, reject) => {
+                const store = tx("history");
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        function computeDiff(before, after) {
+            const diff = {};
+            const keys = new Set([...Object.keys(before || {}), ...Object.keys(after || {})]);
+            keys.forEach((key) => {
+                const b = before ? before[key] : undefined;
+                const a = after ? after[key] : undefined;
+                const same = JSON.stringify(b) === JSON.stringify(a);
+                if (!same) {
+                    diff[key] = { before: b, after: a };
+                }
+            });
+            return diff;
+        }
+
+        async function logHistory(type, meta, before, after) {
+            const diff = computeDiff(before || {}, after || {});
+            const entry = {
+                timestamp: new Date().toISOString(),
+                type,
+                guestId: meta.guestId || null,
+                guestName: meta.guestName || null,
+                roomNumber: meta.roomNumber || null,
+                newRoomNumber: meta.newRoomNumber || null,
+                diff,
+                before: before || null,
+                after: after || null
+            };
+            try {
+                await addHistoryEntry(entry);
+            } catch (e) {
+                console.error("Failed to log history", e);
+            }
+        }
+
+        let currentScreen = "availability";
+        let selectedRoomNumber = null;
+        let editingGuestId = null;
+        let originalGuestSnapshot = null;
+
+        const screens = {
+            availability: document.getElementById("screen-availability"),
+            registration: document.getElementById("screen-registration"),
+            search: document.getElementById("screen-search"),
+            history: document.getElementById("screen-history")
+        };
+
+        const navAvailability = document.getElementById("navAvailability");
+        const navRegistration = document.getElementById("navRegistration");
+        const navSearch = document.getElementById("navSearch");
+        const navHistory = document.getElementById("navHistory");
+
+        function setScreen(name) {
+            currentScreen = name;
+            Object.entries(screens).forEach(([key, el]) => {
+                el.classList.toggle("active", key === name);
+            });
+
+            navAvailability.classList.toggle("active", name === "availability");
+            navRegistration.classList.toggle("active", name === "registration");
+            navSearch.classList.toggle("active", name === "search");
+            navHistory.classList.toggle("active", name === "history");
+        }
+
+        navAvailability.addEventListener("click", async () => {
+            const rooms = await getAllRooms();
+            renderAvailability(rooms);
+            setScreen("availability");
+        });
+
+        navRegistration.addEventListener("click", () => {
+            if (!selectedRoomNumber && !editingGuestId) return;
+            setScreen("registration");
+        });
+
+        navSearch.addEventListener("click", () => {
+            setScreen("search");
+            document.getElementById("searchInput").focus();
+            refreshSearchResults();
+        });
+
+        navHistory.addEventListener("click", async () => {
+            await renderHistory();
+            setScreen("history");
+        });
+
+        const roomListEl = document.getElementById("roomList");
+
+        function statusLabel(status) {
+            if (status === "available") return "Available";
+            if (status === "occupied") return "Occupied";
+            if (status === "future") return "Booked soon";
+            if (status === "oos") return "Out of service";
+            return status;
+        }
+
+        function renderAvailability(rooms) {
+            roomListEl.innerHTML = "";
+            rooms.sort((a, b) => a.number - b.number);
+            rooms.forEach((room) => {
+                const tile = document.createElement("div");
+                tile.className = "room-tile";
+                tile.dataset.roomNumber = room.number;
+
+                const statusClass =
+                    room.status === "available"
+                        ? "status-available"
+                        : room.status === "occupied"
+                            ? "status-occupied"
+                            : room.status === "future"
+                                ? "status-future"
+                                : "status-oos";
+
+                tile.innerHTML = `
+          <div class="room-header">
+            <div class="room-meta-label">ROOM</div>
+            <div class="room-status ${statusClass}">
+              <span class="status-dot"></span>
+              <span>${statusLabel(room.status)}</span>
+            </div>
+          </div>
+          <div class="room-number">${room.number}</div>
+          <div class="room-footer">
+            <div>
+              <div class="room-meta-label">GUEST</div>
+              <div class="room-meta-value">${room.guestName || "—"}</div>
+            </div>
+            <div>
+              <div class="room-meta-label">ACTION</div>
+              <div class="room-meta-value">${room.status === "available"
+                        ? "Register guest"
+                        : room.status === "occupied"
+                            ? "View / edit folio"
+                            : room.status === "future"
+                                ? "View future booking"
+                                : "View details"
+                    }</div>
+            </div>
+          </div>
+        `;
+
+                tile.addEventListener("click", () => handleRoomClick(room));
+                roomListEl.appendChild(tile);
+            });
+        }
+
+        function handleRoomClick(room) {
+            selectedRoomNumber = room.number;
+            editingGuestId = null;
+            originalGuestSnapshot = null;
+            prepareRegistrationScreenForNew(room);
+            setScreen("registration");
+        }
+
+        const regRoomTitle = document.getElementById("regRoomTitle");
+        const regModeLabel = document.getElementById("regModeLabel");
+        const manualForm = document.getElementById("manualForm");
+        const roomNumberInput = document.getElementById("roomNumberInput");
+        const guestNameInput = document.getElementById("guestName");
+        const guestIdInput = document.getElementById("guestId");
+        const guestPhoneInput = document.getElementById("guestPhone");
+        const address1Input = document.getElementById("address1");
+        const address2Input = document.getElementById("address2");
+        const cityInput = document.getElementById("city");
+        const stateInput = document.getElementById("state");
+        const zipInput = document.getElementById("zip");
+        const checkInInput = document.getElementById("checkIn");
+        const nightsInput = document.getElementById("nights");
+        const notesInput = document.getElementById("notes");
+        const saveButton = document.getElementById("saveButton");
+
+        function todayISO() {
+            const d = new Date();
+            return d.toISOString().slice(0, 10);
+        }
+
+        function prepareRegistrationScreenForNew(room) {
+            regRoomTitle.textContent = `Room ${room.number} — Guest Registration`;
+            regModeLabel.textContent = "New registration";
+            roomNumberInput.value = room.number;
+            roomNumberInput.readOnly = true;
+
+            guestNameInput.value = "";
+            guestIdInput.value = "";
+            guestPhoneInput.value = "";
+            address1Input.value = "";
+            address2Input.value = "";
+            cityInput.value = "";
+            stateInput.value = "";
+            zipInput.value = "";
+            checkInInput.value = todayISO();
+            nightsInput.value = "1";
+            notesInput.value = "";
+            saveButton.textContent = "Save guest & assign room";
+        }
+
+        async function prepareRegistrationScreenForEdit(guest) {
+            selectedRoomNumber = guest.roomNumber;
+            editingGuestId = guest.id;
+            originalGuestSnapshot = { ...guest };
+
+            regRoomTitle.textContent = `Room ${guest.roomNumber} — Guest Folio`;
+            regModeLabel.textContent = "Editing existing guest";
+            roomNumberInput.value = guest.roomNumber;
+            roomNumberInput.readOnly = false;
+
+            guestNameInput.value = guest.name || "";
+            guestIdInput.value = guest.idNumber || "";
+            guestPhoneInput.value = guest.phone || "";
+            address1Input.value = guest.address1 || "";
+            address2Input.value = guest.address2 || "";
+            cityInput.value = guest.city || "";
+            stateInput.value = guest.state || "";
+            zipInput.value = guest.zip || "";
+            checkInInput.value = guest.checkIn || todayISO();
+            nightsInput.value = guest.nights || 1;
+            notesInput.value = guest.notes || "";
+            saveButton.textContent = "Save changes";
+        }
+
+        manualForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const roomNumberVal = parseInt(roomNumberInput.value, 10);
+            if (isNaN(roomNumberVal)) {
+                alert("Room number is required.");
+                return;
+            }
+
+            const nightsVal = parseInt(nightsInput.value, 10);
+            if (isNaN(nightsVal) || nightsVal < 1) {
+                alert("Nights of stay must be at least 1.");
+                return;
+            }
+
+            const guest = {
+                id: editingGuestId || undefined,
+                name: guestNameInput.value.trim(),
+                idNumber: guestIdInput.value.trim(),
+                phone: guestPhoneInput.value.trim(),
+                address1: address1Input.value.trim(),
+                address2: address2Input.value.trim(),
+                city: cityInput.value.trim(),
+                state: stateInput.value.trim(),
+                zip: zipInput.value.trim(),
+                checkIn: checkInInput.value,
+                nights: nightsVal,
+                notes: notesInput.value.trim(),
+                roomNumber: roomNumberVal,
+                createdAt: editingGuestId && originalGuestSnapshot
+                    ? originalGuestSnapshot.createdAt
+                    : new Date().toISOString()
+            };
+
+            if (!guest.name || !guest.checkIn) {
+                alert("Please fill required fields.");
+                return;
+            }
+
+            try {
+                if (!editingGuestId) {
+                    const newId = await addGuest(guest);
+                    guest.id = newId;
+
+                    const room = await getRoom(roomNumberVal);
+                    if (room) {
+                        room.status = "occupied";
+                        room.guestName = guest.name;
+                        await updateRoom(room);
+                    }
+
+                    await logHistory(
+                        "guest_created",
+                        { guestId: guest.id, guestName: guest.name, roomNumber: roomNumberVal },
+                        null,
+                        guest
+                    );
+                } else {
+                    const before = originalGuestSnapshot || (await getGuestById(editingGuestId));
+                    const oldRoomNumber = before.roomNumber;
+
+                    await updateGuest(guest);
+
+                    if (oldRoomNumber !== roomNumberVal) {
+                        const oldRoom = await getRoom(oldRoomNumber);
+                        if (oldRoom) {
+                            oldRoom.status = "available";
+                            oldRoom.guestName = "";
+                            await updateRoom(oldRoom);
+                        }
+                        const newRoom = await getRoom(roomNumberVal);
+                        if (newRoom) {
+                            newRoom.status = "occupied";
+                            newRoom.guestName = guest.name;
+                            await updateRoom(newRoom);
+                        }
+
+                        await logHistory(
+                            "room_moved",
+                            {
+                                guestId: guest.id,
+                                guestName: guest.name,
+                                roomNumber: oldRoomNumber,
+                                newRoomNumber: roomNumberVal
+                            },
+                            before,
+                            guest
+                        );
+                    }
+
+                    await logHistory(
+                        "guest_updated",
+                        { guestId: guest.id, guestName: guest.name, roomNumber: roomNumberVal },
+                        before,
+                        guest
+                    );
+                }
+
+                const updatedRooms = await getAllRooms();
+                renderAvailability(updatedRooms);
+                editingGuestId = null;
+                originalGuestSnapshot = null;
+                setScreen("availability");
+            } catch (err) {
+                console.error(err);
+                alert("Failed to save guest.");
+            }
+        });
+
+        const searchInput = document.getElementById("searchInput");
+        const roomResultsEl = document.getElementById("roomResults");
+        const guestResultsEl = document.getElementById("guestResults");
+        const searchEmptyEl = document.getElementById("searchEmpty");
+
+        async function refreshSearchResults() {
+            const query = searchInput.value.trim().toLowerCase();
+            const [rooms, guests] = await Promise.all([getAllRooms(), getAllGuests()]);
+
+            const filteredRooms = rooms.filter((r) => {
+                if (!query) return true;
+                return (
+                    String(r.number).includes(query) ||
+                    (r.guestName && r.guestName.toLowerCase().includes(query))
+                );
+            });
+
+            const filteredGuests = guests.filter((g) => {
+                if (!query) return true;
+                return (
+                    (g.name && g.name.toLowerCase().includes(query)) ||
+                    (g.roomNumber && String(g.roomNumber).includes(query))
+                );
+            });
+
+            roomResultsEl.innerHTML = "";
+            guestResultsEl.innerHTML = "";
+
+            filteredRooms
+                .sort((a, b) => a.number - b.number)
+                .forEach((room) => {
+                    const item = document.createElement("div");
+                    item.className = "result-item";
+                    item.innerHTML = `
+            <div class="result-main">
+              <span>Room ${room.number}</span>
+              <span class="badge badge-room">${statusLabel(room.status)}</span>
+            </div>
+            <div class="result-sub">
+              Guest: ${room.guestName || "—"}
+            </div>
+          `;
+                    item.addEventListener("click", () => handleRoomClick(room));
+                    roomResultsEl.appendChild(item);
+                });
+
+            filteredGuests
+                .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+                .forEach((guest) => {
+                    const item = document.createElement("div");
+                    item.className = "result-item";
+                    item.innerHTML = `
+            <div class="result-main">
+              <span>${guest.name || "Unknown guest"}</span>
+              <span class="badge badge-guest">Room ${guest.roomNumber || "—"}</span>
+            </div>
+            <div class="result-sub">
+              Check‑in: ${guest.checkIn || "?"}, Nights: ${guest.nights || "?"}
+            </div>
+          `;
+                    item.addEventListener("click", async () => {
+                        const fullGuest = await getGuestById(guest.id);
+                        if (!fullGuest) return;
+                        await prepareRegistrationScreenForEdit(fullGuest);
+                        setScreen("registration");
+                    });
+                    guestResultsEl.appendChild(item);
+                });
+
+            const hasResults = filteredRooms.length > 0 || filteredGuests.length > 0;
+            searchEmptyEl.style.display = hasResults ? "none" : "block";
+        }
+
+        searchInput.addEventListener("input", () => {
+            refreshSearchResults();
+        });
+
+        const historyListEl = document.getElementById("historyList");
+        const historyEmptyEl = document.getElementById("historyEmpty");
+
+        async function renderHistory() {
+            const entries = await getAllHistory();
+            entries.sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1));
+
+            historyListEl.innerHTML = "";
+            if (entries.length === 0) {
+                historyEmptyEl.style.display = "block";
+                return;
+            }
+            historyEmptyEl.style.display = "none";
+
+            entries.forEach((entry) => {
+                const item = document.createElement("div");
+                item.className = "history-item";
+
+                const ts = new Date(entry.timestamp);
+                const tsLabel = ts.toLocaleString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit"
+                });
+
+                let title = "";
+                if (entry.type === "guest_created") title = "Guest Created";
+                else if (entry.type === "guest_updated") title = "Guest Updated";
+                else if (entry.type === "room_moved") title = "Room Moved";
+                else title = entry.type;
+
+                const roomInfo =
+                    entry.type === "room_moved" && entry.newRoomNumber
+                        ? `Room ${entry.roomNumber} → ${entry.newRoomNumber}`
+                        : entry.roomNumber
+                            ? `Room ${entry.roomNumber}`
+                            : "";
+
+                const metaLine = [
+                    entry.guestName ? entry.guestName : null,
+                    roomInfo || null,
+                    tsLabel
+                ]
+                    .filter(Boolean)
+                    .join(" • ");
+
+                item.innerHTML = `
+          <div class="history-header">
+            <div class="history-title">${title}</div>
+            <div class="history-meta">${metaLine}</div>
+          </div>
+        `;
+
+                const diffBlock = document.createElement("div");
+                diffBlock.className = "code-block";
+                diffBlock.textContent = JSON.stringify(entry.diff || {}, null, 2);
+                item.appendChild(diffBlock);
+
+                const beforeBlock = document.createElement("div");
+                beforeBlock.className = "code-block";
+                beforeBlock.textContent = JSON.stringify(entry.before || {}, null, 2);
+                item.appendChild(beforeBlock);
+
+                const afterBlock = document.createElement("div");
+                afterBlock.className = "code-block";
+                afterBlock.textContent = JSON.stringify(entry.after || {}, null, 2);
+                item.appendChild(afterBlock);
+
+                historyListEl.appendChild(item);
+            });
+        }
+
+        function updateTodayLabel() {
+            const todayLabel = document.getElementById("todayLabel");
+            const d = new Date();
+            const opts = { weekday: "short", month: "short", day: "numeric" };
+            todayLabel.textContent = d.toLocaleDateString(undefined, opts);
+        }
+
+        (async function init() {
+            updateTodayLabel();
+            try {
+                await openDb();
+                await seedRoomsIfEmpty();
+                const rooms = await getAllRooms();
+                renderAvailability(rooms);
+            } catch (err) {
+                console.error("DB init failed", err);
+                alert("Failed to initialize local database.");
+            }
+        })();
+    </script>
+</body>
+
+</html>
