@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>THE WEST — Rooms & Registration (PDF417 fallback)</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootswatch@5/dist/lux/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body { padding-top: 70px; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+    .room-grid { display: grid; gap: .5rem; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); }
+    .room-btn { min-height: 48px; white-space: nowrap; }
+    #scannerWrap { display:none; }
+    .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 1080; }
+    video { max-width:100%; border:1px solid #ddd; border-radius:4px; }
+    canvas { display:none; }
+    .log { font-family: monospace; font-size: .85rem; max-height: 140px; overflow:auto; background:#f8f9fa; padding:.5rem; border-radius:4px; border:1px solid #e9ecef; }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="#">THE WEST</a>
+      <div class="d-flex">
+        <button id="selectAll" class="btn btn-sm btn-outline-light me-1">Select All</button>
+        <button id="clearAll" class="btn btn-sm btn-outline-light">Clear All</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container">
+    <section class="my-4">
+      <h2 class="h5 mb-3">Rooms</h2>
+      <div id="roomGrid" class="room-grid mb-3" aria-label="Room selection"></div>
+    </section>
+
+    <section id="contact" class="mt-4">
+      <h2 class="h5 mb-3">Registration Info</h2>
+
+      <form id="regForm" class="row g-3 needs-validation" novalidate>
+        <input type="hidden" id="bookingId" />
+        <div class="col-md-4">
+          <label class="form-label">Room</label>
+          <input id="roomInput" type="text" class="form-control" placeholder="Click a room" readonly required />
+        </div>
+        <div class="col-md-4"><label class="form-label">First</label><input id="first" type="text" class="form-control" required /></div>
+        <div class="col-md-4"><label class="form-label">Last</label><input id="last" type="text" class="form-control" required /></div>
+
+        <div class="col-md-6"><label class="form-label">Address</label><input id="addr1" type="text" class="form-control" /></div>
+        <div class="col-md-6"><label class="form-label">Address 2</label><input id="addr2" type="text" class="form-control" /></div>
+        <div class="col-md-4"><label class="form-label">City</label><input id="city" type="text" class="form-control" /></div>
+        <div class="col-md-4"><label class="form-label">State</label><input id="state" type="text" class="form-control" /></div>
+        <div class="col-md-4"><label class="form-label">Zip</label><input id="zip" type="text" class="form-control" /></div>
+
+        <div class="col-md-6"><label class="form-label">Email</label><input id="email" type="email" class="form-control" /></div>
+        <div class="col-md-3"><label class="form-label">Phone</label><input id="phone" type="tel" class="form-control" /></div>
+        <div class="col-md-3"><label class="form-label">Rate</label><input id="rate" type="number" class="form-control" /></div>
+
+        <div class="col-12"><label class="form-label">Notes</label><textarea id="notes" class="form-control" rows="3"></textarea></div>
+
+        <div class="col-12 d-flex gap-2">
+          <button id="saveBtn" class="btn btn-primary">Save booking</button>
+          <button id="clearForm" type="button" class="btn btn-secondary">Clear form</button>
+
+          <div class="ms-2">
+            <button id="openCamBtn" type="button" class="btn btn-outline-success">Open Camera</button>
+            <button id="snapBtn" type="button" class="btn btn-outline-primary">Snap & Decode</button>
+            <button id="contBtn" type="button" class="btn btn-outline-info">Start Continuous</button>
+            <button id="stopCamBtn" type="button" class="btn btn-outline-danger">Stop Camera</button>
+          </div>
+
+          <div class="ms-auto d-flex gap-2">
+            <input id="fileInput" type="file" accept="image/*" />
+            <button id="exportBtn" type="button" class="btn btn-outline-info">Export JSON</button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <section class="mt-4">
+      <h2 class="h6">Bookings</h2>
+      <div id="bookingsList" class="list-group mb-3"></div>
+    </section>
+
+    <section id="scannerWrap" class="mt-3">
+      <h3 class="h6">ID Camera / Barcode Decode (verbose)</h3>
+      <div class="mb-2">
+        <video id="vid" playsinline autoplay></video>
+        <canvas id="capCanvas"></canvas>
+      </div>
+      <div class="mt-2">
+        <small class="text-muted">If ZXing fails, pdf417-js fallback will run. Upload an image if camera decoding fails.</small>
+      </div>
+      <div class="mt-2">
+        <div class="log" id="logArea"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="text-center mt-4 mb-4">
+    <small class="text-muted">© 2026 BriteTheme</small>
+  </footer>
+
+  <div class="toast-container" id="toasts"></div>
+
+  <!-- Dependencies -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
+  <!-- pdf417-js (decoder fallback) -->
+  <script src="https://unpkg.com/pdf417-js@0.0.9/dist/pdf417.min.js"></script>
+  <!-- Tesseract (optional fallback) -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.3/dist/tesseract.min.js"></script>
+
+  <script>
+  (function(){
+    // ---------- Helpers & DB (same core behavior as earlier SPA) ----------
+    const DB_NAME = 'theWestDB';
+    const DB_VERSION = 1;
+    const BOOKINGS_STORE = 'bookings';
+    const ROOMS_STORE = 'rooms';
+    let db;
+    function openDB(){ return new Promise((res,rej)=>{ const rq=indexedDB.open(DB_NAME,DB_VERSION); rq.onupgradeneeded=e=>{ const idb=e.target.result; if(!idb.objectStoreNames.contains(BOOKINGS_STORE)){ const s=idb.createObjectStore(BOOKINGS_STORE,{keyPath:'id',autoIncrement:true}); s.createIndex('room','room',{unique:false}); } if(!idb.objectStoreNames.contains(ROOMS_STORE)){ const rs=idb.createObjectStore(ROOMS_STORE,{keyPath:'room'}); for(let r=101;r<=148;r++) rs.put({room:String(r),status:'vacant',bookingId:null}); } }; rq.onsuccess=e=>{db=e.target.result; res(db)}; rq.onerror=e=>rej(e.target.error); }); }
+    function tx(store,mode='readonly'){ return db.transaction([store],mode).objectStore(store); }
+    async function getAllBookings(){ return new Promise((res,rej)=>{ const s=tx(BOOKINGS_STORE); const r=s.getAll(); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+    async function getBookingById(id){ return new Promise((res,rej)=>{ const s=tx(BOOKINGS_STORE); const r=s.get(Number(id)); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+    async function addOrUpdateBooking(data){ return new Promise((res,rej)=>{ const s=tx(BOOKINGS_STORE,'readwrite'); const rq=data.id? s.put(data):s.add(data); rq.onsuccess=()=>{ const id=rq.result; const rStore=tx(ROOMS_STORE,'readwrite'); const gr=rStore.get(data.room); gr.onsuccess=()=>{ const rec=gr.result||{room:data.room}; rec.status='booked'; rec.bookingId=id; rStore.put(rec); }; res(id); }; rq.onerror=()=>rej(rq.error); }); }
+    async function deleteBooking(id){ return new Promise((res,rej)=>{ const s=tx(BOOKINGS_STORE,'readwrite'); const g=s.get(Number(id)); g.onsuccess=()=>{ const rec=g.result; if(!rec){res(false);return;} const roomKey=rec.room; const d=s.delete(Number(id)); d.onsuccess=async()=>{ const rStore=tx(ROOMS_STORE,'readwrite'); const gr=rStore.get(roomKey); gr.onsuccess=()=>{ const rr=gr.result; if(rr){ rr.status='vacant'; rr.bookingId=null; rStore.put(rr); } }; res(true); }; d.onerror=()=>rej(d.error); }; g.onerror=()=>rej(g.error); }); }
+    async function getAllRooms(){ return new Promise((res,rej)=>{ const s=tx(ROOMS_STORE); const r=s.getAll(); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+
+    // ---------- UI & Logging ----------
+    const logArea = document.getElementById('logArea');
+    function log(msg){ const time=new Date().toLocaleTimeString(); logArea.innerText = `[${time}] ${msg}\n` + logArea.innerText; console.log(msg); }
+    function toast(msg, cls='bg-dark text-white'){ const t=document.createElement('div'); t.className='toast align-items-center text-white '+cls; t.setAttribute('role','alert'); t.setAttribute('aria-live','assertive'); t.setAttribute('aria-atomic','true'); t.innerHTML=`<div class="d-flex"><div class="toast-body">${msg}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>`; document.getElementById('toasts').appendChild(t); const bs=new bootstrap.Toast(t,{delay:4000}); bs.show(); t.addEventListener('hidden.bs.toast',()=>t.remove()); }
+
+    const grid=document.getElementById('roomGrid'), form=document.getElementById('regForm'), roomInput=document.getElementById('roomInput'), bookingsList=document.getElementById('bookingsList');
+
+    async function renderRooms(){ const rooms=await getAllRooms(); grid.innerHTML=''; rooms.sort((a,b)=>Number(a.room)-Number(b.room)).forEach(r=>{ const btn=document.createElement('button'); btn.type='button'; btn.className='btn room-btn'; btn.textContent=r.room; btn.dataset.room=r.room; btn.setAttribute('aria-pressed', String(r.status==='booked')); if(r.status==='booked') btn.classList.add('btn-success'); else btn.classList.add('btn-outline-primary'); btn.addEventListener('click',async()=>{ if(r.status==='booked'){ const ok=confirm(`Room ${r.room} is marked booked. Click OK to load booking for edit.`); if(ok && r.bookingId){ const booking=await getBookingById(r.bookingId); if(booking) fillFormFromBooking(booking);} return; } grid.querySelectorAll('button.room-btn').forEach(b=>{ b.classList.remove('btn-success'); b.classList.add('btn-outline-primary'); b.setAttribute('aria-pressed','false'); }); btn.classList.remove('btn-outline-primary'); btn.classList.add('btn-success'); btn.setAttribute('aria-pressed','true'); roomInput.value=r.room; }); grid.appendChild(btn); }); }
+
+    function clearFormFields(){ form.reset(); document.getElementById('bookingId').value=''; roomInput.value=''; grid.querySelectorAll('button.room-btn').forEach(b=>{ b.classList.remove('btn-success'); b.classList.add('btn-outline-primary'); b.setAttribute('aria-pressed','false'); }); }
+    function fillFormFromBooking(booking){ document.getElementById('bookingId').value=booking.id; roomInput.value=booking.room; ['first','last','addr1','addr2','city','state','zip','email','phone','rate','notes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value = booking[id] || ''; }); grid.querySelectorAll('button.room-btn').forEach(b=>{ if(b.dataset.room===booking.room){ b.classList.remove('btn-outline-primary'); b.classList.add('btn-success'); } else { b.classList.remove('btn-success'); b.classList.add('btn-outline-primary'); } }); }
+
+    async function renderBookings(){ const bookings=await getAllBookings(); bookingsList.innerHTML=''; if(!bookings.length){ bookingsList.innerHTML='<div class="text-muted">No bookings</div>'; return; } bookings.sort((a,b)=>a.id-b.id).forEach(bk=>{ const item=document.createElement('div'); item.className='list-group-item d-flex justify-content-between align-items-start'; item.innerHTML=`<div><div class="fw-bold">Room ${bk.room} — ${bk.first||''} ${bk.last||''}</div><div class="small text-muted">${bk.email||''} · ${bk.phone||''}</div></div><div class="btn-group btn-group-sm" role="group"><button class="btn btn-outline-primary editBtn" data-id="${bk.id}">Edit</button><button class="btn btn-outline-danger delBtn" data-id="${bk.id}">Delete</button></div>`; bookingsList.appendChild(item); }); bookingsList.querySelectorAll('.editBtn').forEach(btn=>btn.addEventListener('click',async e=>{ const id=e.currentTarget.dataset.id; const rec=await getBookingById(id); if(rec) fillFormFromBooking(rec); })); bookingsList.querySelectorAll('.delBtn').forEach(btn=>btn.addEventListener('click',async e=>{ const id=e.currentTarget.dataset.id; if(confirm('Delete booking?')){ await deleteBooking(id); await refreshAll(); toast('Booking deleted','bg-danger'); } })); }
+
+    async function refreshAll(){ await renderRooms(); await renderBookings(); }
+
+    form.addEventListener('submit', async ev=>{ ev.preventDefault(); const room=roomInput.value.trim(); const first=document.getElementById('first').value.trim(); const last=document.getElementById('last').value.trim(); if(!room){ toast('Choose a room','bg-warning'); return; } if(!first||!last){ toast('First and Last required','bg-warning'); return; } const bookingId=document.getElementById('bookingId').value||undefined; const payload={ id: bookingId?Number(bookingId):undefined, room, first, last, addr1: document.getElementById('addr1').value, addr2: document.getElementById('addr2').value, city: document.getElementById('city').value, state: document.getElementById('state').value, zip: document.getElementById('zip').value, email: document.getElementById('email').value, phone: document.getElementById('phone').value, rate: document.getElementById('rate').value, notes: document.getElementById('notes').value, createdAt: new Date().toISOString() }; try{ const id=await addOrUpdateBooking(payload); document.getElementById('bookingId').value=id; await refreshAll(); toast('Saved','bg-success'); }catch(err){ console.error(err); toast('Save failed','bg-danger'); } });
+
+    document.getElementById('clearForm').addEventListener('click', clearFormFields);
+    document.getElementById('selectAll').addEventListener('click', ()=>{ grid.querySelectorAll('button.room-btn').forEach(b=>{ b.classList.add('btn-success'); b.classList.remove('btn-outline-primary'); b.setAttribute('aria-pressed','true'); }); });
+    document.getElementById('clearAll').addEventListener('click', ()=>{ grid.querySelectorAll('button.room-btn').forEach(b=>{ b.classList.remove('btn-success'); b.classList.add('btn-outline-primary'); b.setAttribute('aria-pressed','false'); }); clearFormFields(); });
+    document.getElementById('exportBtn').addEventListener('click', async ()=>{ const bookings=await getAllBookings(); const blob=new Blob([JSON.stringify(bookings,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='bookings.json'; a.click(); URL.revokeObjectURL(url); });
+
+    // ---------- Camera, ZXing and pdf417-js fallback ----------
+    const vid=document.getElementById('vid'), canvas=document.getElementById('capCanvas'); let stream=null; let continuous=false; const codeReader = window.ZXing && window.ZXing.BrowserMultiFormatReader ? new window.ZXing.BrowserMultiFormatReader() : null;
+
+    async function openCamera(){
+      document.getElementById('scannerWrap').style.display='block';
+      if(stream) return;
+      try{
+        // request higher resolution on Edge macOS
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
+        vid.srcObject = stream;
+        await vid.play();
+        toast('Camera started','bg-secondary text-white');
+        log('Camera started with stream tracks: ' + stream.getTracks().map(t=>t.label).join('; '));
+      }catch(err){ console.error(err); log('openCamera error: ' + err.message); toast('Cannot access camera — check permissions & HTTPS','bg-danger'); }
+    }
+
+    function stopCamera(){ continuous=false; if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } vid.pause(); vid.srcObject=null; document.getElementById('scannerWrap').style.display='none'; toast('Camera stopped','bg-secondary'); log('Camera stopped'); }
+
+    function drawToCanvas(crop){ const w=vid.videoWidth||1280; const h=vid.videoHeight||720; let sx=0, sy=0, sw=w, sh=h; if(crop){ sx=crop.sx; sy=crop.sy; sw=crop.sw; sh=crop.sh; } canvas.width=sw; canvas.height=sh; const ctx=canvas.getContext('2d'); ctx.drawImage(vid,sx,sy,sw,sh,0,0,sw,sh); }
+
+    async function captureAndDecodeImageBitmap(imgBitmap){
+      // first try ZXing decodeFromImageBitmap if available
+      try{
+        if(codeReader && codeReader.decodeFromImageBitmap){
+          const res = await codeReader.decodeFromImageBitmap(imgBitmap);
+          if(res && (res.getText && res.getText())){ log('ZXing decoded via ImageBitmap'); return res.getText(); }
+        }
+      }catch(e){ log('ZXing decodeFromImageBitmap failed: ' + (e && e.message)); }
+
+      // try decodeFromImage (some UMD exposes decodeFromImage)
+      try{
+        if(codeReader && codeReader.decodeFromImage){
+          const img = new Image();
+          const url = canvas.toDataURL('image/png');
+          img.src = url;
+          await img.decode();
+          const res = await codeReader.decodeFromImage(img);
+          if(res && (res.getText && res.getText())){ log('ZXing decoded via Image'); return res.getText(); }
+        }
+      }catch(e){ log('ZXing decodeFromImage failed: ' + (e && e.message)); }
+
+      // fallback: pdf417-js raw decode from canvas pixel buffer
+      try{
+        log('Attempting pdf417-js fallback decode...');
+        const ctx = canvas.getContext('2d');
+        const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
+        // pdf417-js expects grayscale luminance; use library decoder
+        const decoder = window.pdf417 && window.pdf417.decoder ? window.pdf417.decoder : null;
+        if(!decoder){
+          log('pdf417-js not available');
+        }else{
+          // pdf417-js sample usage: feed imageData.data/width/height
+          const codes = decoder.decode(imageData.data, canvas.width, canvas.height);
+          if(codes && codes.length){
+            // codes is array of decoded code objects; join their text
+            const codeText = codes.map(c=>c && c.text ? c.text : '').join('\n');
+            log('pdf417-js decoded ' + codes.length + ' code(s)');
+            return codeText || null;
+          } else {
+            log('pdf417-js returned no codes');
+          }
+        }
+      }catch(err){ log('pdf417-js decode error: ' + (err && err.message)); }
+
+      // final fallback: Tesseract OCR (try to capture text)
+      try{
+        if(window.Tesseract){
+          log('Running Tesseract OCR fallback...');
+          const result = await Tesseract.recognize(canvas, 'eng', { logger: m => log('tesseract: ' + (m.status || '') + ' ' + (m.progress || '')) });
+          const text = (result && result.data && result.data.text) ? result.data.text : '';
+          log('Tesseract extracted length: ' + (text.length));
+          return text || null;
+        }
+      }catch(err){ log('Tesseract error: ' + (err && err.message)); }
+
+      return null;
+    }
+
+    async function captureAndDecode(){
+      if(!stream) await openCamera();
+      if(!stream) return;
+      const w = vid.videoWidth, h = vid.videoHeight;
+      if(!w || !h){ log('Video not ready — try again'); toast('Camera initializing — try again', 'bg-warning'); return; }
+      // crop center band likely to contain PDF417
+      const cropW = Math.floor(w * 0.9);
+      const cropH = Math.floor(h * 0.38);
+      const sx = Math.floor((w - cropW)/2);
+      const sy = Math.floor((h - cropH)/2);
+      drawToCanvas({ sx, sy, sw: cropW, sh: cropH });
+      const bitmap = await createImageBitmap(canvas);
+      log('Captured ImageBitmap for decoding');
+      const payload = await captureAndDecodeImageBitmap(bitmap);
+      if(payload){
+        log('Decoded payload length: ' + String(payload.length));
+        handleDecodedPayload(payload);
+      } else {
+        log('No payload decoded from capture');
+        toast('Decoding failed — try better lighting, higher resolution, or upload image', 'bg-warning');
+      }
+    }
+
+    async function continuousLoop(){
+      if(!continuous) return;
+      await captureAndDecode();
+      if(continuous) setTimeout(continuousLoop, 500);
+    }
+
+    document.getElementById('openCamBtn').addEventListener('click', openCamera);
+    document.getElementById('stopCamBtn').addEventListener('click', stopCamera);
+    document.getElementById('snapBtn').addEventListener('click', captureAndDecode);
+    document.getElementById('contBtn').addEventListener('click', ()=>{ continuous = !continuous; document.getElementById('contBtn').textContent = continuous ? 'Stop Continuous' : 'Start Continuous'; if(continuous) continuousLoop(); });
+
+    // handle file upload as image decode option
+    document.getElementById('fileInput').addEventListener('change', async e=>{
+      const f = e.target.files && e.target.files[0];
+      if(!f) return;
+      const img = new Image();
+      img.src = URL.createObjectURL(f);
+      await img.decode();
+      // draw to canvas
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d'); ctx.drawImage(img,0,0);
+      log('Image loaded from file for decode: ' + f.name);
+      const bitmap = await createImageBitmap(canvas);
+      const payload = await captureAndDecodeImageBitmap(bitmap);
+      if(payload){
+        log('Decoded payload from upload, length: ' + payload.length);
+        handleDecodedPayload(payload);
+      } else {
+        toast('File decode failed', 'bg-warning');
+      }
+      URL.revokeObjectURL(img.src);
+      e.target.value = '';
+    });
+
+    // ---------- payload handling & parsing ----------
+    function handleDecodedPayload(payload){
+      log('handleDecodedPayload preview: ' + payload.slice(0,200).replace(/\n/g,'␤'));
+      document.getElementById('notes').value = 'Raw barcode payload:\n' + payload;
+      const parsed = parseAAMVA(payload);
+      if(parsed && (parsed.first || parsed.last || parsed.license)){
+        autofillFromParsed(parsed);
+        toast('Autofilled from barcode payload','bg-success');
+        return;
+      }
+      // try JSON
+      try{
+        const j = JSON.parse(payload);
+        if(j){
+          if(j.givenName||j.first||j.fn) document.getElementById('first').value = j.givenName||j.first||j.fn||'';
+          if(j.familyName||j.last) document.getElementById('last').value = j.familyName||j.last||'';
+          if(j.email) document.getElementById('email').value = j.email;
+          if(j.tel) document.getElementById('phone').value = j.tel;
+          toast('Autofilled from JSON payload','bg-success');
+          return;
+        }
+      }catch(e){}
+      toast('Decoded but unknown format — saved raw in notes','bg-info');
+    }
+
+    function parseAAMVA(raw){
+      if(!raw || typeof raw !== 'string') return null;
+      const norm = raw.replace(/\r/g,'\n').replace(/\x00/g,'').replace(/[\x1f\x1e]/g,'\n');
+      const getField=(keys)=>{ for(const k of keys){ const re=new RegExp(k+'([^\\n\\r]*)','i'); const m=norm.match(re); if(m && m[1]) return m[1].trim(); } return ''; };
+      let dob=''; let m = norm.match(/DBB(\d{8})/); if(m) dob = m[1].replace(/^(\d{4})(\d{2})(\d{2})$/,'$1-$2-$3'); else { m = norm.match(/DBB(\d{2})(\d{2})(\d{4})/); if(m) dob = `${m[3]}-${m[1]}-${m[2]}`; }
+      const last = getField(['DCS','DAA']); const first = getField(['DAC']); const middle = getField(['DAD']);
+      const address = getField(['DAG','DAG1','DCA']); const city = getField(['DAI','DCI']); const state = getField(['DAJ','DAK','DCJ']); const zip = getField(['DAK','DAL','DCK']).split(/\s|-/)[0]||'';
+      const license = getField(['DAQ','DAI','DCJ','DBJ','DBA']); const phoneMatch = norm.match(/(\+?\d[\d\-\s]{6,}\d)/); const emailMatch = norm.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+      return { raw: norm, first, last, middle, dob, address, city, state, zip, license, phone: phoneMatch?phoneMatch[0]:'', email: emailMatch?emailMatch[0]:'' };
+    }
+
+    function autofillFromParsed(parsed){
+      if(parsed.first) document.getElementById('first').value = parsed.first;
+      if(parsed.last) document.getElementById('last').value = parsed.last;
+      if(parsed.address) document.getElementById('addr1').value = parsed.address;
+      if(parsed.city) document.getElementById('city').value = parsed.city;
+      if(parsed.state) document.getElementById('state').value = parsed.state;
+      if(parsed.zip) document.getElementById('zip').value = parsed.zip;
+      if(parsed.phone) document.getElementById('phone').value = parsed.phone;
+      if(parsed.email) document.getElementById('email').value = parsed.email;
+      if(parsed.dob) document.getElementById('notes').value = `DOB: ${parsed.dob}\n\nRaw:\n${parsed.raw}`;
+      else document.getElementById('notes').value = `Raw:\n${parsed.raw}`;
+    }
+
+    // ---------- init ----------
+    (async function init(){ try{ await openDB(); await refreshAll(); toast('Local DB ready','bg-secondary text-white'); log('App initialized'); }catch(err){ console.error(err); toast('DB init failed','bg-danger'); log('DB init error: '+(err&&err.message)); } })();
+
+    window.addEventListener('beforeunload', ()=>{ if(stream) stream.getTracks().forEach(t=>t.stop()); });
+
+  })();
+  </script>
+</body>
+</html>
