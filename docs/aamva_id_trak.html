@@ -1,467 +1,479 @@
 <!doctype html>
 <html lang="en">
-
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>AMMVA / Track Data Explorer — Improved Parser</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AMMVA / Track Data Explorer — Field-mapped Parser (Updated)</title>
 
-    <!-- Bootswatch 5 "Brite" theme -->
-    <link href="https://cdn.jsdelivr.net/npm/bootswatch@5/dist/brite/bootstrap.min.css" rel="stylesheet">
-
-    <style>
-        body {
-            padding: 1.5rem;
-        }
-
-        textarea {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;
-        }
-
-        pre {
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-
-        .mono {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;
-        }
-
-        .small-muted {
-            font-size: .9rem;
-            color: var(--bs-gray-600)
-        }
-    </style>
+  <!-- Bootswatch 5 "Brite" theme -->
+  <link href="https://cdn.jsdelivr.net/npm/bootswatch@5/dist/brite/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {padding:1.5rem;}
+    textarea {font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;}
+    pre {white-space: pre-wrap; word-break: break-word;}
+    .mono {font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;}
+    .small-muted {font-size:.9rem;color:var(--bs-gray-600)}
+    .kbd {font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;}
+  </style>
 </head>
-
 <body>
-    <div class="container">
-        <div class="d-flex align-items-center mb-3">
-            <h2 class="me-3">AMMVA / Track Data Explorer</h2>
-            <span class="badge bg-info text-dark">Brite</span>
-        </div>
-
-        <p class="small-muted">Improved heuristic parser for mixed track and AMMVA-like data. Still best-effort — verify
-            results before use.</p>
-
-        <div class="card mb-3">
-            <div class="card-body">
-                <label for="rawInput" class="form-label">Raw input</label>
-                <textarea id="rawInput" class="form-control mb-2"
-                    rows="5">%AZPHOENICS^KIV$DEEPSEA$V^1234 E MAIN ST^?;6360260401379124=491119841122=?+1085205.     D.              1511157BK BRO.         D01111111.                 ?</textarea>
-
-                <div class="d-flex gap-2 flex-wrap">
-                    <button id="btnParse" class="btn btn-primary">Parse</button>
-                    <button id="btnClear" class="btn btn-outline-secondary">Clear</button>
-                    <button id="btnCopyJson" class="btn btn-outline-success">Copy JSON</button>
-                    <button id="btnExport" class="btn btn-outline-info">Download JSON</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="row gy-3">
-            <div class="col-lg-6">
-                <div class="card h-100">
-                    <div class="card-header">Normalized raw</div>
-                    <div class="card-body">
-                        <pre id="normalized" class="mono mb-0"></pre>
-                    </div>
-                </div>
-
-                <div class="card mt-3">
-                    <div class="card-header">Parsed elements</div>
-                    <div class="card-body p-0">
-                        <table class="table table-sm table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="width:35%">Field</th>
-                                    <th>Value</th>
-                                </tr>
-                            </thead>
-                            <tbody id="fieldsTable"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-6">
-                <div class="card h-100">
-                    <div class="card-header">Interpretation / Notes</div>
-                    <div class="card-body">
-                        <pre id="notes" class="mono mb-0">Parsed output will appear here.</pre>
-                    </div>
-                </div>
-
-                <div class="card mt-3">
-                    <div class="card-header">JSON output</div>
-                    <div class="card-body">
-                        <pre id="jsonOut" class="mono mb-0">{ }</pre>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <footer class="mt-4 small-muted">Improved parsing heuristics — validate before use.</footer>
+  <div class="container">
+    <div class="d-flex align-items-center mb-3">
+      <h2 class="me-3">AMMVA / Track Data Explorer</h2>
+      <span class="badge bg-info text-dark">Brite</span>
     </div>
 
-    <script>
-        /*
-          Improved parser goals:
-          - Stronger Track1/Track2/Track3 extraction
-          - Parse Track1 caret-separated fields accurately
-          - Detect name components (LAST/FIRST MIDDLE) from common formats
-          - Extract numeric sequences: card-like, document numbers, license-like
-          - Attempt DOB / expiry detection using YYMMDD or YYYYMMDD patterns
-          - Better address detection (street + suffix)
-          - Output confidence flags for extracted fields
-        */
+    <p class="small-muted">Parser maps fields to tracks using your field-map. Improved extraction: Track1 now splits leading two-letter state code from city (e.g., "AZPHOENICS" -> state=AZ, city=PHOENICS).</p>
 
-        function normalize(s) {
-            if (!s) return '';
-            // collapse newlines, normalize repeated whitespace while preserving separators
-            return s.replace(/[\r\n]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
-        }
+    <div class="card mb-3">
+      <div class="card-body">
+        <label for="rawInput" class="form-label">Raw input</label>
+        <textarea id="rawInput" class="form-control mb-2" rows="5">%AZPHOENICS^KIV$DEEPSEA$V^1234 E MAIN ST^?;6360260401379124=491119841122=?+1085205.     D.              1511157BK BRO.         D01111111.                 ?</textarea>
 
-        function extractTracks(s) {
-            // Return raw track strings without framing sentinels where possible
-            const out = { track1: null, track2: null, track3: null, rest: s };
-            // Track1 often starts with % and ends with ?
-            const m1 = s.match(/%([^%]*?)\?/);
-            if (m1) { out.track1 = m1[1]; out.rest = out.rest.replace(m1[0], ' '); }
-            // Track2 usually starts with ; and ends with ?
-            const m2 = s.match(/;([^;]*?)\?/);
-            if (m2) { out.track2 = m2[1]; out.rest = out.rest.replace(m2[0], ' '); }
-            // Track3 sometimes starts with + and ends with ?
-            const m3 = s.match(/\+([^+]*?)\?/);
-            if (m3) { out.track3 = m3[1]; out.rest = out.rest.replace(m3[0], ' '); }
-            return out;
-        }
+        <div class="d-flex gap-2 flex-wrap">
+          <button id="btnParse" class="btn btn-primary">Parse</button>
+          <button id="btnClear" class="btn btn-outline-secondary">Clear</button>
+          <button id="btnCopyJson" class="btn btn-outline-success">Copy JSON</button>
+          <button id="btnExport" class="btn btn-outline-info">Download JSON</button>
+        </div>
+      </div>
+    </div>
 
-        function parseNameField(nameStr) {
-            // Common formats:
-            //  - LAST/FIRST MIDDLE
-            //  - LAST,FIRST MIDDLE
-            //  - FIRST MIDDLE LAST
-            if (!nameStr) return null;
-            let raw = nameStr.trim();
-            // Replace multiple separators with single space
-            raw = raw.replace(/[\/,]+/g, '/'); // keep slash for detection
-            let name = { raw, last: null, first: null, middle: null, format: null };
+    <div class="row gy-3">
+      <div class="col-lg-6">
+        <div class="card h-100">
+          <div class="card-header">Normalized raw</div>
+          <div class="card-body"><pre id="normalized" class="mono mb-0"></pre></div>
+        </div>
 
-            // LAST/FIRST MIDDLE
-            if (raw.includes('/')) {
-                const [last, rest] = raw.split('/', 2).map(x => x.trim());
-                const parts = rest ? rest.split(' ').filter(Boolean) : [];
-                name.last = last || null;
-                name.first = parts.shift() || null;
-                name.middle = parts.join(' ') || null;
-                name.format = 'LAST/FIRST';
-                return name;
-            }
-            // LAST, FIRST MIDDLE
-            if (raw.includes(',')) {
-                const [last, rest] = raw.split(',', 2).map(x => x.trim());
-                const parts = rest.split(' ').filter(Boolean);
-                name.last = last || null;
-                name.first = parts.shift() || null;
-                name.middle = parts.join(' ') || null;
-                name.format = 'LAST, FIRST';
-                return name;
-            }
-            // Otherwise try FIRST MIDDLE LAST (heuristic: last token may be last name)
-            const parts = raw.split(' ').filter(Boolean);
-            if (parts.length >= 2) {
-                name.first = parts[0];
-                name.last = parts[parts.length - 1];
-                name.middle = parts.slice(1, -1).join(' ') || null;
-                name.format = 'FIRST LAST';
-                return name;
-            }
-            // fallback single token
-            name.first = raw || null;
-            return name;
-        }
+        <div class="card mt-3">
+          <div class="card-header">Parsed fields (by track)</div>
+          <div class="card-body p-0">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light"><tr><th style="width:35%">Field</th><th>Value</th><th>Track</th><th>Confidence</th></tr></thead>
+              <tbody id="fieldsTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
-        function findDates(s) {
-            // Return possible dates and label type (dob/expiry) heuristically by position or context.
-            const candidates = [];
-            // Patterns: YYYYMMDD, YYMMDD, MMDDYYYY, YYMM
-            const patterns = [
-                { re: /\b(19|20)\d{2}[01]\d[0-3]\d\b/g, fmt: 'YYYYMMDD' },
-                { re: /\b\d{2}[01]\d[0-3]\d\b/g, fmt: 'YYMMDD' },
-                { re: /\b[01]\d[0-3]\d(19|20)\d{2}\b/g, fmt: 'MMDDYYYY' },
-                { re: /\b\d{2}[01]\d\b/g, fmt: 'YYMM' }
-            ];
-            for (const p of patterns) {
-                let m;
-                while ((m = p.re.exec(s)) !== null) {
-                    candidates.push({ text: m[0], fmt: p.fmt, index: m.index });
-                }
-            }
-            // Sort by index (left-to-right)
-            candidates.sort((a, b) => a.index - b.index);
-            return candidates;
-        }
+      <div class="col-lg-6">
+        <div class="card h-100">
+          <div class="card-header">Interpretation / Notes</div>
+          <div class="card-body"><pre id="notes" class="mono mb-0">Parsed output will appear here.</pre></div>
+        </div>
 
-        function detectAddress(seg) {
-            if (!seg) return null;
-            // Heuristic: presence of number + street name + common suffix (ST, ST., RD, AVE, BLVD, LN)
-            const re = /\b\d{1,5}\s+[A-Za-z0-9.\- ]{2,60}\b(?:\b(?:ST|ST\.|RD|RD\.|AVE|AVE\.|BLVD|BLVD\.|LN|LN\.|DR|DR\.)\b)?/i;
-            const m = seg.match(re);
-            return m ? m[0].trim() : null;
-        }
+        <div class="card mt-3">
+          <div class="card-header">JSON output</div>
+          <div class="card-body"><pre id="jsonOut" class="mono mb-0">{ }</pre></div>
+        </div>
+      </div>
+    </div>
 
-        function findNumericTokens(s) {
-            // Return long numeric tokens (10+ digits), mid tokens (6-9), short (2-5)
-            const tokens = s.match(/\d{2,}/g) || [];
-            const grouped = { long: [], mid: [], short: [] };
-            tokens.forEach(t => {
-                if (t.length >= 10) grouped.long.push(t);
-                else if (t.length >= 6) grouped.mid.push(t);
-                else grouped.short.push(t);
-            });
-            return grouped;
-        }
+    <footer class="mt-4 small-muted">Field mapping: state/city/fname/lname/... mapped to Track 1/2/3 per provided spec.</footer>
+  </div>
 
-        function parseTrack1(track1) {
-            if (!track1) return null;
-            // Track1 format (ISO/ABA cards): %B<primary account no>^NAME^additional data
-            // We'll split on '^' and also handle non-standard variants.
-            const parts = track1.split('^').map(p => p.trim());
-            const out = { raw: track1, parts, issuer: null, pan: null, name_field: null, extra: null };
-            // If first part starts with a letter (issuer code), capture it
-            if (parts[0]) {
-                const m = parts[0].match(/^([A-Za-z]{1,4})(.*)$/);
-                if (m) { out.issuer = m[1]; out.pan = (m[2] || '').replace(/\D/g, '') || null; }
-                else out.pan = parts[0].replace(/\D/g, '') || null;
-            }
-            out.name_field = parts[1] || null;
-            out.extra = parts.slice(2).join(' ^ ') || null;
-            return out;
-        }
+<script>
+/* Field mapping provided by user */
+const FIELD_MAP = {
+  1: [
+    {key:'state', label:'State/Province'},
+    {key:'city', label:'City'},
+    {key:'fname', label:'First Name'},
+    {key:'lname', label:'Last Name'},
+    {key:'middle', label:'Middle Name'},
+    {key:'address1', label:'Address Line 1'},
+    {key:'address2', label:'Address Line 2'}
+  ],
+  2: [
+    {key:'id', label:'ISO Id'},
+    {key:'license', label:'License Number'},
+    {key:'expdate', label:'Expiration'},
+    {key:'birthdate', label:'Birth Date'}
+  ],
+  3: [
+    {key:'cdsversion', label:'CDS Version'},
+    {key:'jdversion', label:'Juris. Version'},
+    {key:'postalcode', label:'Postal/Zip Code'},
+    {key:'dlclass', label:'License Class'},
+    {key:'restrictions', label:'Lic. Restrictions'},
+    {key:'endorsements', label:'Lic. Endorsements'},
+    {key:'sex', label:'Sex'},
+    {key:'height', label:'Height'},
+    {key:'weight', label:'Weight'},
+    {key:'haircolor', label:'Hair Color'},
+    {key:'eyecolor', label:'Eye Color'},
+    {key:'did', label:'DID (jurisdiction-defined)'}
+  ]
+};
 
-        function parseTrack2(track2) {
-            if (!track2) return null;
-            // Track2 typical: primary=expiry+svc etc e.g. 6360260401379124=491119841122...
-            const out = { raw: track2, pan: null, separatorIndex: null, rest: null, expiry: null };
-            const sepIdx = track2.indexOf('=');
-            if (sepIdx >= 0) {
-                out.pan = track2.slice(0, sepIdx).replace(/\D/g, '') || null;
-                out.rest = track2.slice(sepIdx + 1).trim() || null;
-                // expiry often first 4 digits (YYMM) or 6 digits
-                const m = out.rest && out.rest.match(/^(\d{4,6})/);
-                if (m) out.expiry = m[1];
-            } else {
-                // if no separator, try to detect a long number
-                const long = track2.match(/\d{10,19}/);
-                if (long) out.pan = long[0];
-            }
-            return out;
-        }
+function normalize(s){
+  if(!s) return '';
+  return s.replace(/[\r\n]+/g,' ').replace(/\s{2,}/g,' ').trim();
+}
 
-        function buildConfidence(found) {
-            // Very simple confidence scoring: number of distinct heuristics that agreed
-            let score = 0;
-            if (found.pan) score += 2;
-            if (found.name && (found.name.first || found.name.last)) score += 2;
-            if (found.address) score += 1;
-            if (found.dates && found.dates.length) score += 1;
-            return Math.min(10, score);
-        }
+/* Improved Track1 parser: splits leading two-letter state code from remainder when present */
+function parseTrack1(track1){
+  if(!track1) return null;
+  const parts = track1.split('^').map(p=>p.trim()).filter(Boolean);
+  const out = { raw: track1, parts, issuer:null, pan:null, name_field:null, extra:null, stateCode:null, cityCandidate:null };
 
-        function parseRaw(input) {
-            const raw = input ?? '';
-            const normalized = normalize(raw);
-            const tracks = extractTracks(normalized);
+  // Inspect first part: could be "AZPHOENICS" or "B" + pan etc.
+  if(parts[0]){
+    // If starts with two letters followed by letters/digits, treat as state(2) + city/name
+    const m = parts[0].match(/^([A-Z]{2})([A-Z0-9\-\s]+)$/i);
+    if(m){
+      out.stateCode = m[1].toUpperCase();
+      out.cityCandidate = (m[2] || '').trim() || null;
+    } else {
+      // Another common pattern: issuer letter(s) + PAN or code
+      const m2 = parts[0].match(/^([A-Za-z]{1,4})(.*)$/);
+      if(m2){
+        out.issuer = m2[1];
+        out.pan = (m2[2]||'').replace(/\D/g,'') || null;
+      } else {
+        // fallback: extract digits as PAN if present
+        out.pan = parts[0].replace(/\D/g,'') || null;
+      }
+    }
+  }
 
-            // Create token segments from remaining text and also include track extras
-            const pool = (tracks.rest + ' ' + (tracks.track1 || '') + ' ' + (tracks.track2 || '') + ' ' + (tracks.track3 || '')).trim();
-            // split by common delimiters but preserve tokens for address/name detection
-            const segments = pool.split(/[\^;\+\?\.\|]/).map(s => s.trim()).filter(Boolean);
+  out.name_field = parts[1] || null;
+  out.extra = parts.slice(2).join(' ^ ') || null;
+  return out;
+}
 
-            const parsed = {
-                raw, normalized, tracks,
-                segments,
-                parsedTrack1: parseTrack1(tracks.track1),
-                parsedTrack2: parseTrack2(tracks.track2),
-                found: {},
-                confidence: 0
-            };
+function parseTrack2(track2){
+  if(!track2) return null;
+  const out = { raw: track2, pan:null, separatorIndex: null, rest:null, expiry:null, tokens:[] };
+  const sepIdx = track2.indexOf('=');
+  if(sepIdx >= 0){
+    out.pan = track2.slice(0,sepIdx).replace(/\D/g,'') || null;
+    out.rest = track2.slice(sepIdx+1).trim() || null;
+    const m = out.rest && out.rest.match(/^(\d{4,6})/);
+    if(m) out.expiry = m[1];
+  } else {
+    const long = track2.match(/\d{10,19}/);
+    if(long) out.pan = long[0];
+  }
+  out.tokens = track2.split(/[\^\/\s\$]/).map(t=>t.trim()).filter(Boolean);
+  return out;
+}
 
-            // Name extraction: prefer Track1 name field, else search segments for name-like tokens
-            const nameCandidates = [];
-            if (parsed.parsedTrack1 && parsed.parsedTrack1.name_field) nameCandidates.push(parsed.parsedTrack1.name_field);
-            // push segments likely to be names (contain letters and spaces, not many digits)
-            parsed.segments.forEach(s => {
-                if (/[A-Za-z]/.test(s) && (s.match(/\d/g) || []).length <= 2 && s.length < 80) nameCandidates.push(s);
-            });
+function parseTrack3(track3){
+  if(!track3) return null;
+  const tokens = track3.split(/[,;\/\s\^]/).map(t=>t.trim()).filter(Boolean);
+  return { raw: track3, tokens };
+}
 
-            // pick best candidate: prefer those with slash or comma which indicate LAST/FIRST
-            let chosenName = null;
-            for (const n of nameCandidates) {
-                if (n.includes('/') || n.includes(',')) { chosenName = n; break; }
-            }
-            if (!chosenName) chosenName = nameCandidates[0] || null;
-            parsed.found.name_raw = chosenName;
-            parsed.found.name = parseNameField(chosenName);
+function extractTracks(s){
+  const out = { track1:null, track2:null, track3:null, rest: s };
+  const m1 = s.match(/%([^?]+)\?/);
+  if(m1){ out.track1 = m1[1]; out.rest = out.rest.replace(m1[0],' '); }
+  const m2 = s.match(/;([^?]+)\?/);
+  if(m2){ out.track2 = m2[1]; out.rest = out.rest.replace(m2[0],' '); }
+  const m3 = s.match(/\+([^?]+)\?/);
+  if(m3){ out.track3 = m3[1]; out.rest = out.rest.replace(m3[0],' '); }
+  return out;
+}
 
-            // Address extraction: try Track1 extra, segments
-            let address = null;
-            if (parsed.parsedTrack1 && parsed.parsedTrack1.extra) {
-                address = detectAddress(parsed.parsedTrack1.extra);
-            }
-            if (!address) {
-                for (const s of parsed.segments) {
-                    const a = detectAddress(s);
-                    if (a) { address = a; break; }
-                }
-            }
-            parsed.found.address = address;
+function detectAddress(seg){
+  if(!seg) return null;
+  const re = /\b\d{1,5}\s+[A-Za-z0-9.\- ]{2,60}\b(?:\b(?:ST|ST\.|RD|RD\.|AVE|AVE\.|BLVD|BLVD\.|LN|LN\.|DR|DR\.)\b)?/i;
+  const m = seg.match(re);
+  return m ? m[0].trim() : null;
+}
 
-            // Numeric tokens (document/license-like)
-            const nums = findNumericTokens(pool);
-            parsed.found.numeric = nums;
+function findNumericTokens(s){
+  const tokens = s.match(/\d{2,}/g) || [];
+  const grouped = { long:[], mid:[], short:[] };
+  tokens.forEach(t=>{
+    if(t.length >= 10) grouped.long.push(t);
+    else if(t.length >= 6) grouped.mid.push(t);
+    else grouped.short.push(t);
+  });
+  return grouped;
+}
 
-            // Heuristics to detect document/license number:
-            // - long numeric tokens (>=12) may be PAN or license-like
-            // - tokens prefixed by letters (e.g., D01111111 or BK...) can include doc numbers
-            const letterNum = pool.match(/[A-Z]{1,3}\s*0*\d{4,}/gi) || pool.match(/[A-Z]{1,3}\d{4,}/gi) || [];
-            parsed.found.letter_num_tokens = letterNum;
+function normalizeDateToken(tok){
+  if(!tok) return null;
+  const s = tok.replace(/[^\d]/g,'');
+  if(/^(19|20)\d{6}$/.test(s)){ return s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8); }
+  if(/^\d{6}$/.test(s)){ const yy = parseInt(s.slice(0,2),10); const year = (yy>=0 && yy<=30)?2000+yy:1900+yy; return year+'-'+s.slice(2,4)+'-'+s.slice(4,6); }
+  if(/^\d{4}$/.test(s)){ return s; }
+  return null;
+}
 
-            // Collect probable doc numbers
-            parsed.found.document_numbers = [];
-            nums.long.forEach(n => parsed.found.document_numbers.push({ value: n, type: 'long_numeric' }));
-            nums.mid.forEach(n => parsed.found.document_numbers.push({ value: n, type: 'mid_numeric' }));
-            letterNum.forEach(t => parsed.found.document_numbers.push({ value: t, type: 'alpha_numeric' }));
+function buildConfidence(found){
+  let score = 0;
+  if(found.pan) score += 2;
+  if(found.name && (found.name.first||found.name.last)) score += 2;
+  if(found.address) score += 1;
+  if(found.dates && found.dates.length) score += 1;
+  return Math.min(10, score);
+}
 
-            // Date detection (DOB, expiry)
-            const dateCandidates = findDates(pool);
-            parsed.found.dates = dateCandidates;
+function parseNameField(nameStr){
+  if(!nameStr) return null;
+  let raw = nameStr.trim();
+  raw = raw.replace(/[\/,]+/g,'/').replace(/\s{2,}/g,' ').trim();
+  let name = { raw, last:null, first:null, middle:null, format:null };
+  if(raw.includes('/')){
+    const [last, rest] = raw.split('/',2).map(x=>x.trim());
+    const parts = rest ? rest.split(' ').filter(Boolean) : [];
+    name.last = last || null; name.first = parts.shift() || null; name.middle = parts.join(' ') || null; name.format = 'LAST/FIRST'; return name;
+  }
+  if(raw.includes(',')){
+    const [last, rest] = raw.split(',',2).map(x=>x.trim());
+    const parts = rest.split(' ').filter(Boolean);
+    name.last = last || null; name.first = parts.shift() || null; name.middle = parts.join(' ') || null; name.format = 'LAST, FIRST'; return name;
+  }
+  const parts = raw.split(' ').filter(Boolean);
+  if(parts.length >= 2){ name.first = parts[0]; name.last = parts[parts.length-1]; name.middle = parts.slice(1,-1).join(' ') || null; name.format = 'FIRST LAST'; return name; }
+  name.first = raw || null;
+  return name;
+}
 
-            // If track2 had expiry (e.g., YYMM or YYYYMM), parse it
-            if (parsed.parsedTrack2 && parsed.parsedTrack2.expiry) {
-                parsed.found.card_expiry = parsed.parsedTrack2.expiry;
-            }
+function parseRaw(input){
+  const raw = input ?? '';
+  const normalized = normalize(raw);
+  const tracks = extractTracks(normalized);
 
-            // Try to guess DOB by finding earliest plausible YYMMDD date or patterns near name tokens
-            if (parsed.found.dates.length) {
-                // prefer 6 or 8-digit dates (YYMMDD or YYYYMMDD)
-                const prefer = parsed.found.dates.find(d => d.fmt === 'YYYYMMDD' || d.fmt === 'YYMMDD') || parsed.found.dates[0];
-                parsed.found.guessed_date = prefer;
-            }
+  const parsed = {
+    raw, normalized, tracks,
+    parsedTrack1: parseTrack1(tracks.track1),
+    parsedTrack2: parseTrack2(tracks.track2),
+    parsedTrack3: parseTrack3(tracks.track3),
+    segments: [],
+    found: {},
+    fields: {},
+    best: {},
+    confidence: 0
+  };
 
-            // Additional small heuristics: if segments contain "E MAIN ST" or similar, keep cleaned form
-            if (!parsed.found.address) {
-                for (const s of parsed.segments) {
-                    const sClean = s.replace(/\s{2,}/g, ' ').trim();
-                    if (/\b(ST|STREET|RD|ROAD|AVE|AVENUE|BLVD|LANE|LN|DR|DRIVE|CT|COURT)\b/i.test(sClean) && /\d/.test(sClean)) {
-                        parsed.found.address = sClean;
-                        break;
-                    }
-                }
-            }
+  // Build token pool including parsed track parts
+  const pool = [parsed.parsedTrack1?.raw, parsed.parsedTrack2?.raw, parsed.parsedTrack3?.raw, parsed.tracks.rest].filter(Boolean).join(' ');
+  parsed.segments = pool.split(/[\^;\+\?\.\|]/).map(s=>s.trim()).filter(Boolean);
 
-            // Try to detect issuer in Track1 first token (letters), or first segment uppercase token
-            parsed.found.issuer = parsed.parsedTrack1 && parsed.parsedTrack1.issuer ? parsed.parsedTrack1.issuer :
-                (parsed.segments[0] && /^[A-Z]{2,}$/.test(parsed.segments[0]) ? parsed.segments[0] : null);
+  // Use parsedTrack1 to populate state/city when present
+  if(parsed.parsedTrack1){
+    if(parsed.parsedTrack1.stateCode){
+      parsed.found.state = parsed.parsedTrack1.stateCode;
+      if(parsed.parsedTrack1.cityCandidate) parsed.found.city = parsed.parsedTrack1.cityCandidate;
+    }
+    // assign name from Track1 name_field if present
+    if(parsed.parsedTrack1.name_field){
+      parsed.found.name_raw = parsed.parsedTrack1.name_field;
+      parsed.found.name = parseNameField(parsed.parsedTrack1.name_field);
+    }
+    // address candidate from extra
+    if(parsed.parsedTrack1.extra){
+      const a = detectAddress(parsed.parsedTrack1.extra);
+      if(a) parsed.found.address = a;
+    }
+  }
 
-            // PAN: prefer track2 pan if exists, else numeric long tokens that look like 15-19 digits
-            parsed.found.pan = (parsed.parsedTrack2 && parsed.parsedTrack2.pan) ||
-                (parsed.parsedTrack1 && parsed.parsedTrack1.pan) ||
-                (nums.long.find(n => n.length >= 15 && n.length <= 19) || null);
+  // Fallback name/address search in segments
+  if(!parsed.found.name_raw){
+    for(const s of parsed.segments){
+      if(/[A-Za-z]/.test(s) && (s.match(/\d/g)||[]).length <= 2 && s.length < 80){
+        parsed.found.name_raw = s;
+        parsed.found.name = parseNameField(s);
+        break;
+      }
+    }
+  }
+  if(!parsed.found.address){
+    for(const s of parsed.segments){
+      const a = detectAddress(s);
+      if(a){ parsed.found.address = a; break; }
+    }
+  }
 
-            // Document number fallback: choose first alpha-numeric or mid-length numeric present near name/address
-            parsed.found.document_number = parsed.found.document_numbers.length ? parsed.found.document_numbers[0] : null;
+  // Numeric tokens and document-like tokens
+  const nums = findNumericTokens(pool);
+  parsed.found.numeric = nums;
+  const letterNum = pool.match(/[A-Z]{1,3}\s*0*\d{4,}/gi) || pool.match(/[A-Z]{1,3}\d{4,}/gi) || [];
+  parsed.found.letter_num_tokens = letterNum;
+  parsed.found.document_numbers = [];
+  nums.long.forEach(n=> parsed.found.document_numbers.push({value:n, type:'long_numeric'}));
+  nums.mid.forEach(n=> parsed.found.document_numbers.push({value:n, type:'mid_numeric'}));
+  letterNum.forEach(t=> parsed.found.document_numbers.push({value:t, type:'alpha_numeric'}));
 
-            // Build simple confidence metric
-            parsed.confidence = buildConfidence(parsed.found);
+  // Track2 pan/expiry
+  if(parsed.parsedTrack2){
+    if(parsed.parsedTrack2.pan) parsed.found.pan = parsed.parsedTrack2.pan;
+    if(parsed.parsedTrack2.expiry) parsed.found.card_expiry = parsed.parsedTrack2.expiry;
+    // try to assign license/id/exp/birth by token heuristics
+    const pool2 = parsed.parsedTrack2.tokens.join(' ');
+    const lic = pool2.match(/[A-Z0-9\-]{4,}/i);
+    if(lic && !parsed.fields['license']) parsed.fields['license'] = [{ value: lic[0], track:2, confidence:5 }];
+    const exp = pool2.match(/(20\d{2}[-\/]\d{2}[-\/]\d{2}|\d{6}|\d{4})/);
+    if(exp && !parsed.fields['expdate']) parsed.fields['expdate'] = [{ value: exp[0], track:2, confidence:5 }];
+    const dob = pool2.match(/\b(19|20)\d{2}[-\/]?(0[1-9]|1[0-2])[-\/]?(0[1-9]|[12]\d|3[01])\b/) || pool2.match(/\b\d{6,8}\b/);
+    if(dob && !parsed.fields['birthdate']) parsed.fields['birthdate'] = [{ value: dob[0], track:2, confidence:5 }];
+    const iso = pool2.match(/\b[A-Z]{1,3}\b/i);
+    if(iso && !parsed.fields['id']) parsed.fields['id'] = [{ value: iso[0], track:2, confidence:4 }];
+  }
 
-            return parsed;
-        }
+  // Track3 heuristics
+  if(parsed.parsedTrack3){
+    const pool3 = parsed.parsedTrack3.tokens.join(' ');
+    const sex = pool3.match(/\b([12]|M|F)\b/i);
+    if(sex) parsed.fields['sex'] = parsed.fields['sex'] || [], parsed.fields['sex'].push({ value: sex[0], track:3, confidence:6 });
+    const postal = pool3.match(/\b\d{4,10}\b/);
+    if(postal) parsed.fields['postalcode'] = parsed.fields['postalcode'] || [], parsed.fields['postalcode'].push({ value: postal[0], track:3, confidence:5 });
+    const height = pool3.match(/(\d{2,3}in|\d{3}cm|\b\d{2,3}\b)/i);
+    if(height) parsed.fields['height'] = parsed.fields['height'] || [], parsed.fields['height'].push({ value: height[0], track:3, confidence:4 });
+  }
 
-        function renderParsed(parsed) {
-            document.getElementById('normalized').textContent = parsed.normalized || '';
-            const tbody = document.getElementById('fieldsTable');
-            tbody.innerHTML = '';
+  // Merge fields detected earlier (parsed.fields may contain some keys)
+  // Ensure parsed.fields structure: arrays of {value,track,confidence,rawIndex?}
+  Object.keys(parsed.fields).forEach(k=>{
+    if(!Array.isArray(parsed.fields[k])) parsed.fields[k] = [parsed.fields[k]];
+  });
 
-            const kv = [
-                ['Issuer', parsed.found.issuer || '—'],
-                ['Name (raw)', parsed.found.name_raw || '—'],
-                ['Name.first', parsed.found.name?.first || '—'],
-                ['Name.middle', parsed.found.name?.middle || '—'],
-                ['Name.last', parsed.found.name?.last || '—'],
-                ['Address', parsed.found.address || '—'],
-                ['PAN / card-like', parsed.found.pan || '—'],
-                ['Document number (guess)', parsed.found.document_number ? JSON.stringify(parsed.found.document_number) : '—'],
-                ['Dates (candidates)', parsed.found.dates.length ? parsed.found.dates.map(d => d.text + ' (' + d.fmt + ')').join(' | ') : '—'],
-                ['Track1', parsed.tracks.track1 || '—'],
-                ['Track2', parsed.tracks.track2 || '—'],
-                ['Track3', parsed.tracks.track3 || '—'],
-                ['Segments count', parsed.segments.length],
-                ['Confidence (0-10)', parsed.confidence]
-            ];
+  // Merge direct found items into parsed.fields
+  if(parsed.found.state) parsed.fields['state'] = parsed.fields['state'] || [], parsed.fields['state'].push({ value: parsed.found.state, track:1, confidence:8 });
+  if(parsed.found.city) parsed.fields['city'] = parsed.fields['city'] || [], parsed.fields['city'].push({ value: parsed.found.city, track:1, confidence:7 });
+  if(parsed.found.name_raw) parsed.fields['name'] = parsed.fields['name'] || [], parsed.fields['name'].push({ value: parsed.found.name_raw, track:1, confidence:7 });
+  if(parsed.found.address) parsed.fields['address1'] = parsed.fields['address1'] || [], parsed.fields['address1'].push({ value: parsed.found.address, track:1, confidence:6 });
+  if(parsed.found.pan) parsed.fields['pan'] = parsed.fields['pan'] || [], parsed.fields['pan'].push({ value: parsed.found.pan, track:2, confidence:8 });
 
-            kv.forEach(([k, v]) => {
-                const tr = document.createElement('tr');
-                const tdK = document.createElement('td');
-                const tdV = document.createElement('td');
-                tdK.textContent = k;
-                tdV.textContent = (v === undefined || v === null || v === '') ? '—' : v;
-                tr.appendChild(tdK); tr.appendChild(tdV);
-                tbody.appendChild(tr);
-            });
+  // Add document_numbers candidates
+  if(parsed.found.document_numbers.length && !parsed.fields['license']){
+    parsed.fields['license'] = parsed.fields['license'] || [];
+    parsed.found.document_numbers.forEach(d=> parsed.fields['license'].push({ value: d.value, track:2, confidence:4 }));
+  }
 
-            const notes = [
-                'Best-effort parse — verify sensitive values before use.',
-                '',
-                'Segments (left-to-right):',
-                parsed.segments.join(' | '),
-                '',
-                'Letter-numeric tokens found:',
-                parsed.found.letter_num_tokens.length ? parsed.found.letter_num_tokens.join(' , ') : 'none'
-            ].join('\n');
+  // Normalize date fields if present in fields
+  ['expdate','birthdate'].forEach(k=>{
+    if(parsed.fields[k]){
+      parsed.fields[k] = parsed.fields[k].map(item=>{
+        const nd = normalizeDateToken(item.value);
+        return {...item, normalizedDate: nd || item.value};
+      });
+    }
+  });
 
-            document.getElementById('notes').textContent = notes;
-            document.getElementById('jsonOut').textContent = JSON.stringify(parsed, null, 2);
-        }
+  // Compute best per field
+  Object.entries(parsed.fields).forEach(([k,arr])=>{
+    if(!Array.isArray(arr)) arr = [arr];
+    arr.sort((a,b)=> (b.confidence - a.confidence) || ((a.rawIndex||0)-(b.rawIndex||0)));
+    parsed.best[k] = arr[0];
+  });
 
-        /* UI actions */
-        document.getElementById('btnParse').addEventListener('click', () => {
-            const input = document.getElementById('rawInput').value;
-            const parsed = parseRaw(input);
-            renderParsed(parsed);
-        });
+  parsed.confidence = buildConfidence(parsed.found);
 
-        document.getElementById('btnClear').addEventListener('click', () => {
-            document.getElementById('rawInput').value = '';
-            document.getElementById('normalized').textContent = '';
-            document.getElementById('fieldsTable').innerHTML = '';
-            document.getElementById('notes').textContent = '';
-            document.getElementById('jsonOut').textContent = '{}';
-        });
+  return parsed;
+}
 
-        document.getElementById('btnCopyJson').addEventListener('click', async () => {
-            try {
-                await navigator.clipboard.writeText(document.getElementById('jsonOut').textContent || '');
-                alert('JSON copied to clipboard');
-            } catch (e) {
-                alert('Copy failed');
-            }
-        });
+/* Rendering */
+function renderParsed(parsed){
+  document.getElementById('normalized').textContent = parsed.normalized || '';
+  const tbody = document.getElementById('fieldsTable');
+  tbody.innerHTML = '';
 
-        document.getElementById('btnExport').addEventListener('click', () => {
-            const data = document.getElementById('jsonOut').textContent || '{}';
-            const blob = new Blob([data], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = 'ammva-parsed.json';
-            document.body.appendChild(a); a.click(); a.remove();
-            URL.revokeObjectURL(url);
-        });
+  const shown = new Set();
+  [1,2,3].forEach(trackNum=>{
+    const fields = FIELD_MAP[trackNum] || [];
+    fields.forEach(f=>{
+      shown.add(f.key);
+      const best = parsed.best[f.key];
+      const tr = document.createElement('tr');
+      const tdK = document.createElement('td');
+      const tdV = document.createElement('td');
+      const tdT = document.createElement('td');
+      const tdC = document.createElement('td');
+      tdK.textContent = f.label;
+      if(best){
+        tdV.textContent = best.normalizedDate || best.value;
+        tdT.textContent = 'Track '+best.track;
+        tdC.textContent = best.confidence;
+      } else {
+        tdV.textContent = '—';
+        tdT.textContent = '—';
+        tdC.textContent = '0';
+      }
+      tr.appendChild(tdK); tr.appendChild(tdV); tr.appendChild(tdT); tr.appendChild(tdC);
+      tbody.appendChild(tr);
+    });
+  });
 
-        /* Auto-parse on load */
-        window.addEventListener('load', () => document.getElementById('btnParse').click());
-    </script>
+  // Any other best fields not in map
+  Object.keys(parsed.best).forEach(k=>{
+    if(shown.has(k)) return;
+    const b = parsed.best[k];
+    const tr = document.createElement('tr');
+    const tdK = document.createElement('td');
+    const tdV = document.createElement('td');
+    const tdT = document.createElement('td');
+    const tdC = document.createElement('td');
+    tdK.textContent = k;
+    tdV.textContent = b.normalizedDate || b.value;
+    tdT.textContent = 'Track '+b.track;
+    tdC.textContent = b.confidence;
+    tr.appendChild(tdK); tr.appendChild(tdV); tr.appendChild(tdT); tr.appendChild(tdC);
+    tbody.appendChild(tr);
+  });
+
+  const notes = [
+    'Best-effort mapping. Verify before use.',
+    '',
+    'Segments (left-to-right):',
+    parsed.segments.join(' | '),
+    '',
+    'Raw track data:',
+    'Track1: ' + (parsed.tracks.track1 || '—'),
+    'Track2: ' + (parsed.tracks.track2 || '—'),
+    'Track3: ' + (parsed.tracks.track3 || '—'),
+    '',
+    'Parsed track summaries:',
+    'T1: ' + JSON.stringify(parsed.parsedTrack1),
+    'T2: ' + JSON.stringify(parsed.parsedTrack2),
+    'T3: ' + JSON.stringify(parsed.parsedTrack3)
+  ].join('\n');
+
+  document.getElementById('notes').textContent = notes;
+  document.getElementById('jsonOut').textContent = JSON.stringify(parsed, null, 2);
+}
+
+/* UI actions */
+document.getElementById('btnParse').addEventListener('click',()=>{
+  const input = document.getElementById('rawInput').value;
+  const parsed = parseRaw(input);
+  renderParsed(parsed);
+});
+a
+document.getElementById('btnClear').addEventListener('click',()=>{
+  document.getElementById('rawInput').value = '';
+  document.getElementById('normalized').textContent = '';
+  document.getElementById('fieldsTable').innerHTML = '';
+  document.getElementById('notes').textContent = '';
+  document.getElementById('jsonOut').textContent = '{}';
+});
+
+document.getElementById('btnCopyJson').addEventListener('click', async ()=>{
+  try{
+    await navigator.clipboard.writeText(document.getElementById('jsonOut').textContent || '');
+    alert('JSON copied to clipboard');
+  }catch(e){
+    alert('Copy failed');
+  }
+});
+
+document.getElementById('btnExport').addEventListener('click', ()=>{
+  const data = document.getElementById('jsonOut').textContent || '{}';
+  const blob = new Blob([data], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'ammva-parsed.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+});
+
+/* Auto-parse on load */
+window.addEventListener('load', ()=>document.getElementById('btnParse').click());
+</script>
 </body>
-
 </html>
