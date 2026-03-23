@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>AAMVA Parsing Services — Working Prototype</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root {
+      --bg: #02040a;
+      --card: #050814;
+      --accent: #00ff88;
+      --accent-soft: #b7ffdd;
+      --muted: #7a8b8f;
+      --border: #0b1c24;
+      --code-bg: #050b12;
+      --error: #ff4d6a;
+      --warn: #ffb347;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+      background: radial-gradient(circle at top, #04121a 0, #02040a 55%, #000000 100%);
+      color: #e9fdf4;
+      -webkit-font-smoothing: antialiased;
+      padding: 32px 16px 40px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .doc {
+      width: 100%;
+      max-width: 1100px;
+      background: linear-gradient(145deg, rgba(0, 0, 0, 0.9), rgba(2, 10, 8, 0.98));
+      border-radius: 18px;
+      border: 1px solid rgba(0, 255, 136, 0.12);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.85);
+      padding: 22px 22px 26px;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      font-family: "IBM Plex Sans", system-ui, sans-serif;
+      margin: 0 0 10px;
+      letter-spacing: 0.02em;
+    }
+
+    h1 {
+      font-size: 26px;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+
+    h2 {
+      font-size: 18px;
+      margin-top: 18px;
+      border-bottom: 1px solid rgba(0, 255, 136, 0.16);
+      padding-bottom: 4px;
+    }
+
+    h3 {
+      font-size: 15px;
+      margin-top: 12px;
+    }
+
+    p {
+      margin: 0 0 10px;
+      color: #e3f7ee;
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .subtitle {
+      color: var(--accent-soft);
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    .tagline {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 6px 0 10px;
+    }
+
+    .pill {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 255, 136, 0.25);
+      color: var(--accent-soft);
+      background: rgba(0, 255, 136, 0.06);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr) minmax(0, 0.9fr);
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    @media (max-width: 980px) {
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .card-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+    }
+
+    .badge {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      color: var(--accent-soft);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      background: var(--code-bg);
+      border-radius: 8px;
+      border: 1px solid rgba(0, 255, 136, 0.18);
+      padding: 8px 9px;
+      font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+      font-size: 12px;
+      color: var(--accent-soft);
+      resize: vertical;
+      outline: none;
+    }
+
+    textarea::placeholder {
+      color: #4b5b60;
+    }
+
+    select,
+    button {
+      font-family: inherit;
+      font-size: 12px;
+    }
+
+    select {
+      background: #020711;
+      color: #e9fdf4;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      padding: 4px 8px;
+      outline: none;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+      margin-bottom: 4px;
+    }
+
+    .btn {
+      border-radius: 999px;
+      border: 1px solid rgba(0, 255, 136, 0.4);
+      background: rgba(0, 255, 136, 0.08);
+      color: var(--accent-soft);
+      padding: 4px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn.secondary {
+      border-color: rgba(122, 139, 143, 0.7);
+      color: var(--muted);
+      background: rgba(5, 10, 18, 0.9);
+    }
+
+    .btn.danger {
+      border-color: rgba(255, 77, 106, 0.7);
+      color: #ffc2cf;
+      background: rgba(60, 5, 16, 0.9);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    pre {
+      background: var(--code-bg);
+      border-radius: 10px;
+      border: 1px solid rgba(0, 255, 136, 0.16);
+      padding: 8px 9px;
+      overflow: auto;
+      font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+      font-size: 12px;
+      color: var(--accent-soft);
+      margin: 6px 0 4px;
+      max-height: 260px;
+    }
+
+    .output-label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+
+    .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 6px rgba(0, 255, 136, 0.7);
+    }
+
+    .status-pill {
+      border-radius: 999px;
+      border: 1px solid rgba(0, 255, 136, 0.25);
+      padding: 2px 7px;
+      font-size: 11px;
+      color: var(--accent-soft);
+      background: rgba(0, 255, 136, 0.05);
+    }
+
+    .status-pill.error {
+      border-color: rgba(255, 77, 106, 0.7);
+      color: #ffc2cf;
+      background: rgba(60, 5, 16, 0.9);
+    }
+
+    .status-pill.warn {
+      border-color: rgba(255, 179, 71, 0.7);
+      color: #ffe0b3;
+      background: rgba(60, 40, 5, 0.9);
+    }
+
+    .log-list {
+      max-height: 260px;
+      overflow-y: auto;
+      font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .log-entry {
+      padding: 4px 0;
+      border-bottom: 1px dashed rgba(0, 255, 136, 0.12);
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .log-entry span.code {
+      color: var(--accent-soft);
+    }
+
+    .footer {
+      margin-top: 16px;
+      padding-top: 10px;
+      border-top: 1px dashed rgba(0, 255, 136, 0.18);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+  </style>
+</head>
+
+<body>
+  <article class="doc">
+    <header>
+      <div class="section-label">Working prototype</div>
+      <h1>AAMVA Parsing Services</h1>
+      <div class="subtitle">Interactive Parsing Console</div>
+      <p class="tagline">
+        A small, self-contained prototype that simulates AAMVA parsing: paste magstripe or PDF417 payloads, choose a
+        mode, and see normalized identity output plus an operational log.
+      </p>
+      <div class="pill-row">
+        <div class="pill">Magstripe & PDF417</div>
+        <div class="pill">Simulated Parser</div>
+        <div class="pill">Normalized Identity View</div>
+        <div class="pill">Operational Log</div>
+        <div class="pill">Single-file HTML</div>
+      </div>
+    </header>
+
+    <section>
+      <h2>1. Console</h2>
+      <p>
+        This prototype doesn’t implement the full AAMVA spec. Instead, it simulates the behavior and shape of the
+        service: you can switch formats, load sample payloads, “parse” them, and inspect the normalized identity
+        object and log entries.
+      </p>
+
+      <div class="layout">
+        <!-- INPUT PANEL -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Input payload</div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <select id="formatSelect">
+                <option value="auto">Auto-detect</option>
+                <option value="pdf417">PDF417</option>
+                <option value="magstripe">Magstripe</option>
+              </select>
+            </div>
+          </div>
+
+          <textarea id="inputArea" placeholder="@ Paste PDF417 or magstripe data here, or use a sample below..."></textarea>
+
+          <div class="btn-row">
+            <button class="btn" id="btnSamplePdf">
+              ▣ Sample PDF417
+            </button>
+            <button class="btn" id="btnSampleMag">
+              ║ Sample magstripe
+            </button>
+            <button class="btn secondary" id="btnClearInput">
+              ✕ Clear input
+            </button>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn" id="btnParse">
+              ▶ Parse payload
+            </button>
+            <button class="btn secondary" id="btnFakeError">
+              ⚠ Simulate error
+            </button>
+          </div>
+
+          <p class="hint">
+            Auto-detect is naive in this prototype: payloads starting with <code>@ANSI</code> are treated as PDF417;
+            others as magstripe.
+          </p>
+        </div>
+
+        <!-- OUTPUT PANEL -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Normalized identity</div>
+            <span class="badge" id="parseStatusBadge">Idle</span>
+          </div>
+
+          <div class="output-label">Parsed JSON</div>
+          <pre id="outputJson">{ }</pre>
+
+          <div class="output-label">Key fields</div>
+          <pre id="outputSummary">Name: —
+DOB: —
+ID: —
+Jurisdiction: —
+Expiration: —</pre>
+
+          <div class="status-row">
+            <div class="status-dot" id="statusDot"></div>
+            <div id="statusText">Ready to parse.</div>
+          </div>
+        </div>
+
+        <!-- LOG PANEL -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Operational log</div>
+            <button class="btn secondary" id="btnClearLog">Clear log</button>
+          </div>
+          <div class="log-list" id="logList"></div>
+          <p class="hint">
+            Each parse appends a log entry with timestamp, detected format, and outcome. This mirrors how a real
+            service could feed an audit trail.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>2. What this prototype represents</h2>
+      <p>
+        This file is intentionally small and self-contained. It doesn’t aim for full AAMVA correctness; instead, it
+        gives you a tangible feel for:
+      </p>
+      <ul>
+        <li>How operators might interact with an AAMVA parsing console.</li>
+        <li>What a normalized identity object could look like.</li>
+        <li>How an operational log can capture each parse event.</li>
+        <li>How “auto-detect” and format selection might be surfaced in a UI.</li>
+      </ul>
+      <p>
+        Under the hood, the “parser” is a simple simulator that extracts a few recognizable patterns and fills in
+        reasonable demo values. It’s a scaffold for future, spec-accurate parsing logic.
+      </p>
+    </section>
+
+    <footer class="footer">
+      AAMVA Parsing Services — Working Prototype · Single-file HTML · Simulated Parsing · Operator-focused Console
+    </footer>
+  </article>
+
+  <script>
+    const inputArea = document.getElementById('inputArea');
+    const formatSelect = document.getElementById('formatSelect');
+    const outputJson = document.getElementById('outputJson');
+    const outputSummary = document.getElementById('outputSummary');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const parseStatusBadge = document.getElementById('parseStatusBadge');
+    const logList = document.getElementById('logList');
+
+    const btnSamplePdf = document.getElementById('btnSamplePdf');
+    const btnSampleMag = document.getElementById('btnSampleMag');
+    const btnClearInput = document.getElementById('btnClearInput');
+    const btnParse = document.getElementById('btnParse');
+    const btnFakeError = document.getElementById('btnFakeError');
+    const btnClearLog = document.getElementById('btnClearLog');
+
+    function nowIso() {
+      return new Date().toISOString();
+    }
+
+    function setStatus(mode, message) {
+      // mode: 'idle' | 'ok' | 'error'
+      if (mode === 'ok') {
+        statusDot.style.background = 'var(--accent)';
+        statusDot.style.boxShadow = '0 0 6px rgba(0,255,136,0.7)';
+        parseStatusBadge.textContent = 'Parsed';
+        parseStatusBadge.style.borderColor = 'rgba(0,255,136,0.6)';
+        parseStatusBadge.style.color = 'var(--accent-soft)';
+      } else if (mode === 'error') {
+        statusDot.style.background = 'var(--error)';
+        statusDot.style.boxShadow = '0 0 6px rgba(255,77,106,0.7)';
+        parseStatusBadge.textContent = 'Error';
+        parseStatusBadge.style.borderColor = 'rgba(255,77,106,0.7)';
+        parseStatusBadge.style.color = '#ffc2cf';
+      } else {
+        statusDot.style.background = 'var(--accent)';
+        statusDot.style.boxShadow = '0 0 6px rgba(0,255,136,0.4)';
+        parseStatusBadge.textContent = 'Idle';
+        parseStatusBadge.style.borderColor = 'rgba(0,255,136,0.3)';
+        parseStatusBadge.style.color = 'var(--accent-soft)';
+      }
+      statusText.textContent = message;
+    }
+
+    function appendLog(entry) {
+      const div = document.createElement('div');
+      div.className = 'log-entry';
+      div.innerHTML = `<span class="code">[${entry.time}]</span> ${entry.message}`;
+      logList.prepend(div);
+    }
+
+    function detectFormat(payload, explicit) {
+      if (explicit && explicit !== 'auto') return explicit;
+      if (!payload) return 'auto';
+      if (payload.trim().startsWith('@ANSI')) return 'pdf417';
+      if (payload.includes('%') || payload.includes(';')) return 'magstripe';
+      return 'auto';
+    }
+
+    // Very naive simulators — just enough to feel real
+    function simulatePdf417Parse(payload) {
+      const upper = payload.toUpperCase();
+      function grab(tag, len) {
+        const idx = upper.indexOf(tag);
+        if (idx === -1) return null;
+        return upper.substring(idx + tag.length, idx + tag.length + len);
+      }
+
+      const last = grab('DCS', 20) || 'SAMPLE';
+      const first = grab('DCT', 20) || 'JOHN';
+      const dobRaw = grab('DBB', 8) || '19841122';
+      const expRaw = grab('DBA', 8) || '20261119';
+      const street = grab('DAG', 25) || '1234 E MAIN ST';
+      const city = grab('DAI', 20) || 'PHOENIX';
+      const state = grab('DAJ', 2) || 'AZ';
+      const zip = grab('DAK', 9) || '85001';
+
+      function fmtDate(s) {
+        if (!s || s.length < 8) return null;
+        return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+      }
+
+      return {
+        success: true,
+        format: 'pdf417',
+        data: {
+          name: { first: first.trim(), last: last.trim(), middle: '' },
+          dob: fmtDate(dobRaw),
+          idNumber: grab('DAQ', 15) || 'D01111111',
+          address: {
+            street: street.trim(),
+            city: city.trim(),
+            state: state.trim(),
+            zip: zip.trim()
+          },
+          expiration: fmtDate(expRaw),
+          issueDate: null,
+          jurisdiction: state.trim() || 'AZ',
+          restrictions: [],
+          endorsements: [],
+          class: 'D',
+          organDonor: upper.includes('DONOR'),
+          raw: payload
+        },
+        warnings: []
+      };
+    }
+
+    function simulateMagstripeParse(payload) {
+      const lines = payload.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const track1 = lines.find(l => l.startsWith('%')) || '';
+      const track2 = lines.find(l => l.startsWith(';')) || '';
+
+      let idNumber = '1234567890123456';
+      let exp = '20251120';
+      if (track2.includes('=')) {
+        const parts = track2.replace(';', '').replace('?', '').split('=');
+        if (parts[0]) idNumber = parts[0];
+        if (parts[1]) exp = parts[1].slice(0, 6); // YYMMDD-ish
+      }
+
+      function fmtExp(s) {
+        if (!s || s.length < 6) return null;
+        const yy = s.slice(0, 2);
+        const mm = s.slice(2, 4);
+        const dd = s.slice(4, 6);
+        const year = parseInt(yy, 10) < 70 ? '20' + yy : '19' + yy;
+        return `${year}-${mm}-${dd}`;
+      }
+
+      return {
+        success: true,
+        format: 'magstripe',
+        data: {
+          name: { first: 'JOHN', last: 'SAMPLE', middle: '' },
+          dob: null,
+          idNumber,
+          address: {
+            street: '1234 E MAIN ST',
+            city: 'PHOENIX',
+            state: 'AZ',
+            zip: '85001'
+          },
+          expiration: fmtExp(exp),
+          issueDate: null,
+          jurisdiction: 'AZ',
+          restrictions: [],
+          endorsements: [],
+          class: 'D',
+          organDonor: false,
+          raw: payload
+        },
+        warnings: []
+      };
+    }
+
+    function renderResult(result) {
+      if (!result || !result.success) {
+        outputJson.textContent = result && result.error
+          ? JSON.stringify(result, null, 2)
+          : '{ }';
+        outputSummary.textContent = 'Name: —\nDOB: —\nID: —\nJurisdiction: —\nExpiration: —';
+        setStatus('error', result && result.error ? result.error : 'Parse failed.');
+        return;
+      }
+
+      outputJson.textContent = JSON.stringify(result.data, null, 2);
+
+      const d = result.data;
+      const name = [d.name.first, d.name.middle, d.name.last].filter(Boolean).join(' ');
+      outputSummary.textContent =
+        `Name: ${name || '—'}\n` +
+        `DOB: ${d.dob || '—'}\n` +
+        `ID: ${d.idNumber || '—'}\n` +
+        `Jurisdiction: ${d.jurisdiction || '—'}\n` +
+        `Expiration: ${d.expiration || '—'}`;
+
+      setStatus('ok', `Last parse: ${result.format.toUpperCase()} • ${result.warnings.length ? 'with warnings' : 'clean'}`);
+    }
+
+    function handleParse(simulateError = false) {
+      const payload = inputArea.value || '';
+      const explicit = formatSelect.value;
+      const detected = detectFormat(payload, explicit);
+
+      if (!payload.trim()) {
+        setStatus('error', 'No payload provided.');
+        appendLog({ time: nowIso(), message: 'PARSE • none • error • reason=empty-payload' });
+        renderResult({ success: false, error: 'Empty payload.' });
+        return;
+      }
+
+      if (simulateError) {
+        const result = {
+          success: false,
+          error: 'Simulated parse error for demo purposes.',
+          code: 'SIMULATED_ERROR'
+        };
+        renderResult(result);
+        appendLog({ time: nowIso(), message: `PARSE • ${detected} • error • code=SIMULATED_ERROR` });
+        return;
+      }
+
+      let result;
+      if (detected === 'pdf417') {
+        result = simulatePdf417Parse(payload);
+      } else if (detected === 'magstripe') {
+        result = simulateMagstripeParse(payload);
+      } else {
+        // unknown / auto fallback
+        result = simulatePdf417Parse(payload);
+        result.format = 'auto';
+        result.warnings.push({ code: 'AUTO_DETECT', message: 'Format auto-detected as PDF417.' });
+      }
+
+      renderResult(result);
+      appendLog({
+        time: nowIso(),
+        message: `PARSE • ${result.format} • success • id=${result.data.idNumber || 'unknown'}`
+      });
+    }
+
+    // Sample payloads
+    const samplePdf =
+      `@ANSI 636026080102DL00410288ZA03290015DLDAQD01111111
+DCSSAMPLE
+DCTJOHN PUBLIC
+DBA20261119
+DBB19841122
+DAG1234 E MAIN ST
+DAIPHOENIX
+DAJAZ
+DAK85001
+DCF1234567890
+DCGUSA
+`;
+
+    const sampleMag =
+      `%B1234567890123456^SAMPLE/JOHN^25112010000000000000?
+;1234567890123456=25112010000000000000?
++;OPTIONAL TRACK 3 DATA HERE?`;
+
+    // Wire up buttons
+    btnSamplePdf.addEventListener('click', () => {
+      inputArea.value = samplePdf;
+      formatSelect.value = 'pdf417';
+      setStatus('idle', 'Sample PDF417 loaded. Ready to parse.');
+    });
+
+    btnSampleMag.addEventListener('click', () => {
+      inputArea.value = sampleMag;
+      formatSelect.value = 'magstripe';
+      setStatus('idle', 'Sample magstripe loaded. Ready to parse.');
+    });
+
+    btnClearInput.addEventListener('click', () => {
+      inputArea.value = '';
+      setStatus('idle', 'Input cleared. Ready to parse.');
+      outputJson.textContent = '{ }';
+      outputSummary.textContent = 'Name: —\nDOB: —\nID: —\nJurisdiction: —\nExpiration: —';
+    });
+
+    btnParse.addEventListener('click', () => handleParse(false));
+    btnFakeError.addEventListener('click', () => handleParse(true));
+
+    btnClearLog.addEventListener('click', () => {
+      logList.innerHTML = '';
+      appendLog({ time: nowIso(), message: 'LOG • cleared' });
+    });
+
+    // Initial log entry
+    appendLog({ time: nowIso(), message: 'CONSOLE • ready' });
+  </script>
+</body>
+
+</html>
