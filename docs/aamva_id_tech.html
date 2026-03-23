@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>AAMVA Parsing Services — Prototype Documentation</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+        :root {
+            --bg: #02040a;
+            --card: #050814;
+            --accent: #00ff88;
+            --accent-soft: #b7ffdd;
+            --muted: #7a8b8f;
+            --border: #0b1c24;
+            --code-bg: #050b12;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+            background: radial-gradient(circle at top, #04121a 0, #02040a 55%, #000000 100%);
+            color: #e9fdf4;
+            -webkit-font-smoothing: antialiased;
+            padding: 32px 16px 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .doc {
+            width: 100%;
+            max-width: 900px;
+            background: linear-gradient(145deg, rgba(0, 0, 0, 0.9), rgba(2, 10, 8, 0.98));
+            border-radius: 18px;
+            border: 1px solid rgba(0, 255, 136, 0.12);
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.85);
+            padding: 26px 24px 30px;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4 {
+            font-family: "IBM Plex Sans", system-ui, sans-serif;
+            margin: 0 0 10px;
+            letter-spacing: 0.02em;
+        }
+
+        h1 {
+            font-size: 26px;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        h2 {
+            font-size: 18px;
+            margin-top: 22px;
+            border-bottom: 1px solid rgba(0, 255, 136, 0.16);
+            padding-bottom: 4px;
+        }
+
+        h3 {
+            font-size: 15px;
+            margin-top: 16px;
+        }
+
+        p {
+            margin: 0 0 10px;
+            color: #e3f7ee;
+            line-height: 1.55;
+            font-size: 14px;
+        }
+
+        .subtitle {
+            color: var(--accent-soft);
+            font-size: 13px;
+            margin-bottom: 18px;
+        }
+
+        .tagline {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 18px;
+        }
+
+        ul,
+        ol {
+            margin: 6px 0 10px 20px;
+            padding: 0;
+            color: #e3f7ee;
+            font-size: 14px;
+        }
+
+        li {
+            margin-bottom: 4px;
+        }
+
+        .section-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 10px 12px;
+            margin: 10px 0 14px;
+        }
+
+        code {
+            font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+            font-size: 12px;
+            background: var(--code-bg);
+            padding: 2px 4px;
+            border-radius: 4px;
+            border: 1px solid rgba(0, 255, 136, 0.12);
+            color: var(--accent-soft);
+        }
+
+        pre {
+            background: var(--code-bg);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 136, 0.16);
+            padding: 10px 12px;
+            overflow: auto;
+            font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+            font-size: 12px;
+            color: var(--accent-soft);
+            margin: 8px 0 12px;
+        }
+
+        .pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 6px 0 10px;
+        }
+
+        .pill {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(0, 255, 136, 0.25);
+            color: var(--accent-soft);
+            background: rgba(0, 255, 136, 0.06);
+        }
+
+        .footer {
+            margin-top: 18px;
+            padding-top: 10px;
+            border-top: 1px dashed rgba(0, 255, 136, 0.18);
+            font-size: 11px;
+            color: var(--muted);
+        }
+    </style>
+</head>
+
+<body>
+    <article class="doc">
+        <header>
+            <div class="section-label">Prototype documentation</div>
+            <h1>AAMVA Parsing Services</h1>
+            <div class="subtitle">Business & Technical Overview</div>
+            <p class="tagline">
+                A browser- or service-based AAMVA decoding layer for magstripe and PDF417 IDs, designed for operational
+                systems that demand accuracy, auditability, and normalized output.
+            </p>
+            <div class="pill-row">
+                <div class="pill">AAMVA DL/ID</div>
+                <div class="pill">Magstripe & PDF417</div>
+                <div class="pill">Normalized JSON</div>
+                <div class="pill">Vendor-agnostic</div>
+                <div class="pill">Audit-focused</div>
+            </div>
+        </header>
+
+        <section>
+            <h2>1. Service overview</h2>
+            <p>
+                AAMVA Parsing Services is a standards-aware decoding engine for U.S. and Canadian driver licenses and ID
+                cards. It ingests raw magstripe tracks, PDF417 barcodes, or pre-scanned strings and returns a clean,
+                normalized JSON payload suitable for guest intake, KYC, access control, and other identity-driven
+                workflows.
+            </p>
+            <p>
+                The service is designed as a thin, deterministic layer: it does not guess, embellish, or infer beyond
+                what the AAMVA payload provides. Instead, it focuses on consistent parsing, jurisdiction-aware
+                normalization, and full operational traceability.
+            </p>
+            <p>Core goals:</p>
+            <ul>
+                <li>Provide a reliable, vendor-agnostic AAMVA decoding surface.</li>
+                <li>Normalize heterogeneous card formats into a stable JSON schema.</li>
+                <li>Handle state-specific quirks and legacy formats without breaking downstream systems.</li>
+                <li>Expose a small, clear API surface for operational products.</li>
+                <li>Keep the implementation inspectable, testable, and easy to embed.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>2. Input formats</h2>
+
+            <h3>2.1 Magstripe tracks</h3>
+            <p>The service supports all three AAMVA magstripe tracks:</p>
+            <ul>
+                <li><strong>Track 1:</strong> Name, address, city, state, postal code.</li>
+                <li><strong>Track 2:</strong> ID number, expiration, DOB, checksum fields.</li>
+                <li><strong>Track 3:</strong> Optional jurisdiction/vendor-defined fields (restrictions, endorsements,
+                    organ donor, audit numbers).</li>
+            </ul>
+            <p>Typical input example:</p>
+            <pre>%MAGSTRIPE_TRACK_1_STRING_HERE?
+;MAGSTRIPE_TRACK_2_STRING_HERE?
++MAGSTRIPE_TRACK_3_STRING_HERE?</pre>
+
+            <h3>2.2 PDF417 2D barcode</h3>
+            <p>
+                PDF417 is treated as the canonical AAMVA payload when available. The parser reads the full data block,
+                including jurisdiction-specific subfiles and extensions.
+            </p>
+            <pre>@
+ANSI 636026080102DL00410288ZA03290015DLDAQD01111111
+DCSSAMPLE
+DCTJOHN PUBLIC
+DBA20261119
+DBB19841122
+DAG1234 E MAIN ST
+DAIPHOENIX
+DAJAZ
+DAK85001
+...</pre>
+
+            <h3>2.3 Auto-detect mode</h3>
+            <p>
+                For environments where the upstream device may send mixed formats, an auto-detect mode inspects the
+                payload and routes it to the appropriate magstripe or PDF417 parser.
+            </p>
+        </section>
+
+        <section>
+            <h2>3. Parsing model</h2>
+
+            <h3>3.1 Standards alignment</h3>
+            <p>
+                The engine follows AAMVA DL/ID Card Design Specifications, including field identifiers (e.g., DAA, DCS,
+                DCT), date formats, and jurisdiction-specific subfile structures. Where multiple spec versions exist,
+                the parser uses version markers in the payload to select the correct ruleset.
+            </p>
+
+            <h3>3.2 Normalized output schema</h3>
+            <p>All inputs are mapped into a stable JSON structure:</p>
+            <pre>{
+  "name": { "first": "JOHN", "last": "SAMPLE", "middle": "PUBLIC" },
+  "dob": "1984-11-22",
+  "idNumber": "D01111111",
+  "address": {
+    "street": "1234 E MAIN ST",
+    "city": "PHOENIX",
+    "state": "AZ",
+    "zip": "85001"
+  },
+  "expiration": "2026-11-19",
+  "issueDate": "2015-11-15",
+  "jurisdiction": "AZ",
+  "restrictions": [],
+  "endorsements": [],
+  "class": "D",
+  "organDonor": true,
+  "raw": "<original input>"
+}</pre>
+
+            <h3>3.3 Deterministic behavior</h3>
+            <p>
+                The parser is intentionally deterministic: the same input always yields the same output. Ambiguous or
+                malformed fields are surfaced explicitly via warnings and error codes rather than silently coerced.
+            </p>
+        </section>
+
+        <section>
+            <h2>4. Validation, errors, and logging</h2>
+
+            <h3>4.1 Validation layer</h3>
+            <p>The validation layer performs:</p>
+            <ul>
+                <li><strong>Date checks:</strong> DOB, expiration, and issue dates are validated and normalized to
+                    <code>YYYY-MM-DD</code>.
+                </li>
+                <li><strong>Field presence:</strong> Required identifiers (e.g., ID number, name, jurisdiction) are
+                    checked and flagged if missing.</li>
+                <li><strong>Jurisdiction rules:</strong> State/province-specific constraints (e.g., length of ID
+                    numbers, class codes) are applied where known.</li>
+            </ul>
+
+            <h3>4.2 Error model</h3>
+            <p>Errors are structured, not ad hoc:</p>
+            <pre>{
+  "success": false,
+  "code": "INVALID_DATE_FORMAT",
+  "message": "DOB could not be parsed from field DBB",
+  "field": "dob",
+  "rawValue": "1984/11/22"
+}</pre>
+
+            <h3>4.3 Audit log</h3>
+            <p>
+                Every parse operation can be logged with full before/after context. The log captures timestamps, input
+                source, normalized output, and any warnings or errors, enabling forensic reconstruction of identity
+                decisions.
+            </p>
+            <pre>[2026-03-23T16:01:12Z] PARSE /pdf417 • AZ • success • id=D01111111</pre>
+        </section>
+
+        <section>
+            <h2>5. API surface</h2>
+            <p>
+                AAMVA Parsing Services exposes a small REST-like API that can be embedded in local apps, edge services,
+                or centralized backends.
+            </p>
+
+            <h3>5.1 Endpoints</h3>
+            <ul>
+                <li>POST <code>/parse/magstripe</code></li>
+                <li>POST <code>/parse/pdf417</code></li>
+                <li>POST <code>/parse/auto</code></li>
+                <li>GET <code>/health</code></li>
+                <li>GET <code>/specs/jurisdictions</code></li>
+                <li>GET <code>/logs/recent</code> (optional, when logging is enabled)</li>
+            </ul>
+
+            <h3>5.2 Request / response</h3>
+            <p>Example request:</p>
+            <pre><code>POST /parse/pdf417</code></pre>
+            <pre>{
+  "payload": "@ANSI 6360..."
+}</pre>
+            <p>Example success response:</p>
+            <pre>{
+  "success": true,
+  "data": {
+    "name": { "first": "JOHN", "last": "SAMPLE" },
+    "dob": "1984-11-22",
+    "idNumber": "D01111111",
+    "jurisdiction": "AZ",
+    "expiration": "2026-11-19"
+  },
+  "warnings": []
+}</pre>
+            <p>Example response with warnings:</p>
+            <pre>{
+  "success": true,
+  "data": { ... },
+  "warnings": [
+    {
+      "code": "UNKNOWN_FIELD",
+      "field": "ZAA",
+      "message": "Unrecognized jurisdiction-specific field"
+    }
+  ]
+}</pre>
+        </section>
+
+        <section>
+            <h2>6. Integration scenarios</h2>
+
+            <h3>6.1 Hospitality & guest intake</h3>
+            <p>
+                At check-in, a magstripe or PDF417 swipe populates guest name, address, DOB, and ID number directly into
+                the registration workflow. The parsing layer becomes a trusted, low-friction identity capture step that
+                feeds the hotel OS or PMS.
+            </p>
+
+            <h3>6.2 KYC & financial services</h3>
+            <p>
+                In KYC flows, the parser feeds normalized identity data into verification pipelines, watchlist checks,
+                and risk engines. Deterministic output simplifies matching and reduces false positives from inconsistent
+                formatting.
+            </p>
+
+            <h3>6.3 Access control & security</h3>
+            <p>
+                Secure facilities can use the service to validate IDs at entry points, logging each parse alongside
+                access decisions for later review.
+            </p>
+
+            <h3>6.4 Transportation & logistics</h3>
+            <p>
+                Driver onboarding and compliance checks can be automated by parsing license data into fleet management
+                systems, ensuring that class, endorsements, and restrictions are captured accurately.
+            </p>
+        </section>
+
+        <section>
+            <h2>7. Deployment & performance</h2>
+            <p>
+                The parsing engine can run fully local (browser, desktop, or edge device) or as a centralized service.
+                Local deployment keeps raw ID data on-device, while centralized deployment simplifies fleet management
+                and monitoring.
+            </p>
+            <ul>
+                <li><strong>Latency:</strong> Sub-10ms parse times for typical magstripe and PDF417 payloads.</li>
+                <li><strong>Throughput:</strong> Designed for bursty, operator-driven workloads rather than bulk batch
+                    processing.</li>
+                <li><strong>Footprint:</strong> Small, dependency-light core suitable for embedding.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>8. Roadmap</h2>
+            <p>Planned extensions on top of the core AAMVA parser include:</p>
+            <ul>
+                <li>Expanded jurisdiction coverage and historical spec versions.</li>
+                <li>Machine-readable zone (MRZ) support for passports and visas.</li>
+                <li>Configurable redaction for sensitive fields (e.g., partial ID numbers).</li>
+                <li>Cloud-hosted, multi-tenant parsing clusters with per-tenant logging.</li>
+                <li>Real-time anomaly detection for fraudulent or synthetic IDs.</li>
+                <li>SDKs for browser, mobile, and server runtimes.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>9. Philosophy</h2>
+            <p>
+                AAMVA Parsing Services is built around clarity, operational truth, and predictable structure. It favors
+                explicit mappings, visible rules, and deterministic behavior over opaque heuristics or silent
+                corrections.
+            </p>
+            <p>
+                The service is intended to be a foundational identity primitive: a small, trustworthy layer that other
+                systems can build on—guest registries, KYC stacks, access control consoles, and beyond. Its job is not
+                to decide, but to decode, normalize, and record the truth of what the card actually says.
+            </p>
+        </section>
+
+        <section>
+            <h2>10. API samples</h2>
+            <p>
+                This section provides example requests and responses for the core parsing endpoints in
+                <strong>AAMVA Parsing Services</strong>.
+            </p>
+
+            <h3>10.1 POST /parse/magstripe</h3>
+            <p>Parse raw magstripe tracks.</p>
+            <pre><code>POST /parse/magstripe</code></pre>
+            <pre>{
+  "track1": "%B1234567890123456^SAMPLE/JOHN^25112010000000000000?",
+  "track2": ";1234567890123456=25112010000000000000?",
+  "track3": "+;...optional track 3..."
+}</pre>
+            <pre>{
+  "success": true,
+  "data": {
+    "name": { "first": "JOHN", "last": "SAMPLE" },
+    "idNumber": "1234567890123456",
+    "expiration": "2025-11-20"
+  },
+  "warnings": []
+}</pre>
+
+            <h3>10.2 POST /parse/pdf417</h3>
+            <p>Parse a full AAMVA PDF417 payload.</p>
+            <pre><code>POST /parse/pdf417</code></pre>
+            <pre>{
+  "payload": "@ANSI 6360..."
+}</pre>
+            <pre>{
+  "success": true,
+  "data": {
+    "name": { "first": "JOHN", "last": "SAMPLE" },
+    "dob": "1984-11-22",
+    "jurisdiction": "AZ",
+    "address": {
+      "street": "1234 E MAIN ST",
+      "city": "PHOENIX",
+      "state": "AZ",
+      "zip": "85001"
+    }
+  },
+  "warnings": []
+}</pre>
+
+            <h3>10.3 POST /parse/auto</h3>
+            <p>Let the service auto-detect the format.</p>
+            <pre><code>POST /parse/auto</code></pre>
+            <pre>{
+  "payload": "@ANSI 6360..."
+}</pre>
+            <pre>{
+  "success": true,
+  "format": "pdf417",
+  "data": { ... }
+}</pre>
+
+            <h3>10.4 GET /specs/jurisdictions</h3>
+            <p>Inspect supported jurisdictions and spec versions.</p>
+            <pre><code>GET /specs/jurisdictions</code></pre>
+            <pre>{
+  "jurisdictions": [
+    { "code": "AZ", "versions": ["2020", "2016"] },
+    { "code": "CA", "versions": ["2018"] }
+  ]
+}</pre>
+
+            <h3>10.5 GET /logs/recent</h3>
+            <p>Retrieve recent parse events (when logging is enabled).</p>
+            <pre><code>GET /logs/recent</code></pre>
+            <pre>[
+  {
+    "timestamp": "2026-03-23T16:01:12Z",
+    "format": "pdf417",
+    "jurisdiction": "AZ",
+    "idNumber": "D01111111",
+    "success": true
+  }
+]</pre>
+        </section>
+
+        <footer class="footer">
+            AAMVA Parsing Services — Business & Technical Overview · Single-file HTML · Standards-aware · Audit-focused
+        </footer>
+    </article>
+</body>
+
+</html>
