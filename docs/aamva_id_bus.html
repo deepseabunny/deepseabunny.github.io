@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>AAMVA Parsing Services — Business Overview</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+        :root {
+            --bg: #02040a;
+            --card: #050814;
+            --accent: #00ff88;
+            --accent-soft: #b7ffdd;
+            --muted: #7a8b8f;
+            --border: #0b1c24;
+            --code-bg: #050b12;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+            background: radial-gradient(circle at top, #04121a 0, #02040a 55%, #000000 100%);
+            color: #e9fdf4;
+            padding: 32px 16px 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .doc {
+            width: 100%;
+            max-width: 900px;
+            background: linear-gradient(145deg, rgba(0, 0, 0, 0.9), rgba(2, 10, 8, 0.98));
+            border-radius: 18px;
+            border: 1px solid rgba(0, 255, 136, 0.12);
+            padding: 26px 24px 30px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.85);
+        }
+
+        h1,
+        h2,
+        h3 {
+            font-family: "IBM Plex Sans", system-ui, sans-serif;
+            margin: 0 0 10px;
+        }
+
+        h1 {
+            color: var(--accent);
+            font-size: 26px;
+        }
+
+        h2 {
+            font-size: 18px;
+            border-bottom: 1px solid rgba(0, 255, 136, 0.16);
+            padding-bottom: 4px;
+            margin-top: 22px;
+        }
+
+        h3 {
+            font-size: 15px;
+            margin-top: 16px;
+        }
+
+        p,
+        li {
+            font-size: 14px;
+            line-height: 1.55;
+            color: #e3f7ee;
+        }
+
+        .subtitle {
+            color: var(--accent-soft);
+            font-size: 13px;
+            margin-bottom: 18px;
+        }
+
+        .tagline {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 18px;
+        }
+
+        .pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 6px 0 10px;
+        }
+
+        .pill {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(0, 255, 136, 0.25);
+            background: rgba(0, 255, 136, 0.06);
+            color: var(--accent-soft);
+        }
+
+        .footer {
+            margin-top: 18px;
+            padding-top: 10px;
+            border-top: 1px dashed rgba(0, 255, 136, 0.18);
+            font-size: 11px;
+            color: var(--muted);
+        }
+    </style>
+</head>
+
+<body>
+    <article class="doc">
+
+        <header>
+            <div class="section-label">Business documentation</div>
+            <h1>AAMVA Parsing Services</h1>
+            <div class="subtitle">Identity Data Normalization for Modern Operations</div>
+            <p class="tagline">
+                A commercial-grade service that transforms raw driver license data into clean, structured identity
+                profiles
+                for hospitality, logistics, security, and financial onboarding.
+            </p>
+
+            <div class="pill-row">
+                <div class="pill">Identity Automation</div>
+                <div class="pill">AAMVA Compliance</div>
+                <div class="pill">Operational Efficiency</div>
+                <div class="pill">Risk Reduction</div>
+                <div class="pill">Enterprise Ready</div>
+            </div>
+        </header>
+
+        <section>
+            <h2>1. Executive Summary</h2>
+            <p>
+                AAMVA Parsing Services is a specialized identity-data product that converts U.S. and Canadian driver
+                license
+                information into a standardized, business-ready profile. It eliminates manual data entry, reduces
+                onboarding
+                friction, and ensures consistent identity capture across diverse operational environments.
+            </p>
+            <p>
+                The service is designed for organizations that rely on fast, accurate identity verification—hotels,
+                logistics
+                fleets, secure facilities, and financial institutions—where operational clarity and compliance matter.
+            </p>
+        </section>
+
+        <section>
+            <h2>2. Market Problem</h2>
+            <p>Across industries, identity capture suffers from three persistent issues:</p>
+            <ul>
+                <li><strong>Inconsistent data formats:</strong> Every state encodes license data differently.</li>
+                <li><strong>Manual entry errors:</strong> Staff transcription leads to inaccuracies and compliance risk.
+                </li>
+                <li><strong>Slow onboarding:</strong> Identity steps often create bottlenecks in customer or employee
+                    intake.</li>
+            </ul>
+            <p>
+                Businesses need a unified, reliable way to extract identity data without training staff on formats or
+                relying
+                on error-prone manual workflows.
+            </p>
+        </section>
+
+        <section>
+            <h2>3. Solution Overview</h2>
+            <p>
+                AAMVA Parsing Services provides a single, consistent identity profile regardless of issuing state, card
+                generation, or input method. The service accepts raw data from scanners, magstripe readers, or PDF417
+                barcode
+                imagers and returns a clean, structured identity object ready for operational use.
+            </p>
+
+            <h3>Key business outcomes</h3>
+            <ul>
+                <li>Faster customer or employee onboarding</li>
+                <li>Reduced operational errors and rework</li>
+                <li>Improved compliance posture</li>
+                <li>Higher staff efficiency and throughput</li>
+                <li>Consistent identity records across locations and systems</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>4. Product Features</h2>
+
+            <h3>4.1 Unified Identity Profile</h3>
+            <p>
+                Regardless of state or card format, the service outputs a standardized identity record—name, address,
+                DOB,
+                license number, and key attributes—ensuring downstream systems always receive predictable data.
+            </p>
+
+            <h3>4.2 Multi-Format Input Support</h3>
+            <ul>
+                <li>Magstripe readers</li>
+                <li>PDF417 barcode scanners</li>
+                <li>Integrated ID terminals</li>
+                <li>Mobile capture devices</li>
+            </ul>
+
+            <h3>4.3 Business-Focused Normalization</h3>
+            <p>
+                Data is cleaned, standardized, and formatted for operational use—no raw codes, no state-specific quirks,
+                no
+                inconsistent casing or abbreviations.
+            </p>
+
+            <h3>4.4 Optional Compliance Logging</h3>
+            <p>
+                Organizations can enable structured event logs for audit trails, regulatory reporting, or internal QA.
+            </p>
+        </section>
+
+        <section>
+            <h2>5. Target Customers</h2>
+            <ul>
+                <li><strong>Hospitality:</strong> Faster guest intake, reduced front-desk friction.</li>
+                <li><strong>Logistics & Transportation:</strong> Driver onboarding and credential verification.</li>
+                <li><strong>Security & Access Control:</strong> Identity validation at controlled entry points.</li>
+                <li><strong>Financial Services:</strong> KYC workflows and customer identity capture.</li>
+                <li><strong>Retail & Age-Restricted Sales:</strong> Automated ID verification.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>6. Competitive Advantages</h2>
+            <ul>
+                <li><strong>Industry-specific tuning:</strong> Built for real operational workflows, not generic
+                    parsing.</li>
+                <li><strong>Consistent output:</strong> Eliminates state-by-state variability.</li>
+                <li><strong>Low training overhead:</strong> Staff simply scan; the system handles the rest.</li>
+                <li><strong>Flexible deployment:</strong> Local, cloud, or hybrid.</li>
+                <li><strong>Transparent business model:</strong> No per-scan surprises or opaque licensing.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>7. Pricing Models</h2>
+            <ul>
+                <li><strong>Per-property / per-location license:</strong> Ideal for hospitality and retail.</li>
+                <li><strong>Per-seat or per-terminal:</strong> Suited for security desks or intake stations.</li>
+                <li><strong>API usage tiers:</strong> For SaaS platforms integrating identity capture.</li>
+                <li><strong>Enterprise unlimited:</strong> Multi-site organizations with high throughput.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>8. Implementation & Integration</h2>
+            <p>
+                The service integrates cleanly into existing workflows. Businesses can embed it into their PMS, TMS,
+                CRM, or
+                access control systems with minimal engineering effort.
+            </p>
+            <ul>
+                <li>Simple REST-style interface</li>
+                <li>Drop-in modules for common platforms</li>
+                <li>Optional local-only mode for privacy-sensitive environments</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>9. Roadmap</h2>
+            <ul>
+                <li>Passport & MRZ support</li>
+                <li>Fraud pattern detection</li>
+                <li>Multi-language normalization</li>
+                <li>Advanced analytics for identity trends</li>
+                <li>Partner integrations with major PMS/TMS/CRM vendors</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>10. Business Philosophy</h2>
+            <p>
+                AAMVA Parsing Services is built on a simple principle: identity capture should be fast, accurate, and
+                invisible
+                to the operator. The product focuses on operational truth, predictable outcomes, and reducing friction
+                in
+                environments where time and accuracy matter.
+            </p>
+        </section>
+
+        <footer class="footer">
+            AAMVA Parsing Services — Business Overview · Identity Automation · Enterprise Ready
+        </footer>
+
+    </article>
+</body>
+
+</html>
