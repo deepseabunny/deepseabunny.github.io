@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <title>Time Clock Sim</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
@@ -10,14 +10,12 @@
     .app {
       display: grid;
       grid-template-columns: 260px 1fr;
-      min-height: calc(100vh - 56px);
+      min-height: 100vh;
     }
     .sidebar {
       border-right: 1px solid #22283a;
       padding: 12px;
       background: #0f1528;
-      width: 260px;
-      min-width: 160px;
     }
     .header {
       padding: 12px 16px;
@@ -86,7 +84,6 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
-      overflow: auto;
     }
     .section {
       border-radius: 8px;
@@ -220,87 +217,20 @@
       color: #6b7280;
       padding: 8px 0;
     }
-
-    /* Footer */
-    :root { --footer-safe: 72px; }
     .footer {
       font-size: 11px;
       color: #6b7280;
-      padding: 8px 16px;
+      padding: 6px 16px 10px;
       border-top: 1px solid #111827;
       display: flex;
       justify-content: space-between;
       align-items: center;
       background: #050816;
-      gap: 12px;
-      flex-wrap: wrap;
-      transition: transform 160ms ease, box-shadow 160ms ease;
-    }
-    .footer .right {
-      display: flex;
-      gap: 12px;
-      align-items: center;
     }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-
-    /* Modal small styles */
-    #report-modal { z-index: 60; }
-    #report-modal .btn-close { border-radius: 6px; padding: 6px 10px; border: 1px solid #374151; background: #111827; }
-
-    /* Responsive tweaks to keep report button visible */
-    @media (max-width: 900px) {
-      .app { grid-template-columns: 200px 1fr; }
-      .sidebar { width: 200px; }
-      .history-table th, .history-table td { font-size: 11px; }
-    }
-
-    @media (max-width: 700px) {
-      .app { grid-template-columns: 1fr; min-height: calc(100vh - 72px); }
-      .sidebar { display: none; }
-      .main { padding: 12px; }
-      .footer {
-        position: fixed;
-        left: 8px;
-        right: 8px;
-        bottom: 8px;
-        border-radius: 10px;
-        padding: 8px 12px;
-        background: rgba(5,8,22,0.95);
-        box-shadow: 0 6px 18px rgba(0,0,0,0.6);
-        z-index: 80;
-      }
-      .footer .right { margin-left: auto; }
-      #now-label { display: none; } /* hide clock to save space */
-      #report-btn { padding: 8px 12px; font-size: 13px; }
-
-      /* reserve space for fixed footer so content isn't covered */
-      .main {
-        padding-bottom: calc(var(--footer-safe, 72px) + 16px);
-      }
-
-      /* When report modal is open, keep footer static so it remains visible and clickable */
-      body.report-open .footer {
-        position: static !important;
-        left: auto;
-        right: auto;
-        bottom: auto;
-        margin: 8px;
-        border-radius: 8px;
-        box-shadow: none;
-      }
-
-      /* Make modal avoid the footer area by limiting its max-height and adding bottom margin */
-      #report-modal > div {
-        max-height: calc(100vh - var(--footer-safe, 72px) - 48px);
-        margin-bottom: calc(var(--footer-safe, 72px) + 8px);
-        overflow: auto;
-      }
-    }
-
-    @media (max-width: 420px) {
-      button { padding: 6px 10px; font-size: 12px; }
-      .current-emp-name { font-size: 16px; }
-      .section { padding: 10px; }
+    @media (max-width: 800px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { border-right: none; border-bottom: 1px solid #22283a; }
     }
   </style>
 </head>
@@ -342,38 +272,9 @@
     </main>
   </div>
 
-  <div class="footer" role="contentinfo">
+  <div class="footer">
     <span>Baseline data: 4 employees · seeded on first load</span>
-    <div class="right">
-      <button id="report-btn">Generate Report</button>
-      <span class="mono" id="now-label"></span>
-    </div>
-  </div>
-
-  <!-- Report modal -->
-  <div id="report-modal" style="
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.6);
-    display: none; justify-content: center; align-items: center;
-  ">
-    <div style="
-      background:#0f1528; border:1px solid #22283a;
-      padding:20px; width:90%; max-width:720px;
-      border-radius:8px; color:#f5f5f5;
-    ">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="font-size:14px; font-weight:600;">Daily Report</div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <button id="copy-report" title="Copy report">Copy</button>
-          <button id="close-report" class="btn-close">Close</button>
-        </div>
-      </div>
-      <pre id="report-output" style="
-        margin-top:12px; font-size:12px; white-space:pre-wrap;
-        background:#050816; padding:12px; border-radius:6px;
-        border:1px solid #1f2937; max-height:60vh; overflow:auto;
-      "></pre>
-    </div>
+    <span class="mono" id="now-label"></span>
   </div>
 
   <script>
@@ -572,14 +473,11 @@
           loadAndRenderEmployee(emp.id);
         });
 
-        // async status fetch — use by_employee_time so results are ordered by timestamp
-        getAll(PUNCH_STORE, 'by_employee_time', IDBKeyRange.only(emp.id)).then(punches => {
+        // async status fetch
+        getAll(PUNCH_STORE, 'by_employee', IDBKeyRange.only(emp.id)).then(punches => {
           const { status } = computeStatusForEmployee(punches);
           right.className = 'status-pill ' + (status === 'in' ? 'status-in' : 'status-out');
           right.textContent = status === 'in' ? 'Clocked in' : 'Clocked out';
-        }).catch(() => {
-          right.className = 'status-pill status-out';
-          right.textContent = 'Clocked out';
         });
       });
     }
@@ -766,16 +664,14 @@
     async function loadAndRenderEmployee(empId) {
       const emp = employeesCache.find(e => e.id === empId);
       if (!emp) return;
-      // use by_employee_time index to ensure ordered punches
-      const punches = await getAll(PUNCH_STORE, 'by_employee_time', IDBKeyRange.only(empId));
+      const punches = await getAll(PUNCH_STORE, 'by_employee', IDBKeyRange.only(empId));
       const statusInfo = computeStatusForEmployee(punches);
       renderCurrentState(emp, statusInfo);
       renderHistory(emp, punches);
     }
 
     async function handlePunch(empId, type) {
-      // read punches using by_employee_time so ordering is reliable
-      const punches = await getAll(PUNCH_STORE, 'by_employee_time', IDBKeyRange.only(empId));
+      const punches = await getAll(PUNCH_STORE, 'by_employee', IDBKeyRange.only(empId));
       const statusInfo = computeStatusForEmployee(punches);
       if (type === 'in' && statusInfo.status === 'in') return;
       if (type === 'out' && statusInfo.status === 'out') return;
@@ -792,126 +688,6 @@
       renderEmployeesList();
       await loadAndRenderEmployee(empId);
     }
-
-    // --- Report helpers -----------------------------------------------------
-    function computeTotalHours(punches) {
-      if (!punches || !punches.length) return 0;
-      punches.sort((a, b) => a.timestamp - b.timestamp);
-      let total = 0;
-      for (let i = 0; i < punches.length - 1; i++) {
-        const cur = punches[i];
-        const next = punches[i + 1];
-        if (cur.type === 'in' && next.type === 'out' && next.timestamp >= cur.timestamp) {
-          total += next.timestamp - cur.timestamp;
-          i++;
-        }
-      }
-      const last = punches[punches.length - 1];
-      if (last.type === 'in') {
-        total += Date.now() - last.timestamp;
-      }
-      return total;
-    }
-
-    async function generateReport() {
-      const employees = employeesCache.slice().sort((a,b) => a.name.localeCompare(b.name));
-      const lines = [];
-      const now = new Date();
-      lines.push(`Report generated: ${now.toLocaleString()}`);
-      lines.push(`Employees: ${employees.length}`);
-      lines.push('----------------------------------------');
-
-      for (const emp of employees) {
-        // use by_employee_time for ordered punches
-        const punches = await getAll(PUNCH_STORE, 'by_employee_time', IDBKeyRange.only(emp.id));
-        const totalMs = computeTotalHours(punches);
-        const totalHrs = (totalMs / 3600000);
-        const totalStr = totalHrs.toFixed(2) + ' h';
-
-        const last = punches.length ? punches[punches.length - 1] : null;
-        const lastStr = last ? `${last.type} @ ${formatDateTime(last.timestamp)}` : 'None';
-
-        let anomalies = [];
-        for (let i = 0; i < punches.length - 1; i++) {
-          if (punches[i].type === punches[i+1].type) {
-            anomalies.push(`${punches[i].type} followed by ${punches[i+1].type} at ${formatDateTime(punches[i+1].timestamp)}`);
-          }
-        }
-        if (last && last.type === 'in' && (Date.now() - last.timestamp) > 24 * 3600000) {
-          anomalies.push('Open shift older than 24h');
-        }
-
-        lines.push(`${emp.name} (${emp.role}, ${emp.location})`);
-        lines.push(`  Total hours (approx): ${totalStr}`);
-        lines.push(`  Last punch: ${lastStr}`);
-        lines.push(`  Punch count: ${punches.length}`);
-        if (anomalies.length) {
-          lines.push(`  Anomalies: ${anomalies.join('; ')}`);
-        }
-        lines.push('');
-      }
-
-      return lines.join('\n');
-    }
-
-    // --- Footer spacing helper ----------------------------------------------
-    function ensureFooterSpacing() {
-      const footer = document.querySelector('.footer');
-      const main = document.querySelector('.main');
-      if (!footer || !main) return;
-      const h = Math.ceil(footer.getBoundingClientRect().height);
-      document.documentElement.style.setProperty('--footer-safe', h + 'px');
-      main.style.paddingBottom = (h + 16) + 'px';
-    }
-    window.addEventListener('resize', ensureFooterSpacing);
-    window.addEventListener('orientationchange', ensureFooterSpacing);
-
-    // --- Modal open/close with body class toggle ----------------------------
-    async function openReportModal() {
-      const modal = document.getElementById('report-modal');
-      const out = document.getElementById('report-output');
-      document.body.classList.add('report-open');
-      ensureFooterSpacing();
-
-      out.textContent = 'Generating…';
-      modal.style.display = 'flex';
-
-      try {
-        const text = await generateReport();
-        out.textContent = text;
-      } catch (err) {
-        out.textContent = 'Error generating report: ' + (err && err.message ? err.message : String(err));
-      }
-    }
-
-    function closeReportModal() {
-      const modal = document.getElementById('report-modal');
-      modal.style.display = 'none';
-      document.body.classList.remove('report-open');
-      ensureFooterSpacing();
-    }
-
-    // Wire up modal actions (copy/close)
-    document.addEventListener('click', (e) => {
-      if (e.target && e.target.id === 'report-btn') {
-        openReportModal();
-      }
-    });
-
-    document.getElementById('close-report').addEventListener('click', closeReportModal);
-
-    document.getElementById('copy-report').addEventListener('click', async () => {
-      const out = document.getElementById('report-output');
-      try {
-        await navigator.clipboard.writeText(out.textContent);
-        const btn = document.getElementById('copy-report');
-        const prev = btn.textContent;
-        btn.textContent = 'Copied';
-        setTimeout(() => { btn.textContent = prev; }, 1200);
-      } catch (err) {
-        alert('Copy failed');
-      }
-    });
 
     // --- Live clock in footer -----------------------------------------------
     function startNowTicker() {
@@ -950,7 +726,6 @@
         console.error(err);
         dbStatusEl.textContent = 'DB error';
       }
-      ensureFooterSpacing();
       startNowTicker();
     })();
   </script>
