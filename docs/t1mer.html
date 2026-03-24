@@ -572,11 +572,14 @@
           loadAndRenderEmployee(emp.id);
         });
 
-        // async status fetch
-        getAll(PUNCH_STORE, 'by_employee', IDBKeyRange.only(emp.id)).then(punches => {
+        // async status fetch — use by_employee_time so results are ordered by timestamp
+        getAll(PUNCH_STORE, 'by_employee_time', IDBKeyRange.only(emp.id)).then(punches => {
           const { status } = computeStatusForEmployee(punches);
           right.className = 'status-pill ' + (status === 'in' ? 'status-in' : 'status-out');
           right.textContent = status === 'in' ? 'Clocked in' : 'Clocked out';
+        }).catch(() => {
+          right.className = 'status-pill status-out';
+          right.textContent = 'Clocked out';
         });
       });
     }
@@ -763,14 +766,16 @@
     async function loadAndRenderEmployee(empId) {
       const emp = employeesCache.find(e => e.id === empId);
       if (!emp) return;
-      const punches = await getAll(PUNCH_STORE, 'by_employee', IDBKeyRange.only(empId));
+      // use by_employee_time index to ensure ordered punches
+      const punches = await getAll(PUNCH_STORE, 'by_employee_time', IDBKeyRange.only(empId));
       const statusInfo = computeStatusForEmployee(punches);
       renderCurrentState(emp, statusInfo);
       renderHistory(emp, punches);
     }
 
     async function handlePunch(empId, type) {
-      const punches = await getAll(PUNCH_STORE, 'by_employee', IDBKeyRange.only(empId));
+      // read punches using by_employee_time so ordering is reliable
+      const punches = await getAll(PUNCH_STORE, 'by_employee_time', IDBKeyRange.only(empId));
       const statusInfo = computeStatusForEmployee(punches);
       if (type === 'in' && statusInfo.status === 'in') return;
       if (type === 'out' && statusInfo.status === 'out') return;
@@ -817,7 +822,8 @@
       lines.push('----------------------------------------');
 
       for (const emp of employees) {
-        const punches = await getAll(PUNCH_STORE, 'by_employee', IDBKeyRange.only(emp.id));
+        // use by_employee_time for ordered punches
+        const punches = await getAll(PUNCH_STORE, 'by_employee_time', IDBKeyRange.only(emp.id));
         const totalMs = computeTotalHours(punches);
         const totalHrs = (totalMs / 3600000);
         const totalStr = totalHrs.toFixed(2) + ' h';
