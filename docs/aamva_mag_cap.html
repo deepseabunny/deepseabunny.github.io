@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Magstripe Capture & Search (Parsed + Tags + Integrity)</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            margin: 0;
+            padding: 16px;
+            background: #020617;
+            color: #f9fafb;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 20px;
+        }
+
+        .row {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .col {
+            flex: 1 1 340px;
+            min-width: 320px;
+        }
+
+        label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #9ca3af;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        textarea,
+        input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #374151;
+            background: #020617;
+            color: #f9fafb;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 13px;
+        }
+
+        textarea:focus,
+        input:focus {
+            outline: 1px solid #3b82f6;
+            border-color: #3b82f6;
+        }
+
+        .hint {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-top: 8px;
+            font-size: 12px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 4px 10px;
+            border-radius: 4px;
+            border: 1px solid #4b5563;
+            background: #111827;
+            color: #e5e7eb;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        button:hover {
+            background: #1f2937;
+        }
+
+        .badge {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 999px;
+            background: #111827;
+            border: 1px solid #374151;
+            color: #9ca3af;
+        }
+
+        .status {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 4px;
+        }
+
+        .records {
+            margin-top: 12px;
+            max-height: 70vh;
+            overflow: auto;
+            border-radius: 4px;
+            border: 1px solid #1f2937;
+            background: #020617;
+        }
+
+        .record {
+            border-bottom: 1px solid #111827;
+            font-size: 12px;
+        }
+
+        .record:last-child {
+            border-bottom: none;
+        }
+
+        .record-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 10px;
+            cursor: pointer;
+            background: #020617;
+        }
+
+        .record-header:hover {
+            background: #030712;
+        }
+
+        .record-header-left {
+            display: flex;
+            gap: 8px;
+            align-items: baseline;
+        }
+
+        .record-id {
+            font-weight: 600;
+            color: #e5e7eb;
+        }
+
+        .record-meta {
+            font-size: 11px;
+            color: #9ca3af;
+        }
+
+        .integrity-ok {
+            color: #22c55e;
+        }
+
+        .integrity-bad {
+            color: #f97316;
+        }
+
+        .record-body {
+            padding: 8px 10px 10px;
+            display: none;
+            border-top: 1px solid #111827;
+            background: #020617;
+        }
+
+        .record-section-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #9ca3af;
+            margin-top: 4px;
+            margin-bottom: 2px;
+        }
+
+        .record-raw {
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
+        }
+
+        .record-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 4px 12px;
+            font-size: 11px;
+        }
+
+        .record-grid-label {
+            color: #9ca3af;
+        }
+
+        .record-grid-value {
+            color: #e5e7eb;
+        }
+
+        .highlight {
+            background: #facc15;
+            color: #111827;
+            padding: 0 1px;
+            border-radius: 2px;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 1px 6px;
+            border-radius: 999px;
+            border: 1px solid #374151;
+            background: #020617;
+            font-size: 10px;
+            color: #9ca3af;
+            margin-right: 4px;
+            margin-top: 2px;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+            font-size: 11px;
+            color: #9ca3af;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="top-bar">
+        <h1>Magstripe Capture & Search</h1>
+        <div>
+            <span id="persistStatus" class="badge">Storage: checking…</span>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <label for="input">Magstripe input</label>
+            <textarea id="input" rows="5"
+                placeholder="Swipe card (keyboard wedge) or paste raw magstripe data here, then press Ctrl+Enter or click Save."></textarea>
+            <div class="hint">
+                Focus this box before swiping. Each swipe becomes one record. Nothing is sent to a server—stored locally
+                in IndexedDB.
+            </div>
+
+            <div style="margin-top:10px; display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap:8px;">
+                <div>
+                    <label for="assignNumber">Assigned number (100–200)</label>
+                    <input id="assignNumber" type="number" min="100" max="200" placeholder="e.g. 150" />
+                </div>
+                <div>
+                    <label for="tags">Tags (comma-separated)</label>
+                    <input id="tags" type="text" placeholder="e.g. test, track1, visa" />
+                </div>
+            </div>
+
+            <div style="margin-top:8px;">
+                <label for="notes">Notes</label>
+                <textarea id="notes" rows="2" placeholder="Optional notes for this swipe…"></textarea>
+            </div>
+
+            <div class="toolbar">
+                <button id="saveBtn">Save record</button>
+                <button id="clearInputBtn">Clear input</button>
+                <button id="wipeAllBtn">Wipe all data</button>
+                <span class="badge" id="countBadge">0 records</span>
+            </div>
+            <div class="status" id="status"></div>
+        </div>
+
+        <div class="col">
+            <label for="search">Search across all data</label>
+            <input id="search" type="text" placeholder="Type to search (case-insensitive, live highlighting)..." />
+            <div class="hint">
+                Matches are highlighted in raw data and notes. Search is purely client-side.
+            </div>
+            <div class="records" id="records"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- IndexedDB + schema ---
+        const DB_NAME = 'magstripe-db-v2';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'swipes';
+
+        let db = null;
+        let allRecords = []; // in-memory cache
+
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+
+                req.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        const store = db.createObjectStore(STORE_NAME, {
+                            keyPath: 'id',
+                            autoIncrement: true
+                        });
+                        store.createIndex('createdAt', 'createdAt', { unique: false });
+                    }
+                };
+
+                req.onsuccess = (event) => {
+                    db = event.target.result;
+                    resolve(db);
+                };
+
+                req.onerror = (event) => {
+                    reject(event.target.error);
+                };
+            });
+        }
+
+        function addRecord(record) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.add(record);
+
+                req.onsuccess = () => {
+                    record.id = req.result;
+                    resolve(record);
+                };
+                req.onerror = (event) => reject(event.target.error);
+            });
+        }
+
+        function getAllRecords() {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.getAll();
+
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = (event) => reject(event.target.error);
+            });
+        }
+
+        function clearAllRecords() {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.clear();
+
+                req.onsuccess = () => resolve();
+                req.onerror = (event) => reject(event.target.error);
+            });
+        }
+
+        // --- Crypto / integrity ---
+        async function sha256Hex(str) {
+            const enc = new TextEncoder();
+            const data = enc.encode(str);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const bytes = new Uint8Array(hashBuffer);
+            return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function buildIntegrityPayload(rec) {
+            // Only include fields that define the record's logical content
+            return JSON.stringify({
+                raw: rec.raw,
+                createdAt: rec.createdAt,
+                tags: rec.tags || [],
+                notes: rec.notes || '',
+                assignNumber: rec.assignNumber || null,
+                parsed: rec.parsed || null
+            });
+        }
+
+        async function computeIntegrityHash(rec) {
+            const payload = buildIntegrityPayload(rec);
+            return sha256Hex(payload);
+        }
+
+        function verifyIntegrity(rec) {
+            if (!rec.hash) return false;
+            const payload = buildIntegrityPayload(rec);
+            // synchronous recompute is not possible; we precompute on load
+            return rec._computedHash === rec.hash;
+        }
+
+        // --- Magstripe parsing (simple Track 1 & 2) ---
+        function parseMagstripe(raw) {
+            const result = {
+                track1: null,
+                track2: null,
+                pan: null,
+                name: null,
+                exp: null,
+                serviceCode: null
+            };
+
+            if (!raw) return result;
+
+            const lines = raw.split(/[\r\n]+/).filter(Boolean);
+            const text = raw;
+
+            // Track 1: %B<pan>^NAME^<exp><svc><disc>?
+            const t1Match = text.match(/%B([^\\^]+)\^([^\\^]+)\^([0-9]{4})([0-9]{3})?([^?]*)\?/);
+            if (t1Match) {
+                result.track1 = t1Match[0];
+                result.pan = result.pan || t1Match[1];
+                result.name = t1Match[2].trim();
+                result.exp = result.exp || t1Match[3];
+                if (t1Match[4]) result.serviceCode = result.serviceCode || t1Match[4];
+            }
+
+            // Track 2: ;<pan>=<exp><svc><disc>?
+            const t2Match = text.match(/;([0-9]{12,19})=([0-9]{4})([0-9]{3})?([^?]*)\?/);
+            if (t2Match) {
+                result.track2 = t2Match[0];
+                result.pan = result.pan || t2Match[1];
+                result.exp = result.exp || t2Match[2];
+                if (t2Match[3]) result.serviceCode = result.serviceCode || t2Match[3];
+            }
+
+            return result;
+        }
+
+        // --- UI helpers ---
+        const inputEl = document.getElementById('input');
+        const assignNumberEl = document.getElementById('assignNumber');
+        const tagsEl = document.getElementById('tags');
+        const notesEl = document.getElementById('notes');
+        const saveBtn = document.getElementById('saveBtn');
+        const clearInputBtn = document.getElementById('clearInputBtn');
+        const wipeAllBtn = document.getElementById('wipeAllBtn');
+        const searchEl = document.getElementById('search');
+        const recordsEl = document.getElementById('records');
+        const statusEl = document.getElementById('status');
+        const countBadgeEl = document.getElementById('countBadge');
+        const persistStatusEl = document.getElementById('persistStatus');
+
+        function setStatus(msg) {
+            statusEl.textContent = msg || '';
+        }
+
+        function updateCountBadge() {
+            const n = allRecords.length;
+            countBadgeEl.textContent = n === 1 ? '1 record' : n + ' records';
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        function highlightText(text, query) {
+            if (!query) return escapeHtml(text);
+            const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(escapedQuery, 'gi');
+            const escaped = escapeHtml(text);
+            return escaped.replace(regex, (match) => `<span class="highlight">${match}</span>`);
+        }
+
+        function renderRecords() {
+            const q = searchEl.value.trim();
+            const qLower = q.toLowerCase();
+            recordsEl.innerHTML = '';
+
+            if (!allRecords.length) {
+                recordsEl.innerHTML = '<div class="record"><div class="record-body"><em>No records yet.</em></div></div>';
+                return;
+            }
+
+            const frag = document.createDocumentFragment();
+
+            allRecords
+                .slice()
+                .sort((a, b) => (a.id < b.id ? 1 : -1)) // newest first
+                .forEach((rec) => {
+
+                    // Build searchable haystack including parsed fields
+                    const parsed = rec.parsed || {};
+                    const haystackParts = [
+                        rec.raw || '',
+                        rec.notes || '',
+                        (rec.tags || []).join(' '),
+                        rec.assignNumber != null ? String(rec.assignNumber) : '',
+                        parsed.pan || '',
+                        parsed.name || '',
+                        parsed.exp || '',
+                        parsed.serviceCode || ''
+                    ];
+
+                    const haystack = haystackParts.join(' ').toLowerCase();
+                    const isMatch = q && haystack.includes(qLower);
+
+                    // Filter out non-matching records
+                    if (q && !isMatch) return;
+
+                    // Build record UI
+                    const div = document.createElement('div');
+                    div.className = 'record';
+
+                    const header = document.createElement('div');
+                    header.className = 'record-header';
+
+                    const left = document.createElement('div');
+                    left.className = 'record-header-left';
+
+                    const idSpan = document.createElement('span');
+                    idSpan.className = 'record-id';
+                    idSpan.textContent = `#${rec.id}`;
+
+                    const metaSpan = document.createElement('span');
+                    metaSpan.className = 'record-meta';
+                    const dt = new Date(rec.createdAt);
+
+                    const assignPart = rec.assignNumber != null
+                        ? ` • #${highlightText(String(rec.assignNumber), q)}`
+                        : '';
+
+                    metaSpan.innerHTML = `${dt.toLocaleString()}${assignPart}`;
+
+                    left.appendChild(idSpan);
+                    left.appendChild(metaSpan);
+
+                    const integritySpan = document.createElement('span');
+                    const ok = verifyIntegrity(rec);
+                    integritySpan.className = 'record-meta ' + (ok ? 'integrity-ok' : 'integrity-bad');
+                    integritySpan.textContent = ok ? 'Integrity OK' : 'Integrity mismatch';
+
+                    header.appendChild(left);
+                    header.appendChild(integritySpan);
+
+                    const body = document.createElement('div');
+                    body.className = 'record-body';
+
+                    // Raw
+                    const rawTitle = document.createElement('div');
+                    rawTitle.className = 'record-section-title';
+                    rawTitle.textContent = 'Raw data';
+
+                    const rawDiv = document.createElement('div');
+                    rawDiv.className = 'record-raw';
+                    rawDiv.innerHTML = highlightText(rec.raw, q);
+
+                    // Parsed
+                    const parsedTitle = document.createElement('div');
+                    parsedTitle.className = 'record-section-title';
+                    parsedTitle.textContent = 'Parsed fields';
+
+                    const grid = document.createElement('div');
+                    grid.className = 'record-grid';
+
+                    function addField(label, value) {
+                        const l = document.createElement('div');
+                        l.className = 'record-grid-label';
+                        l.textContent = label;
+
+                        const v = document.createElement('div');
+                        v.className = 'record-grid-value';
+                        v.innerHTML = highlightText(value || '', q);
+
+                        grid.appendChild(l);
+                        grid.appendChild(v);
+                    }
+
+                    addField('PAN', parsed.pan);
+                    addField('Name', parsed.name);
+                    addField('Expiry (YYMM)', parsed.exp);
+                    addField('Service code', parsed.serviceCode);
+                    addField('Track 1 present', parsed.track1 ? 'Yes' : 'No');
+                    addField('Track 2 present', parsed.track2 ? 'Yes' : 'No');
+
+                    // Tags / notes
+                    const tagsTitle = document.createElement('div');
+                    tagsTitle.className = 'record-section-title';
+                    tagsTitle.textContent = 'Tags & notes';
+
+                    const tagsContainer = document.createElement('div');
+                    if (rec.tags && rec.tags.length) {
+                        rec.tags.forEach(t => {
+                            const pill = document.createElement('span');
+                            pill.className = 'pill';
+                            pill.innerHTML = highlightText(t, q);
+                            tagsContainer.appendChild(pill);
+                        });
+                    } else {
+                        const pill = document.createElement('span');
+                        pill.className = 'pill';
+                        pill.textContent = 'No tags';
+                        tagsContainer.appendChild(pill);
+                    }
+
+                    const notesDiv = document.createElement('div');
+                    notesDiv.style.marginTop = '4px';
+                    notesDiv.style.fontSize = '11px';
+                    notesDiv.innerHTML = rec.notes
+                        ? 'Notes: ' + highlightText(rec.notes, q)
+                        : '<span style="color:#6b7280;">No notes</span>';
+
+                    body.appendChild(rawTitle);
+                    body.appendChild(rawDiv);
+                    body.appendChild(parsedTitle);
+                    body.appendChild(grid);
+                    body.appendChild(tagsTitle);
+                    body.appendChild(tagsContainer);
+                    body.appendChild(notesDiv);
+
+                    // Toggle on click
+                    header.addEventListener('click', () => {
+                        body.style.display = body.style.display === 'none' ? 'block' : 'none';
+                    });
+
+                    // AUTO‑EXPAND MATCHES
+                    body.style.display = isMatch ? 'block' : 'none';
+
+                    div.appendChild(header);
+                    div.appendChild(body);
+                    frag.appendChild(div);
+                });
+
+            if (!frag.childNodes.length) {
+                recordsEl.innerHTML = '<div class="record"><div class="record-body"><em>No records match this search.</em></div></div>';
+            } else {
+                recordsEl.appendChild(frag);
+            }
+        }
+
+
+
+
+        async function loadAndRenderAll() {
+            try {
+                const records = await getAllRecords();
+                // Precompute integrity hashes for verification
+                for (const rec of records) {
+                    const payload = buildIntegrityPayload(rec);
+                    rec._computedHash = await sha256Hex(payload);
+                }
+                allRecords = records;
+                updateCountBadge();
+                renderRecords();
+                setStatus('Loaded ' + allRecords.length + ' record(s) from IndexedDB.');
+            } catch (err) {
+                console.error(err);
+                setStatus('Error loading records: ' + err);
+            }
+        }
+
+        // --- Persistent storage request ---
+        async function ensurePersistentStorage() {
+            if (!navigator.storage || !navigator.storage.persist) {
+                persistStatusEl.textContent = 'Storage: standard';
+                return;
+            }
+            try {
+                const isPersisted = await navigator.storage.persisted();
+                if (isPersisted) {
+                    persistStatusEl.textContent = 'Storage: persistent';
+                    return;
+                }
+                const granted = await navigator.storage.persist();
+                persistStatusEl.textContent = granted ? 'Storage: persistent' : 'Storage: best-effort';
+            } catch (e) {
+                persistStatusEl.textContent = 'Storage: standard';
+            }
+        }
+
+        // --- Event wiring ---
+        saveBtn.addEventListener('click', async () => {
+            const raw = inputEl.value;
+            if (!raw.trim()) {
+                setStatus('Nothing to save—input is empty.');
+                return;
+            }
+
+            const assignVal = assignNumberEl.value.trim();
+            let assignNumber = null;
+            if (assignVal !== '') {
+                const num = Number(assignVal);
+                if (!Number.isInteger(num) || num < 100 || num > 200) {
+                    setStatus('Assigned number must be an integer between 100 and 200.');
+                    return;
+                }
+                assignNumber = num;
+            }
+
+            const tagsRaw = tagsEl.value.trim();
+            const tags = tagsRaw
+                ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean)
+                : [];
+
+            const notes = notesEl.value.trim();
+
+            const now = new Date().toISOString();
+            const parsed = parseMagstripe(raw);
+
+            const baseRecord = {
+                raw,
+                createdAt: now,
+                tags,
+                notes,
+                assignNumber,
+                parsed
+            };
+
+            try {
+                const hash = await computeIntegrityHash(baseRecord);
+                baseRecord.hash = hash;
+
+                const rec = await addRecord(baseRecord);
+                // Precompute verification hash
+                rec._computedHash = hash;
+
+                allRecords.push(rec);
+                updateCountBadge();
+                renderRecords();
+                setStatus('Saved record #' + rec.id + ' at ' + new Date(rec.createdAt).toLocaleTimeString() + '.');
+
+                // Optional: clear input fields after save
+                // inputEl.value = '';
+                // assignNumberEl.value = '';
+                // tagsEl.value = '';
+                // notesEl.value = '';
+            } catch (err) {
+                console.error(err);
+                setStatus('Error saving record: ' + err);
+            }
+        });
+
+        clearInputBtn.addEventListener('click', () => {
+            inputEl.value = '';
+            assignNumberEl.value = '';
+            tagsEl.value = '';
+            notesEl.value = '';
+            setStatus('Input, tags, notes, and assigned number cleared.');
+        });
+
+        wipeAllBtn.addEventListener('click', async () => {
+            const ok = confirm('Wipe ALL stored magstripe records from this browser? This cannot be undone.');
+            if (!ok) return;
+            try {
+                await clearAllRecords();
+                allRecords = [];
+                updateCountBadge();
+                renderRecords();
+                setStatus('All records wiped from IndexedDB.');
+            } catch (err) {
+                console.error(err);
+                setStatus('Error wiping records: ' + err);
+            }
+        });
+
+        searchEl.addEventListener('input', () => {
+            renderRecords();
+        });
+
+        // Ctrl+Enter to save from textarea
+        inputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                saveBtn.click();
+            }
+        });
+
+        // --- Boot ---
+        (async function init() {
+            await ensurePersistentStorage();
+            try {
+                await openDB();
+                setStatus('IndexedDB opened.');
+                await loadAndRenderAll();
+            } catch (err) {
+                console.error(err);
+                setStatus('Failed to open IndexedDB: ' + err);
+            }
+            inputEl.focus();
+        })();
+    </script>
+</body>
+
+</html>
