@@ -116,14 +116,14 @@
 
   <h2>1. Overview</h2>
   <p>
-    The generator is a single self-contained HTML file (for example, <code>barcode.html</code>).
+    The generator is a single self-contained HTML file (for example, <code>barcode-gen.html</code>).
     When requested with query parameters, it draws a barcode onto a <code>&lt;canvas&gt;</code>
     and shows nothing else.
   </p>
 
   <div class="callout">
     <strong>Conceptually:</strong><br />
-    <code>barcode.html?val=YOUR_DATA&amp;barcode=TYPE</code> → page responds with a rendered barcode image.
+    <code>barcode-gen.html?val=YOUR_DATA&amp;barcode=TYPE</code> → page responds with a rendered barcode image.
   </div>
 
   <h2>2. Supported barcode types</h2>
@@ -167,7 +167,7 @@
   </table>
 
   <h2>3. File contents (generator HTML)</h2>
-  <p>Save the following as <code>barcode.html</code> (or any name you prefer):</p>
+  <p>Save the following as <code>barcode-gen.html</code> (or any name you prefer):</p>
 
   <pre><code>&lt;!DOCTYPE html&gt;
 &lt;html&gt;
@@ -276,23 +276,23 @@
   <ul>
     <li>
       <strong>PDF417</strong><br />
-      <code>barcode.html?val=HELLO123&amp;barcode=pdf417</code>
+      <code>barcode-gen.html?val=HELLO123&amp;barcode=pdf417</code>
     </li>
     <li>
       <strong>QR Code</strong><br />
-      <code>barcode.html?val=HELLO123&amp;barcode=qr</code>
+      <code>barcode-gen.html?val=HELLO123&amp;barcode=qr</code>
     </li>
     <li>
       <strong>Code128</strong><br />
-      <code>barcode.html?val=HELLO123&amp;barcode=code128</code>
+      <code>barcode-gen.html?val=HELLO123&amp;barcode=code128</code>
     </li>
     <li>
       <strong>DataMatrix</strong><br />
-      <code>barcode.html?val=HELLO123&amp;barcode=datamatrix</code>
+      <code>barcode-gen.html?val=HELLO123&amp;barcode=datamatrix</code>
     </li>
     <li>
       <strong>Aztec</strong><br />
-      <code>barcode.html?val=HELLO123&amp;barcode=aztec</code>
+      <code>barcode-gen.html?val=HELLO123&amp;barcode=aztec</code>
     </li>
   </ul>
 
@@ -303,7 +303,7 @@
   </p>
 
   <pre><code>&lt;img
-  src="barcode.html?val=ORDER-12345&amp;barcode=code128"
+  src="barcode-gen.html?val=ORDER-12345&amp;barcode=code128"
   alt="Order barcode"
 /&gt;</code></pre>
 
@@ -346,7 +346,7 @@
   </ul>
 
   <p style="margin-top:2rem; font-size:0.85rem; color:#9aa0c2;">
-    This README is meant to live alongside <code>barcode.html</code> as a quick operational guide.
+    This README is meant to live alongside <code>barcode-gen.html</code> as a quick operational guide.
   </p>
 </div>
 </body>
