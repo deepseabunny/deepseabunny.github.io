@@ -70,7 +70,6 @@
 
     <div class="controls">
       <div class="pill" id="db-status">DB: booting…</div>
-      <button id="wipe-db" class="btn-ghost" title="Wipe the database (irreversible)">Wipe DB</button>
       <button id="download-report" class="btn-ghost" title="Download CSV report of punches">Download report</button>
       <button id="view-report" class="btn-primary" title="View JSON report">View report</button>
     </div>
@@ -116,7 +115,7 @@
           <button id="modal-close" class="btn-ghost">Close</button>
         </div>
       </div>
-      <div>w
+      <div>
         <div style="font-size:12px;color:#9aa4c6;margin-bottom:8px">Structured JSON preview — includes employees map and punches array.</div>
         <pre id="json-output" class="json-output">Generating…</pre>
       </div>
@@ -147,59 +146,6 @@
         req.onerror = ()=>reject(req.error);
       });
     }
-    async function wipeDatabase() {
-  const btn = document.getElementById('wipe-db');
-  if (!confirm('Wipe the local timeclock database? This will remove all employees and punches.')) return;
-  btn.disabled = true;
-  btn.textContent = 'Wiping…';
-  try {
-    // close any open DB connection
-    if (db) {
-      try { db.close(); } catch (e) { /* ignore */ }
-      db = null;
-    }
-
-    // delete the IndexedDB database
-    await new Promise((resolve, reject) => {
-      const delReq = indexedDB.deleteDatabase(DB_NAME);
-      delReq.onsuccess = () => resolve();
-      delReq.onerror = () => reject(delReq.error);
-      delReq.onblocked = () => {
-        // user may need to close other tabs — notify and abort after a short wait
-        console.warn('deleteDatabase blocked; close other tabs using this origin');
-      };
-    });
-
-    // reset in-memory caches and UI
-    employeesCache = [];
-    selectedEmployeeId = null;
-    lastGeneratedReport = null;
-    document.getElementById('employee-list').innerHTML = '';
-    document.getElementById('current-body').innerHTML = '<div class="empty-state">No employee selected.</div>';
-    document.getElementById('history-body').innerHTML = '<div class="empty-state">No employee selected.</div>';
-    document.getElementById('db-status').textContent = 'DB: wiped';
-
-    // reopen and reseed
-    db = await openDB();
-    await seedBaselineIfEmpty();
-    employeesCache = await getAll(EMP_STORE);
-    employeesCache.sort((a,b)=>a.name.localeCompare(b.name));
-    renderEmployeesList();
-    if (employeesCache.length) {
-      selectedEmployeeId = employeesCache[0].id;
-      renderEmployeesList();
-      await loadAndRenderEmployee(selectedEmployeeId);
-    }
-  } catch (err) {
-    console.error('wipeDatabase error', err);
-    alert('Failed to wipe DB — see console.');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Wipe DB';
-  }
-}
-
-document.getElementById('wipe-db').addEventListener('click', wipeDatabase);
 
     function tx(storeName, mode='readonly'){
       return db.transaction(storeName,mode).objectStore(storeName);
