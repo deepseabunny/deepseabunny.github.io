@@ -490,8 +490,22 @@ function renderMap(){
    INIT (FIXED)
 ———————————————————————————————————————————————— */
 document.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("DOMContentLoaded", () => {
+  console.log("DOM READY");
+
+  const pickList = document.getElementById("pick-list");
+  const mapGrid = document.getElementById("map-grid");
+
+  console.log("pick-list:", pickList);
+  console.log("map-grid:", mapGrid);
+
   items = clone(baseItems);
+  console.log("items loaded:", items.length);
+
   generateRoute();
+  console.log("route generated:", route.length);
+});
+
 });
 
 document.getElementById("btn-generate").onclick = generateRoute;
