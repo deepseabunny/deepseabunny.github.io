@@ -24,7 +24,9 @@
       justify-content: space-between;
       align-items: center;
       background: #0f1528;
+      gap: 12px;
     }
+    .header-left { display:flex; flex-direction:column; gap:2px; }
     .header-title { font-size: 16px; font-weight: 600; }
     .header-sub { font-size: 11px; color: #9aa4c6; }
     .pill {
@@ -34,6 +36,17 @@
       border: 1px solid #2c3654;
       color: #9aa4c6;
     }
+    .controls { display:flex; gap:8px; align-items:center; }
+    .btn-ghost {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid #374151;
+      background: transparent;
+      color: #e5e7eb;
+      cursor: pointer;
+    }
+    .btn-ghost:disabled { opacity: 0.5; cursor: default; }
     .employees-title {
       font-size: 12px;
       text-transform: uppercase;
@@ -236,11 +249,15 @@
 </head>
 <body>
   <div class="header">
-    <div>
+    <div class="header-left">
       <div class="header-title">Time Clock · Operator Sim</div>
       <div class="header-sub">Single-page · IndexedDB · Baseline employees & punches</div>
     </div>
-    <div class="pill" id="db-status">DB: booting…</div>
+
+    <div class="controls">
+      <div class="pill" id="db-status">DB: booting…</div>
+      <button id="generate-report" class="btn-ghost" title="Generate CSV report of punches">Generate report</button>
+    </div>
   </div>
 
   <div class="app">
@@ -480,7 +497,6 @@
         getAll(PUNCH_STORE, 'by_employee', IDBKeyRange.only(emp.id))
           .then(punches => {
             const { status } = computeStatusForEmployee(punches);
-            // Query for the current pill for this employee (handles re-renders)
             const currentPill = document.querySelector(`.employee-item[data-id="${emp.id}"] .status-pill`);
             if (currentPill) {
               currentPill.className = 'status-pill ' + (status === 'in' ? 'status-in' : 'status-out');
@@ -711,6 +727,69 @@
         console.error('handlePunch error', err);
       }
     }
+
+    // --- Report generation --------------------------------------------------
+    function csvEscape(val) {
+      if (val == null) return '';
+      const s = String(val);
+      return (s.includes('"') || s.includes(',') || s.includes('\n')) ? `"${s.replace(/"/g, '""')}"` : s;
+    }
+
+    async function generateReport() {
+      const btn = document.getElementById('generate-report');
+      btn.disabled = true;
+      btn.textContent = 'Generating…';
+      try {
+        // fetch all punches and employees
+        const punches = await getAll(PUNCH_STORE);
+        // ensure employeesCache is up to date
+        employeesCache = await getAll(EMP_STORE);
+        const empMap = Object.fromEntries(employeesCache.map(e => [e.id, e]));
+
+        // Build CSV rows
+        const headers = ['employeeId','employeeName','role','location','timestamp','datetime','type','source','punchId'];
+        const rows = [headers.map(csvEscape).join(',')];
+
+        punches.sort((a,b) => a.timestamp - b.timestamp);
+        for (const p of punches) {
+          const emp = empMap[p.employeeId] || { name: '', role: '', location: '' };
+          const dt = new Date(p.timestamp).toISOString();
+          const row = [
+            p.employeeId,
+            emp.name || '',
+            emp.role || '',
+            emp.location || '',
+            p.timestamp,
+            dt,
+            p.type,
+            p.source || 'manual',
+            p.id
+          ].map(csvEscape).join(',');
+          rows.push(row);
+        }
+
+        const csv = rows.join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const now = new Date();
+        const name = `timeclock_report_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.csv`;
+        a.href = url;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('generateReport error', err);
+        alert('Failed to generate report — see console for details.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Generate report';
+      }
+    }
+
+    document.getElementById('generate-report').addEventListener('click', generateReport);
 
     // --- Live clock in footer -----------------------------------------------
     function startNowTicker() {
