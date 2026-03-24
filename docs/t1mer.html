@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <title>Time Clock Sim</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
@@ -232,6 +232,10 @@
       .app { grid-template-columns: 1fr; }
       .sidebar { border-right: none; border-bottom: 1px solid #22283a; }
     }
+
+    /* Modal small styles */
+    #report-modal { z-index: 60; }
+    #report-modal .btn-close { border-radius: 6px; padding: 6px 10px; border: 1px solid #374151; background: #111827; }
   </style>
 </head>
 <body>
@@ -274,7 +278,36 @@
 
   <div class="footer">
     <span>Baseline data: 4 employees · seeded on first load</span>
-    <span class="mono" id="now-label"></span>
+    <div style="display:flex; gap:12px; align-items:center;">
+      <button id="report-btn">Generate Report</button>
+      <span class="mono" id="now-label"></span>
+    </div>
+  </div>
+
+  <!-- Report modal -->
+  <div id="report-modal" style="
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: none; justify-content: center; align-items: center;
+  ">
+    <div style="
+      background:#0f1528; border:1px solid #22283a;
+      padding:20px; width:90%; max-width:720px;
+      border-radius:8px; color:#f5f5f5;
+    ">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-size:14px; font-weight:600;">Daily Report</div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button id="copy-report" title="Copy report">Copy</button>
+          <button id="close-report" class="btn-close">Close</button>
+        </div>
+      </div>
+      <pre id="report-output" style="
+        margin-top:12px; font-size:12px; white-space:pre-wrap;
+        background:#050816; padding:12px; border-radius:6px;
+        border:1px solid #1f2937; max-height:60vh; overflow:auto;
+      "></pre>
+    </div>
   </div>
 
   <script>
@@ -688,6 +721,107 @@
       renderEmployeesList();
       await loadAndRenderEmployee(empId);
     }
+
+    // --- Report helpers -----------------------------------------------------
+    function computeTotalHours(punches) {
+      // compute total time by pairing in->out sequentially
+      if (!punches || !punches.length) return 0;
+      punches.sort((a, b) => a.timestamp - b.timestamp);
+      let total = 0;
+      for (let i = 0; i < punches.length - 1; i++) {
+        const cur = punches[i];
+        const next = punches[i + 1];
+        if (cur.type === 'in' && next.type === 'out' && next.timestamp >= cur.timestamp) {
+          total += next.timestamp - cur.timestamp;
+          i++; // skip paired out
+        }
+      }
+      // If last is an 'in' without an out, count elapsed until now
+      const last = punches[punches.length - 1];
+      if (last.type === 'in') {
+        total += Date.now() - last.timestamp;
+      }
+      return total;
+    }
+
+    async function generateReport() {
+      const employees = employeesCache.slice().sort((a,b) => a.name.localeCompare(b.name));
+      const lines = [];
+      const now = new Date();
+      lines.push(`Report generated: ${now.toLocaleString()}`);
+      lines.push(`Employees: ${employees.length}`);
+      lines.push('----------------------------------------');
+
+      for (const emp of employees) {
+        const punches = await getAll(PUNCH_STORE, 'by_employee', IDBKeyRange.only(emp.id));
+        const totalMs = computeTotalHours(punches);
+        const totalHrs = (totalMs / 3600000);
+        const totalStr = totalHrs.toFixed(2) + ' h';
+
+        const last = punches.length ? punches[punches.length - 1] : null;
+        const lastStr = last ? `${last.type} @ ${formatDateTime(last.timestamp)}` : 'None';
+
+        // Basic anomaly checks
+        let anomalies = [];
+        // double-ins or double-outs
+        for (let i = 0; i < punches.length - 1; i++) {
+          if (punches[i].type === punches[i+1].type) {
+            anomalies.push(`${punches[i].type} followed by ${punches[i+1].type} at ${formatDateTime(punches[i+1].timestamp)}`);
+          }
+        }
+        // missing out (last is 'in' and older than 24h)
+        if (last && last.type === 'in' && (Date.now() - last.timestamp) > 24 * 3600000) {
+          anomalies.push('Open shift older than 24h');
+        }
+
+        lines.push(`${emp.name} (${emp.role}, ${emp.location})`);
+        lines.push(`  Total hours (approx): ${totalStr}`);
+        lines.push(`  Last punch: ${lastStr}`);
+        lines.push(`  Punch count: ${punches.length}`);
+        if (anomalies.length) {
+          lines.push(`  Anomalies: ${anomalies.join('; ')}`);
+        }
+        lines.push('');
+      }
+
+      return lines.join('\n');
+    }
+
+    // Wire up modal actions (copy/close)
+    document.addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'report-btn') {
+        openReportModal();
+      }
+    });
+
+    async function openReportModal() {
+      const modal = document.getElementById('report-modal');
+      const out = document.getElementById('report-output');
+      out.textContent = 'Generating…';
+      modal.style.display = 'flex';
+      try {
+        const text = await generateReport();
+        out.textContent = text;
+      } catch (err) {
+        out.textContent = 'Error generating report: ' + (err && err.message ? err.message : String(err));
+      }
+    }
+
+    document.getElementById('close-report').addEventListener('click', () => {
+      document.getElementById('report-modal').style.display = 'none';
+    });
+
+    document.getElementById('copy-report').addEventListener('click', async () => {
+      const out = document.getElementById('report-output');
+      try {
+        await navigator.clipboard.writeText(out.textContent);
+        const prev = document.getElementById('copy-report').textContent;
+        document.getElementById('copy-report').textContent = 'Copied';
+        setTimeout(() => { document.getElementById('copy-report').textContent = prev; }, 1200);
+      } catch (err) {
+        alert('Copy failed');
+      }
+    });
 
     // --- Live clock in footer -----------------------------------------------
     function startNowTicker() {
