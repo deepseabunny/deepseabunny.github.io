@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Chat Sim</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg: #050816;
+      --panel: #0f172a;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.12);
+      --user: #22c55e;
+      --ai: #e5e7eb;
+      --border: #1f2937;
+      --text-main: #e5e7eb;
+      --text-muted: #9ca3af;
+      --danger: #f97373;
+      --radius-lg: 14px;
+      --radius-md: 10px;
+      --radius-pill: 999px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1f2937 0, #020617 55%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 960px;
+      background: linear-gradient(145deg, #020617, #020617, #020617);
+      border-radius: 24px;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      box-shadow:
+        0 24px 80px rgba(15, 23, 42, 0.9),
+        0 0 0 1px rgba(15, 23, 42, 0.9);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .app-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: radial-gradient(circle at top left, #0f172a 0, #020617 55%);
+    }
+
+    .app-title-block {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .app-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 12px;
+      background: radial-gradient(circle at 30% 0, #38bdf8 0, #0f172a 45%, #020617 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #e5e7eb;
+      font-size: 18px;
+      font-weight: 700;
+      box-shadow:
+        0 0 0 1px rgba(15, 23, 42, 0.9),
+        0 10px 30px rgba(56, 189, 248, 0.35);
+    }
+
+    .app-title-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .app-title-text h1 {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .app-title-pill {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 2px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      color: var(--text-muted);
+      background: rgba(15, 23, 42, 0.8);
+    }
+
+    .app-title-text span {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .app-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .meta-pill {
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .meta-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
+    }
+
+    .meta-label {
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 9px;
+      color: var(--text-muted);
+    }
+
+    .meta-value {
+      font-size: 11px;
+      color: var(--text-main);
+    }
+
+    .app-body {
+      display: grid;
+      grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.2fr);
+      gap: 0;
+      min-height: 420px;
+      max-height: 640px;
+    }
+
+    @media (max-width: 800px) {
+      .app-body {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .chat-panel {
+      border-right: 1px solid rgba(148, 163, 184, 0.25);
+      display: flex;
+      flex-direction: column;
+      background: radial-gradient(circle at top, #020617 0, #020617 55%);
+    }
+
+    @media (max-width: 800px) {
+      .chat-panel {
+        border-right: none;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+      }
+    }
+
+    .chat-header {
+      padding: 10px 16px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .chat-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chat-header-left span {
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 9px;
+      color: var(--text-muted);
+    }
+
+    .chat-header-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.7);
+    }
+
+    .chat-header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge {
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      font-size: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: #38bdf8;
+    }
+
+    .chat-stream {
+      flex: 1;
+      padding: 8px 12px 10px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(148, 163, 184, 0.6) transparent;
+    }
+
+    .chat-stream::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .chat-stream::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .chat-stream::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.6);
+      border-radius: 999px;
+    }
+
+    .chat-message {
+      max-width: 88%;
+      margin-bottom: 8px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .chat-message.user {
+      margin-left: auto;
+      flex-direction: row-reverse;
+    }
+
+    .chat-avatar {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .chat-avatar.user {
+      background: radial-gradient(circle at 30% 0, #22c55e 0, #14532d 55%);
+      color: #ecfdf5;
+    }
+
+    .chat-avatar.ai {
+      background: radial-gradient(circle at 30% 0, #38bdf8 0, #0f172a 55%);
+      color: #e0f2fe;
+    }
+
+    .chat-bubble {
+      padding: 8px 10px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.4;
+      position: relative;
+      border: 1px solid transparent;
+    }
+
+    .chat-message.user .chat-bubble {
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+      color: #ecfdf5;
+      border-color: rgba(22, 163, 74, 0.9);
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-message.ai .chat-bubble {
+      background: radial-gradient(circle at top left, #020617 0, #020617 55%);
+      border-color: rgba(148, 163, 184, 0.4);
+      border-bottom-left-radius: 4px;
+      color: var(--text-main);
+    }
+
+    .chat-meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 3px;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .chat-meta-row span {
+      opacity: 0.9;
+    }
+
+    .chat-input-panel {
+      padding: 8px 10px 10px;
+      border-top: 1px solid rgba(148, 163, 184, 0.25);
+      background: radial-gradient(circle at bottom, #020617 0, #020617 55%);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .chat-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    .chat-input-wrapper {
+      flex: 1;
+      position: relative;
+    }
+
+    .chat-input {
+      width: 100%;
+      resize: none;
+      min-height: 40px;
+      max-height: 80px;
+      padding: 8px 10px 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--text-main);
+      font-size: 13px;
+      line-height: 1.4;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+
+    .chat-input:focus {
+      border-color: #38bdf8;
+      box-shadow:
+        0 0 0 1px rgba(56, 189, 248, 0.6),
+        0 0 0 8px rgba(56, 189, 248, 0.12);
+      background: rgba(15, 23, 42, 1);
+    }
+
+    .chat-input::placeholder {
+      color: rgba(148, 163, 184, 0.8);
+    }
+
+    .chat-send-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+      color: #0b1120;
+      box-shadow:
+        0 10px 30px rgba(56, 189, 248, 0.45),
+        0 0 0 1px rgba(15, 23, 42, 0.9);
+      flex-shrink: 0;
+    }
+
+    .chat-send-btn:disabled {
+      opacity: 0.5;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    .chat-send-icon {
+      font-size: 13px;
+    }
+
+    .chat-input-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--text-muted);
+      padding: 0 4px;
+    }
+
+    .chat-input-meta span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot-soft {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.7);
+    }
+
+    .config-panel {
+      background: radial-gradient(circle at top, #020617 0, #020617 55%);
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid rgba(15, 23, 42, 0.9);
+    }
+
+    .config-header {
+      padding: 10px 14px 8px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .config-header span {
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 9px;
+      color: var(--text-muted);
+    }
+
+    .config-body {
+      padding: 10px 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--text-main);
+      overflow-y: auto;
+    }
+
+    .config-section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .config-card {
+      border-radius: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: radial-gradient(circle at top left, #020617 0, #020617 55%);
+      padding: 8px 9px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .config-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .config-label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .config-value-pill {
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .config-input {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--text-main);
+      font-size: 12px;
+      outline: none;
+    }
+
+    .config-input::placeholder {
+      color: rgba(148, 163, 184, 0.8);
+    }
+
+    .config-input:focus {
+      border-color: #38bdf8;
+      box-shadow:
+        0 0 0 1px rgba(56, 189, 248, 0.6),
+        0 0 0 6px rgba(56, 189, 248, 0.12);
+      background: rgba(15, 23, 42, 1);
+    }
+
+    .config-note {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .config-note strong {
+      color: var(--text-main);
+      font-weight: 500;
+    }
+
+    .config-badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 2px;
+    }
+
+    .config-badge {
+      padding: 3px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      font-size: 10px;
+      color: var(--text-muted);
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .config-footer {
+      margin-top: auto;
+      padding: 8px 14px 10px;
+      border-top: 1px solid rgba(148, 163, 184, 0.25);
+      font-size: 10px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .config-footer span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pill-danger {
+      border-color: rgba(248, 113, 113, 0.7);
+      color: #fecaca;
+      background: rgba(127, 29, 29, 0.4);
+    }
+
+    .pill-soft {
+      border-color: rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.8);
+    }
+
+    .pill-dot-danger {
+      background: #f97373;
+      box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.18);
+    }
+
+    .pill-dot-soft {
+      background: #38bdf8;
+      box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.18);
+    }
+
+    .link-inline {
+      text-decoration: underline;
+      text-decoration-style: dotted;
+      text-underline-offset: 3px;
+      cursor: default;
+    }
+
+    .link-inline:hover {
+      text-decoration-style: solid;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="app-title-block">
+        <div class="app-logo">∑</div>
+        <div class="app-title-text">
+          <h1>
+            Cloud Chat Sim
+            <span class="app-title-pill">Single Page • HTML / CSS / JS</span>
+          </h1>
+          <span>Local simulation of an AI chat loop — ready for a real API when you are.</span>
+        </div>
+      </div>
+      <div class="app-meta">
+        <div class="meta-pill">
+          <div class="meta-dot"></div>
+          <span class="meta-label">Mode</span>
+          <span class="meta-value" id="modeLabel">Simulated</span>
+        </div>
+        <div class="meta-pill">
+          <span class="meta-label">Messages</span>
+          <span class="meta-value" id="messageCount">0</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-body">
+      <!-- Chat panel -->
+      <section class="chat-panel">
+        <div class="chat-header">
+          <div class="chat-header-left">
+            <span>Conversation</span>
+            <div class="chat-header-dot"></div>
+            <div style="font-size:11px;color:var(--text-muted);">Local loop</div>
+          </div>
+          <div class="chat-header-right">
+            <div class="badge">
+              <div class="badge-dot"></div>
+              <span id="modelLabel">Mock model</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-stream" id="chatStream">
+          <!-- Messages injected here -->
+        </div>
+
+        <div class="chat-input-panel">
+          <div class="chat-input-row">
+            <div class="chat-input-wrapper">
+              <textarea
+                id="chatInput"
+                class="chat-input"
+                rows="1"
+                placeholder="Type a message and press Enter…"
+              ></textarea>
+            </div>
+            <button id="sendBtn" class="chat-send-btn">
+              <span class="chat-send-icon">➤</span>
+              <span>Send</span>
+            </button>
+          </div>
+          <div class="chat-input-meta">
+            <span>
+              <span class="dot-soft"></span>
+              <span id="statusLabel">Idle • Simulated response</span>
+            </span>
+            <span>Enter to send • Shift+Enter for newline</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Config / inspector panel -->
+      <aside class="config-panel">
+        <div class="config-header">
+          <span>Inspector</span>
+          <div class="badge">
+            <div class="badge-dot"></div>
+            <span>Local only</span>
+          </div>
+        </div>
+
+        <div class="config-body">
+          <div>
+            <div class="config-section-title">Mode</div>
+            <div class="config-card">
+              <div class="config-row">
+                <div class="config-label">Simulation strategy</div>
+                <div class="config-value-pill">
+                  <span id="simStrategyLabel">Echo + transform</span>
+                </div>
+              </div>
+              <div class="config-note">
+                This page does <strong>not</strong> call any external API. It simulates an AI reply locally so you can
+                wire up UI, state, and flow without needing keys or network.
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="config-section-title">OpenAI wiring (placeholder)</div>
+            <div class="config-card">
+              <div class="config-row" style="margin-bottom:4px;">
+                <div class="config-label">API key</div>
+                <input
+                  id="apiKeyInput"
+                  class="config-input"
+                  type="password"
+                  placeholder="Paste your OpenAI key here (optional)"
+                />
+              </div>
+              <div class="config-row">
+                <div class="config-label">Model</div>
+                <input
+                  id="modelInput"
+                  class="config-input"
+                  type="text"
+                  placeholder="e.g. gpt-4.1-mini"
+                  value="gpt-4.1-mini"
+                />
+              </div>
+              <div class="config-note">
+                This UI doesn’t send your key anywhere. To actually call OpenAI, you’d move the key to a backend and
+                replace the <span class="link-inline">simulateAiResponse()</span> function with a real fetch.
+              </div>
+              <div class="config-badge-row">
+                <div class="config-badge">POST /v1/chat/completions</div>
+                <div class="config-badge">messages[ ]</div>
+                <div class="config-badge">stream (optional)</div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="config-section-title">Conversation state</div>
+            <div class="config-card">
+              <div class="config-row">
+                <div class="config-label">Turns in memory</div>
+                <div class="config-value-pill">
+                  <span id="turnCountLabel">0</span>
+                </div>
+              </div>
+              <div class="config-note">
+                Messages live only in memory in this demo. In a real cloud app, you’d persist them to a database and
+                reconstruct the <span class="link-inline">messages[ ]</span> array per request.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="config-footer">
+          <span>
+            <span class="pill-dot pill-dot-soft"></span>
+            <span>Single-page HTML • No build step</span>
+          </span>
+          <span class="pill-soft" style="padding:3px 8px;border-radius:999px;border:1px solid rgba(148,163,184,0.5);">
+            <span class="pill-dot"></span>
+            <span>Ready for backend wiring</span>
+          </span>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    const chatStream = document.getElementById("chatStream");
+    const chatInput = document.getElementById("chatInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const statusLabel = document.getElementById("statusLabel");
+    const messageCountEl = document.getElementById("messageCount");
+    const turnCountLabel = document.getElementById("turnCountLabel");
+    const modelLabel = document.getElementById("modelLabel");
+    const modeLabel = document.getElementById("modeLabel");
+    const simStrategyLabel = document.getElementById("simStrategyLabel");
+    const apiKeyInput = document.getElementById("apiKeyInput");
+    const modelInput = document.getElementById("modelInput");
+
+    const conversation = [];
+
+    function updateCounters() {
+      const totalMessages = conversation.length;
+      const turns = Math.floor(totalMessages / 2);
+      messageCountEl.textContent = totalMessages.toString();
+      turnCountLabel.textContent = turns.toString();
+    }
+
+    function appendMessage(role, content) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "chat-message " + (role === "user" ? "user" : "ai");
+
+      const avatar = document.createElement("div");
+      avatar.className = "chat-avatar " + (role === "user" ? "user" : "ai");
+      avatar.textContent = role === "user" ? "U" : "AI";
+
+      const bubble = document.createElement("div");
+      bubble.className = "chat-bubble";
+      bubble.textContent = content;
+
+      const metaRow = document.createElement("div");
+      metaRow.className = "chat-meta-row";
+      const leftMeta = document.createElement("span");
+      leftMeta.textContent = role === "user" ? "You" : "Simulated assistant";
+      const rightMeta = document.createElement("span");
+      const now = new Date();
+      rightMeta.textContent = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      metaRow.appendChild(leftMeta);
+      metaRow.appendChild(rightMeta);
+
+      const bubbleContainer = document.createElement("div");
+      bubbleContainer.appendChild(bubble);
+      bubbleContainer.appendChild(metaRow);
+
+      wrapper.appendChild(avatar);
+      wrapper.appendChild(bubbleContainer);
+
+      chatStream.appendChild(wrapper);
+      chatStream.scrollTop = chatStream.scrollHeight;
+    }
+
+    function simulateAiResponse(userText) {
+      const trimmed = userText.trim();
+      if (!trimmed) return "…";
+
+      const reversed = trimmed.split("").reverse().join("");
+      const words = trimmed.split(/\s+/);
+      const wordCount = words.filter(Boolean).length;
+
+      return (
+        "You said " +
+        wordCount +
+        " word" +
+        (wordCount === 1 ? "" : "s") +
+        ". Here’s a playful mirror of your message:\n\n" +
+        reversed +
+        "\n\n(Replace this function with a real OpenAI call when you’re ready.)"
+      );
+    }
+
+    async function handleSend() {
+      const text = chatInput.value;
+      if (!text.trim()) return;
+
+      sendBtn.disabled = true;
+      chatInput.value = "";
+      statusLabel.textContent = "Sending…";
+
+      conversation.push({ role: "user", content: text });
+      appendMessage("user", text);
+      updateCounters();
+
+      await new Promise((resolve) => setTimeout(resolve, 350));
+
+      statusLabel.textContent = "Thinking (simulated)…";
+
+      await new Promise((resolve) => setTimeout(resolve, 450));
+
+      const aiText = simulateAiResponse(text);
+      conversation.push({ role: "assistant", content: aiText });
+      appendMessage("assistant", aiText);
+      updateCounters();
+
+      statusLabel.textContent = "Idle • Simulated response";
+      sendBtn.disabled = false;
+      chatInput.focus();
+    }
+
+    chatInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+      }
+    });
+
+    sendBtn.addEventListener("click", () => {
+      handleSend();
+    });
+
+    apiKeyInput.addEventListener("input", () => {
+      const hasKey = apiKeyInput.value.trim().length > 0;
+      modeLabel.textContent = hasKey ? "Sim + key (UI only)" : "Simulated";
+    });
+
+    modelInput.addEventListener("input", () => {
+      const model = modelInput.value.trim() || "Mock model";
+      modelLabel.textContent = model;
+    });
+
+    simStrategyLabel.textContent = "Echo + reverse + word count";
+
+    appendMessage(
+      "assistant",
+      "This is a local chat simulation. Type anything, and I’ll respond with a playful mirror.\n\n" +
+        "When you’re ready to go real-cloud, replace the simulateAiResponse() function with a backend call to OpenAI."
+    );
+    conversation.push({
+      role: "assistant",
+      content:
+        "This is a local chat simulation. Type anything, and I’ll respond with a playful mirror.\n\n" +
+        "When you’re ready to go real-cloud, replace the simulateAiResponse() function with a backend call to OpenAI.",
+    });
+    updateCounters();
+  </script>
+</body>
+</html>
