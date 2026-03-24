@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <title>Warehouse Pick Path Simulator</title>
+
+<!-- Prevent favicon 404 -->
+<link rel="icon" href="data:,">
+
 <style>
 /* ————————————————————————————————————————————————
    THEME + BASE
@@ -16,23 +20,14 @@
   --text-main: #e5e7eb;
   --text-soft: #9ca3af;
   --border-subtle: #1f2933;
-  --danger: #f97373;
-  --danger-soft: rgba(248, 113, 113, 0.12);
-  --grid-line: #111827;
-  --badge-bg: #111827;
-  --badge-border: #1f2937;
   --radius-lg: 14px;
-  --radius-md: 10px;
-  --radius-sm: 6px;
   --shadow-soft: 0 18px 45px rgba(0, 0, 0, 0.55);
   --shadow-subtle: 0 0 0 1px rgba(15, 23, 42, 0.9);
   --font-mono: system-ui, -apple-system, BlinkMacSystemFont, "SF Mono",
     "Menlo", "Consolas", monospace;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
@@ -41,7 +36,6 @@ body {
   color: var(--text-main);
   font-family: var(--font-mono);
   display: flex;
-  align-items: stretch;
   justify-content: center;
   padding: 24px;
 }
@@ -65,7 +59,6 @@ body {
   padding: 14px 18px;
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
-  align-items: center;
   justify-content: space-between;
 }
 
@@ -84,8 +77,8 @@ body {
   font-size: 10px;
   padding: 4px 8px;
   border-radius: 999px;
-  border: 1px solid var(--badge-border);
-  background: var(--badge-bg);
+  border: 1px solid #1f2937;
+  background: #111827;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -99,10 +92,6 @@ body {
   border-radius: 999px;
   background: var(--accent);
   box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.18);
-}
-
-.badge-danger {
-  color: #fca5a5;
 }
 
 /* ————————————————————————————————————————————————
@@ -190,13 +179,8 @@ body {
   cursor: pointer;
 }
 
-.item-row:nth-child(odd) {
-  background: rgba(15, 23, 42, 0.7);
-}
-
-.item-row:nth-child(even) {
-  background: rgba(15, 23, 42, 0.4);
-}
+.item-row:nth-child(odd) { background: rgba(15, 23, 42, 0.7); }
+.item-row:nth-child(even){ background: rgba(15, 23, 42, 0.4); }
 
 .item-row.active {
   border: 1px solid rgba(74, 222, 128, 0.7);
@@ -503,13 +487,15 @@ function renderMap(){
 }
 
 /* ————————————————————————————————————————————————
-   INIT
+   INIT (FIXED)
 ———————————————————————————————————————————————— */
+document.addEventListener("DOMContentLoaded", () => {
+  items = clone(baseItems);
+  generateRoute();
+});
+
 document.getElementById("btn-generate").onclick = generateRoute;
 document.getElementById("btn-randomize").onclick = randomizeLocations;
-
-items = clone(baseItems);
-generateRoute();
 </script>
 </body>
 </html>
