@@ -1,250 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <title>Time Clock Sim</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    * { box-sizing: border-box; font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; }
-    body { margin: 0; background: #0b1020; color: #f5f5f5; }
-    .app {
-      display: grid;
-      grid-template-columns: 260px 1fr;
-      min-height: 100vh;
-    }
-    .sidebar {
-      border-right: 1px solid #22283a;
-      padding: 12px;
-      background: #0f1528;
-    }
-    .header {
-      padding: 12px 16px;
-      border-bottom: 1px solid #22283a;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #0f1528;
-      gap: 12px;
-    }
-    .header-left { display:flex; flex-direction:column; gap:2px; }
-    .header-title { font-size: 16px; font-weight: 600; }
-    .header-sub { font-size: 11px; color: #9aa4c6; }
-    .pill {
-      font-size: 11px;
-      padding: 4px 8px;
-      border-radius: 999px;
-      border: 1px solid #2c3654;
-      color: #9aa4c6;
-    }
-    .controls { display:flex; gap:8px; align-items:center; }
-    .btn-ghost {
-      font-size: 12px;
-      padding: 6px 10px;
-      border-radius: 8px;
-      border: 1px solid #374151;
-      background: transparent;
-      color: #e5e7eb;
-      cursor: pointer;
-    }
-    .btn-ghost:disabled { opacity: 0.5; cursor: default; }
-    .employees-title {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #7f8ab0;
-      margin-bottom: 8px;
-    }
-    .employee-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .employee-item {
-      padding: 8px 10px;
-      border-radius: 6px;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border: 1px solid transparent;
-      font-size: 13px;
-    }
-    .employee-item:hover {
-      background: #151b30;
-      border-color: #252f4a;
-    }
-    .employee-item.active {
-      background: #151b30;
-      border-color: #3b82f6;
-    }
-    .emp-name { font-weight: 500; }
-    .emp-role { font-size: 11px; color: #9aa4c6; }
-    .emp-meta { display: flex; flex-direction: column; }
-    .status-pill {
-      font-size: 11px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      border: 1px solid #374151;
-    }
-    .status-in { background: rgba(16, 185, 129, 0.12); border-color: #10b981; color: #6ee7b7; }
-    .status-out { background: rgba(75, 85, 99, 0.3); border-color: #4b5563; color: #d1d5db; }
-
-    .main {
-      padding: 12px 16px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .section {
-      border-radius: 8px;
-      border: 1px solid #22283a;
-      background: #0f1528;
-      padding: 12px 14px;
-    }
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 8px;
-    }
-    .section-title {
-      font-size: 13px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #7f8ab0;
-    }
-    .section-sub {
-      font-size: 11px;
-      color: #9aa4c6;
-    }
-    .current-emp-name {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 2px;
-    }
-    .current-emp-role {
-      font-size: 12px;
-      color: #9aa4c6;
-      margin-bottom: 8px;
-    }
-    .current-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .current-meta {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      font-size: 12px;
-      color: #d1d5db;
-    }
-    .current-meta span.label {
-      color: #9aa4c6;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-    .btn-row {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    button {
-      border-radius: 999px;
-      border: 1px solid #374151;
-      background: #111827;
-      color: #e5e7eb;
-      padding: 6px 14px;
-      font-size: 13px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    button.primary {
-      background: #2563eb;
-      border-color: #3b82f6;
-      color: #f9fafb;
-    }
-    button.danger {
-      background: #b91c1c;
-      border-color: #ef4444;
-    }
-    button:disabled {
-      opacity: 0.4;
-      cursor: default;
-    }
-    .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
-      background: #10b981;
-    }
-    .dot.red { background: #ef4444; }
-    .dot.gray { background: #6b7280; }
-
-    .history-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-    }
-    .history-table th,
-    .history-table td {
-      padding: 6px 4px;
-      border-bottom: 1px solid #1f2937;
-      text-align: left;
-      white-space: nowrap;
-    }
-    .history-table th {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #9aa4c6;
-    }
-    .history-table tr:last-child td {
-      border-bottom: none;
-    }
-    .tag {
-      font-size: 11px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      border: 1px solid #374151;
-      color: #e5e7eb;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .tag span.dot {
-      width: 6px;
-      height: 6px;
-    }
-    .empty-state {
-      font-size: 12px;
-      color: #6b7280;
-      padding: 8px 0;
-    }
-    .footer {
-      font-size: 11px;
-      color: #6b7280;
-      padding: 6px 16px 10px;
-      border-top: 1px solid #111827;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #050816;
-    }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-    @media (max-width: 800px) {
-      .app { grid-template-columns: 1fr; }
-      .sidebar { border-right: none; border-bottom: 1px solid #22283a; }
-    }
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif}
+    body{margin:0;background:#0b1020;color:#f5f5f5}
+    .header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #22283a;background:#0f1528;gap:12px}
+    .header-left{display:flex;flex-direction:column}
+    .header-title{font-size:16px;font-weight:600}
+    .header-sub{font-size:11px;color:#9aa4c6}
+    .controls{display:flex;gap:8px;align-items:center}
+    .pill{font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid #2c3654;color:#9aa4c6}
+    .btn-ghost{font-size:12px;padding:6px 10px;border-radius:8px;border:1px solid #374151;background:transparent;color:#e5e7eb;cursor:pointer}
+    .btn-ghost:disabled{opacity:.5;cursor:default}
+    .btn-primary{background:#2563eb;border-color:#3b82f6;color:#fff;padding:6px 12px;border-radius:8px;border:1px solid transparent;cursor:pointer}
+    .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+    .sidebar{border-right:1px solid #22283a;padding:12px;background:#0f1528}
+    .employees-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#7f8ab0;margin-bottom:8px}
+    .employee-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:4px}
+    .employee-item{padding:8px 10px;border-radius:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border:1px solid transparent;font-size:13px}
+    .employee-item:hover{background:#151b30;border-color:#252f4a}
+    .employee-item.active{background:#151b30;border-color:#3b82f6}
+    .emp-name{font-weight:500}
+    .emp-role{font-size:11px;color:#9aa4c6}
+    .emp-meta{display:flex;flex-direction:column}
+    .status-pill{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid #374151}
+    .status-in{background:rgba(16,185,129,.12);border-color:#10b981;color:#6ee7b7}
+    .status-out{background:rgba(75,85,99,.3);border-color:#4b5563;color:#d1d5db}
+    .main{padding:12px 16px 16px;display:flex;flex-direction:column;gap:12px}
+    .section{border-radius:8px;border:1px solid #22283a;background:#0f1528;padding:12px 14px}
+    .section-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+    .section-title{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#7f8ab0}
+    .section-sub{font-size:11px;color:#9aa4c6}
+    .current-emp-name{font-size:18px;font-weight:600;margin-bottom:2px}
+    .current-emp-role{font-size:12px;color:#9aa4c6;margin-bottom:8px}
+    .btn-row{display:flex;gap:8px;flex-wrap:wrap}
+    button{border-radius:999px;border:1px solid #374151;background:#111827;color:#e5e7eb;padding:6px 14px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+    button.primary{background:#2563eb;border-color:#3b82f6;color:#f9fafb}
+    button.danger{background:#b91c1c;border-color:#ef4444}
+    button:disabled{opacity:.4;cursor:default}
+    .dot{width:8px;height:8px;border-radius:999px;background:#10b981}
+    .dot.red{background:#ef4444}
+    .dot.gray{background:#6b7280}
+    .history-table{width:100%;border-collapse:collapse;font-size:12px}
+    .history-table th,.history-table td{padding:6px 4px;border-bottom:1px solid #1f2937;text-align:left;white-space:nowrap}
+    .history-table th{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#9aa4c6}
+    .tag{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid #374151;color:#e5e7eb;display:inline-flex;align-items:center;gap:4px}
+    .empty-state{font-size:12px;color:#6b7280;padding:8px 0}
+    .footer{font-size:11px;color:#6b7280;padding:6px 16px 10px;border-top:1px solid #111827;display:flex;justify-content:space-between;align-items:center;background:#050816}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    /* Modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,.6);display:none;align-items:center;justify-content:center;z-index:40}
+    .modal{background:#071028;border:1px solid #223046;padding:16px;border-radius:8px;max-width:900px;width:92%;max-height:80vh;overflow:auto;box-shadow:0 8px 30px rgba(2,6,23,.6)}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .modal-title{font-weight:600}
+    .modal-actions{display:flex;gap:8px}
+    pre.json-output{background:#021122;color:#e6f7ff;padding:12px;border-radius:6px;white-space:pre-wrap;word-break:break-word;font-size:12px;max-height:60vh;overflow:auto;border:1px solid #123142}
+    @media(max-width:800px){.app{grid-template-columns:1fr}.sidebar{border-right:none;border-bottom:1px solid #22283a}}
   </style>
 </head>
 <body>
@@ -256,7 +70,8 @@
 
     <div class="controls">
       <div class="pill" id="db-status">DB: booting…</div>
-      <button id="generate-report" class="btn-ghost" title="Generate CSV report of punches">Generate report</button>
+      <button id="download-report" class="btn-ghost" title="Download CSV report of punches">Download report</button>
+      <button id="view-report" class="btn-primary" title="View JSON report">View report</button>
     </div>
   </div>
 
@@ -272,9 +87,7 @@
           <div class="section-title">Current state</div>
           <div class="section-sub" id="current-sub">Select an employee to view status</div>
         </div>
-        <div id="current-body">
-          <div class="empty-state">No employee selected.</div>
-        </div>
+        <div id="current-body"><div class="empty-state">No employee selected.</div></div>
       </section>
 
       <section class="section">
@@ -282,9 +95,7 @@
           <div class="section-title">Punch history</div>
           <div class="section-sub" id="history-sub">Per-employee timeline · persisted in IndexedDB</div>
         </div>
-        <div id="history-body">
-          <div class="empty-state">No employee selected.</div>
-        </div>
+        <div id="history-body"><div class="empty-state">No employee selected.</div></div>
       </section>
     </main>
   </div>
@@ -294,541 +105,375 @@
     <span class="mono" id="now-label"></span>
   </div>
 
+  <!-- Modal for JSON report -->
+  <div id="modal-backdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal" role="document" aria-labelledby="modal-title">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-title">JSON Report</div>
+        <div class="modal-actions">
+          <button id="modal-download" class="btn-ghost">Download JSON</button>
+          <button id="modal-close" class="btn-ghost">Close</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:#9aa4c6;margin-bottom:8px">Structured JSON preview — includes employees map and punches array.</div>
+        <pre id="json-output" class="json-output">Generating…</pre>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // --- IndexedDB bootstrap -------------------------------------------------
-    const DB_NAME = 'timeclock_sim';
-    const DB_VERSION = 1;
-    const EMP_STORE = 'employees';
-    const PUNCH_STORE = 'punches';
+    // IndexedDB setup
+    const DB_NAME = 'timeclock_sim', DB_VERSION = 1, EMP_STORE = 'employees', PUNCH_STORE = 'punches';
+    let db = null, employeesCache = [], selectedEmployeeId = null, lastGeneratedReport = null;
 
-    let db = null;
-    let employeesCache = [];
-    let selectedEmployeeId = null;
-
-    function openDB() {
-      return new Promise((resolve, reject) => {
+    function openDB(){
+      return new Promise((resolve,reject)=>{
         const req = indexedDB.open(DB_NAME, DB_VERSION);
-        req.onupgradeneeded = (event) => {
-          const db = event.target.result;
-          if (!db.objectStoreNames.contains(EMP_STORE)) {
-            const empStore = db.createObjectStore(EMP_STORE, { keyPath: 'id' });
-            empStore.createIndex('by_name', 'name', { unique: false });
+        req.onupgradeneeded = e=>{
+          const d = e.target.result;
+          if(!d.objectStoreNames.contains(EMP_STORE)){
+            const s = d.createObjectStore(EMP_STORE,{keyPath:'id'});
+            s.createIndex('by_name','name',{unique:false});
           }
-          if (!db.objectStoreNames.contains(PUNCH_STORE)) {
-            const punchStore = db.createObjectStore(PUNCH_STORE, { keyPath: 'id' });
-            punchStore.createIndex('by_employee', 'employeeId', { unique: false });
-            punchStore.createIndex('by_employee_time', ['employeeId', 'timestamp'], { unique: false });
+          if(!d.objectStoreNames.contains(PUNCH_STORE)){
+            const s = d.createObjectStore(PUNCH_STORE,{keyPath:'id'});
+            s.createIndex('by_employee','employeeId',{unique:false});
+            s.createIndex('by_employee_time',['employeeId','timestamp'],{unique:false});
           }
         };
-        req.onsuccess = (event) => resolve(event.target.result);
-        req.onerror = () => reject(req.error);
+        req.onsuccess = e=>resolve(e.target.result);
+        req.onerror = ()=>reject(req.error);
       });
     }
 
-    function tx(storeName, mode = 'readonly') {
-      const t = db.transaction(storeName, mode);
-      return t.objectStore(storeName);
+    function tx(storeName, mode='readonly'){
+      return db.transaction(storeName,mode).objectStore(storeName);
     }
 
-    function getAll(storeName, indexName, query, direction = 'next') {
-      return new Promise((resolve, reject) => {
-        const store = tx(storeName, 'readonly');
+    function getAll(storeName, indexName, query, direction='next'){
+      return new Promise((resolve,reject)=>{
+        const store = tx(storeName,'readonly');
         const source = indexName ? store.index(indexName) : store;
-        const req = source.openCursor(query, direction);
-        const results = [];
-        req.onsuccess = (event) => {
-          const cursor = event.target.result;
-          if (cursor) {
-            results.push(cursor.value);
-            cursor.continue();
-          } else {
-            resolve(results);
-          }
+        const req = source.openCursor(query,direction);
+        const out = [];
+        req.onsuccess = e=>{
+          const c = e.target.result;
+          if(c){ out.push(c.value); c.continue(); } else resolve(out);
         };
-        req.onerror = () => reject(req.error);
+        req.onerror = ()=>reject(req.error);
       });
     }
 
-    function put(storeName, value) {
-      return new Promise((resolve, reject) => {
-        const store = tx(storeName, 'readwrite');
-        const req = store.put(value);
-        req.onsuccess = () => resolve(value);
-        req.onerror = () => reject(req.error);
+    function put(storeName,val){
+      return new Promise((resolve,reject)=>{
+        const store = tx(storeName,'readwrite');
+        const req = store.put(val);
+        req.onsuccess = ()=>resolve(val);
+        req.onerror = ()=>reject(req.error);
       });
     }
 
-    function countStore(storeName) {
-      return new Promise((resolve, reject) => {
-        const store = tx(storeName, 'readonly');
+    function countStore(storeName){
+      return new Promise((resolve,reject)=>{
+        const store = tx(storeName,'readonly');
         const req = store.count();
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
+        req.onsuccess = ()=>resolve(req.result);
+        req.onerror = ()=>reject(req.error);
       });
     }
 
-    // --- Baseline data -------------------------------------------------------
+    // Baseline
     const BASELINE_EMPLOYEES = [
-      { id: 'E-1001', name: 'Jordan Lee', role: 'Front Desk', location: 'Main' },
-      { id: 'E-1002', name: 'Riley Chen', role: 'Housekeeping', location: 'Tower A' },
-      { id: 'E-1003', name: 'Sam Patel', role: 'Maintenance', location: 'Campus' },
-      { id: 'E-1004', name: 'Alex Rivera', role: 'Night Audit', location: 'Main' }
+      { id:'E-1001', name:'Jordan Lee', role:'Front Desk', location:'Main' },
+      { id:'E-1002', name:'Riley Chen', role:'Housekeeping', location:'Tower A' },
+      { id:'E-1003', name:'Sam Patel', role:'Maintenance', location:'Campus' },
+      { id:'E-1004', name:'Alex Rivera', role:'Night Audit', location:'Main' }
     ];
 
-    async function seedBaselineIfEmpty() {
-      const count = await countStore(EMP_STORE);
-      if (count > 0) return false;
-
+    async function seedBaselineIfEmpty(){
+      const c = await countStore(EMP_STORE);
+      if(c>0) return false;
       const now = Date.now();
       const baselinePunches = [];
       const shifts = [
-        { empId: 'E-1001', offsetStart: -6 * 60, durationMin: 480 }, // 8h
-        { empId: 'E-1002', offsetStart: -5 * 60, durationMin: 420 }, // 7h
-        { empId: 'E-1003', offsetStart: -4 * 60, durationMin: 300 }, // 5h
+        { empId:'E-1001', offsetStart:-6*60, durationMin:480 },
+        { empId:'E-1002', offsetStart:-5*60, durationMin:420 },
+        { empId:'E-1003', offsetStart:-4*60, durationMin:300 }
       ];
-
-      for (const emp of BASELINE_EMPLOYEES) {
-        await put(EMP_STORE, emp);
+      for(const emp of BASELINE_EMPLOYEES) await put(EMP_STORE,emp);
+      let pid = 1;
+      for(const s of shifts){
+        let start = now + s.offsetStart*60*1000;
+        let end = start + s.durationMin*60*1000;
+        if(end >= now){ end = now - 60*1000; start = end - s.durationMin*60*1000; }
+        baselinePunches.push({ id:'P-'+(pid++), employeeId:s.empId, type:'in', timestamp:start, source:'baseline' });
+        baselinePunches.push({ id:'P-'+(pid++), employeeId:s.empId, type:'out', timestamp:end, source:'baseline' });
       }
-
-      let punchIdCounter = 1;
-      for (const s of shifts) {
-        let start = now + s.offsetStart * 60 * 1000;
-        let end = start + s.durationMin * 60 * 1000;
-        if (end >= now) {
-          end = now - 60 * 1000;
-          start = end - s.durationMin * 60 * 1000;
-        }
-        baselinePunches.push(
-          {
-            id: 'P-' + (punchIdCounter++),
-            employeeId: s.empId,
-            type: 'in',
-            timestamp: start,
-            source: 'baseline'
-          },
-          {
-            id: 'P-' + (punchIdCounter++),
-            employeeId: s.empId,
-            type: 'out',
-            timestamp: end,
-            source: 'baseline'
-          }
-        );
-      }
-
-      baselinePunches.push({
-        id: 'P-' + (punchIdCounter++),
-        employeeId: 'E-1004',
-        type: 'in',
-        timestamp: now - 2 * 60 * 60 * 1000,
-        source: 'baseline'
-      });
-
-      for (const p of baselinePunches) {
-        await put(PUNCH_STORE, p);
-      }
+      baselinePunches.push({ id:'P-'+(pid++), employeeId:'E-1004', type:'in', timestamp:now - 2*60*60*1000, source:'baseline' });
+      for(const p of baselinePunches) await put(PUNCH_STORE,p);
       return true;
     }
 
-    // --- UI helpers ----------------------------------------------------------
-    function formatTime(ts) {
-      const d = new Date(ts);
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    // UI helpers
+    function formatDateTime(ts){
+      return new Date(ts).toLocaleString([], { year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+    }
+    function computeStatusForEmployee(punches){
+      if(!punches.length) return { status:'out', last:null, durationMs:0 };
+      punches.sort((a,b)=>a.timestamp-b.timestamp);
+      const last = punches[punches.length-1];
+      if(last.type==='in') return { status:'in', last, durationMs: Date.now()-last.timestamp };
+      return { status:'out', last, durationMs:0 };
     }
 
-    function formatDateTime(ts) {
-      const d = new Date(ts);
-      return d.toLocaleString([], {
-        year: 'numeric',
-        month: 'short',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    }
-
-    function computeStatusForEmployee(punches) {
-      if (!punches.length) return { status: 'out', last: null, durationMs: 0 };
-      punches.sort((a, b) => a.timestamp - b.timestamp);
-      const last = punches[punches.length - 1];
-      if (last.type === 'in') {
-        const durationMs = Date.now() - last.timestamp;
-        return { status: 'in', last, durationMs };
-      } else {
-        return { status: 'out', last, durationMs: 0 };
-      }
-    }
-
-    function renderEmployeesList() {
+    function renderEmployeesList(){
       const listEl = document.getElementById('employee-list');
       listEl.innerHTML = '';
-      employeesCache.forEach(emp => {
+      employeesCache.forEach(emp=>{
         const li = document.createElement('li');
-        li.className = 'employee-item' + (emp.id === selectedEmployeeId ? ' active' : '');
+        li.className = 'employee-item' + (emp.id===selectedEmployeeId ? ' active' : '');
         li.dataset.id = emp.id;
+        const left = document.createElement('div'); left.className='emp-meta';
+        const name = document.createElement('div'); name.className='emp-name'; name.textContent=emp.name;
+        const role = document.createElement('div'); role.className='emp-role'; role.textContent = emp.role+' · '+emp.location;
+        left.appendChild(name); left.appendChild(role);
+        const right = document.createElement('div'); right.className='status-pill status-out'; right.textContent='…';
+        li.appendChild(left); li.appendChild(right); listEl.appendChild(li);
+        li.addEventListener('click', ()=>{ selectedEmployeeId=emp.id; renderEmployeesList(); loadAndRenderEmployee(emp.id); });
 
-        const left = document.createElement('div');
-        left.className = 'emp-meta';
-        const name = document.createElement('div');
-        name.className = 'emp-name';
-        name.textContent = emp.name;
-        const role = document.createElement('div');
-        role.className = 'emp-role';
-        role.textContent = emp.role + ' · ' + emp.location;
-        left.appendChild(name);
-        left.appendChild(role);
-
-        const right = document.createElement('div');
-        right.className = 'status-pill status-out';
-        right.textContent = '…';
-
-        li.appendChild(left);
-        li.appendChild(right);
-        listEl.appendChild(li);
-
-        li.addEventListener('click', () => {
-          selectedEmployeeId = emp.id;
-          renderEmployeesList();
-          loadAndRenderEmployee(emp.id);
-        });
-
-        // async status fetch — update current DOM node by querying when resolved
-        getAll(PUNCH_STORE, 'by_employee', IDBKeyRange.only(emp.id))
-          .then(punches => {
-            const { status } = computeStatusForEmployee(punches);
-            const currentPill = document.querySelector(`.employee-item[data-id="${emp.id}"] .status-pill`);
-            if (currentPill) {
-              currentPill.className = 'status-pill ' + (status === 'in' ? 'status-in' : 'status-out');
-              currentPill.textContent = status === 'in' ? 'Clocked in' : 'Clocked out';
-            }
-          })
-          .catch(err => {
-            console.error('Error fetching punches for', emp.id, err);
-            const currentPill = document.querySelector(`.employee-item[data-id="${emp.id}"] .status-pill`);
-            if (currentPill) {
-              currentPill.className = 'status-pill status-out';
-              currentPill.textContent = 'Clocked out';
-            }
-          });
+        // async fetch — update current pill by querying node when resolved
+        getAll(PUNCH_STORE,'by_employee',IDBKeyRange.only(emp.id)).then(punches=>{
+          const { status } = computeStatusForEmployee(punches);
+          const currentPill = document.querySelector(`.employee-item[data-id="${emp.id}"] .status-pill`);
+          if(currentPill){
+            currentPill.className = 'status-pill ' + (status==='in' ? 'status-in' : 'status-out');
+            currentPill.textContent = status==='in' ? 'Clocked in' : 'Clocked out';
+          }
+        }).catch(()=>{ /* ignore */ });
       });
     }
 
-    function renderCurrentState(emp, statusInfo) {
-      const body = document.getElementById('current-body');
-      const sub = document.getElementById('current-sub');
-      if (!emp) {
-        body.innerHTML = '<div class="empty-state">No employee selected.</div>';
-        sub.textContent = 'Select an employee to view status';
-        return;
-      }
-
-      const { status, last, durationMs } = statusInfo;
-      const isIn = status === 'in';
-
+    function renderCurrentState(emp,statusInfo){
+      const body = document.getElementById('current-body'), sub = document.getElementById('current-sub');
+      if(!emp){ body.innerHTML='<div class="empty-state">No employee selected.</div>'; sub.textContent='Select an employee to view status'; return; }
+      const { status, last, durationMs } = statusInfo; const isIn = status==='in';
       sub.textContent = isIn ? 'Active shift in progress' : 'Not currently clocked in';
-
-      const durationStr = isIn
-        ? msToHhMm(durationMs)
-        : last
-          ? 'Last shift ended at ' + formatTime(last.timestamp)
-          : 'No prior punches';
-
-      const lastLabel = last
-        ? (last.type === 'in' ? 'Last clock-in' : 'Last clock-out') + ' · ' + formatDateTime(last.timestamp)
-        : 'No punches yet';
-
+      const durationStr = isIn ? msToHhMm(durationMs) : (last ? 'Last shift ended at '+ new Date(last.timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : 'No prior punches');
+      const lastLabel = last ? (last.type==='in' ? 'Last clock-in' : 'Last clock-out') + ' · ' + formatDateTime(last.timestamp) : 'No punches yet';
       body.innerHTML = '';
-
-      const nameEl = document.createElement('div');
-      nameEl.className = 'current-emp-name';
-      nameEl.textContent = emp.name;
-
-      const roleEl = document.createElement('div');
-      roleEl.className = 'current-emp-role';
-      roleEl.textContent = emp.role + ' · ' + emp.location;
-
-      const row = document.createElement('div');
-      row.className = 'current-row';
-
-      const meta = document.createElement('div');
-      meta.className = 'current-meta';
+      const nameEl = document.createElement('div'); nameEl.className='current-emp-name'; nameEl.textContent=emp.name;
+      const roleEl = document.createElement('div'); roleEl.className='current-emp-role'; roleEl.textContent = emp.role+' · '+emp.location;
+      const row = document.createElement('div'); row.className='current-row';
+      const meta = document.createElement('div'); meta.className='current-meta';
 
       const line1 = document.createElement('div');
-      const label1 = document.createElement('span');
-      label1.className = 'label';
-      label1.textContent = 'Status';
-      const value1 = document.createElement('div');
-      value1.style.display = 'flex';
-      value1.style.alignItems = 'center';
-      value1.style.gap = '6px';
-      const dot = document.createElement('span');
-      dot.className = 'dot ' + (isIn ? '' : 'gray');
-      const text = document.createElement('span');
-      text.textContent = isIn ? 'Clocked in' : 'Clocked out';
-      value1.appendChild(dot);
-      value1.appendChild(text);
-      line1.appendChild(label1);
-      line1.appendChild(value1);
+      const label1 = document.createElement('span'); label1.className='label'; label1.textContent='Status';
+      const value1 = document.createElement('div'); value1.style.display='flex'; value1.style.alignItems='center'; value1.style.gap='6px';
+      const dot = document.createElement('span'); dot.className = 'dot ' + (isIn ? '' : 'gray');
+      const text = document.createElement('span'); text.textContent = isIn ? 'Clocked in' : 'Clocked out';
+      value1.appendChild(dot); value1.appendChild(text); line1.appendChild(label1); line1.appendChild(value1);
 
-      const line2 = document.createElement('div');
-      const label2 = document.createElement('span');
-      label2.className = 'label';
-      label2.textContent = isIn ? 'Elapsed this shift' : 'Summary';
-      const value2 = document.createElement('div');
-      value2.textContent = durationStr;
-      line2.appendChild(label2);
-      line2.appendChild(value2);
+      const line2 = document.createElement('div'); const label2=document.createElement('span'); label2.className='label'; label2.textContent = isIn ? 'Elapsed this shift' : 'Summary';
+      const value2 = document.createElement('div'); value2.textContent = durationStr; line2.appendChild(label2); line2.appendChild(value2);
 
-      const line3 = document.createElement('div');
-      const label3 = document.createElement('span');
-      label3.className = 'label';
-      label3.textContent = 'Last punch';
-      const value3 = document.createElement('div');
-      value3.textContent = lastLabel;
-      line3.appendChild(label3);
-      line3.appendChild(value3);
+      const line3 = document.createElement('div'); const label3=document.createElement('span'); label3.className='label'; label3.textContent='Last punch';
+      const value3=document.createElement('div'); value3.textContent = lastLabel; line3.appendChild(label3); line3.appendChild(value3);
 
-      meta.appendChild(line1);
-      meta.appendChild(line2);
-      meta.appendChild(line3);
+      meta.appendChild(line1); meta.appendChild(line2); meta.appendChild(line3);
 
-      const btnRow = document.createElement('div');
-      btnRow.className = 'btn-row';
+      const btnRow = document.createElement('div'); btnRow.className='btn-row';
+      const btnIn = document.createElement('button'); btnIn.className='primary'; btnIn.innerHTML = '<span class="dot"></span><span>Clock in</span>'; btnIn.disabled=isIn;
+      const btnOut = document.createElement('button'); btnOut.className='danger'; btnOut.innerHTML = '<span class="dot red"></span><span>Clock out</span>'; btnOut.disabled=!isIn;
+      btnIn.addEventListener('click', ()=>handlePunch(emp.id,'in')); btnOut.addEventListener('click', ()=>handlePunch(emp.id,'out'));
+      btnRow.appendChild(btnIn); btnRow.appendChild(btnOut);
 
-      const btnIn = document.createElement('button');
-      btnIn.className = 'primary';
-      btnIn.innerHTML = '<span class="dot"></span><span>Clock in</span>';
-      btnIn.disabled = isIn;
-
-      const btnOut = document.createElement('button');
-      btnOut.className = 'danger';
-      btnOut.innerHTML = '<span class="dot red"></span><span>Clock out</span>';
-      btnOut.disabled = !isIn;
-
-      btnIn.addEventListener('click', () => handlePunch(emp.id, 'in'));
-      btnOut.addEventListener('click', () => handlePunch(emp.id, 'out'));
-
-      btnRow.appendChild(btnIn);
-      btnRow.appendChild(btnOut);
-
-      row.appendChild(meta);
-      row.appendChild(btnRow);
-
-      body.appendChild(nameEl);
-      body.appendChild(roleEl);
-      body.appendChild(row);
+      row.appendChild(meta); row.appendChild(btnRow);
+      body.appendChild(nameEl); body.appendChild(roleEl); body.appendChild(row);
     }
 
-    function msToHhMm(ms) {
-      const totalMinutes = Math.floor(ms / 60000);
-      const h = Math.floor(totalMinutes / 60);
-      const m = totalMinutes % 60;
-      if (h <= 0 && m <= 0) return '0m';
-      if (h <= 0) return m + 'm';
-      return h + 'h ' + (m > 0 ? m + 'm' : '');
+    function msToHhMm(ms){
+      const totalMinutes = Math.floor(ms/60000), h = Math.floor(totalMinutes/60), m = totalMinutes%60;
+      if(h<=0 && m<=0) return '0m'; if(h<=0) return m+'m'; return h+'h '+(m>0?m+'m':'');
     }
 
-    function renderHistory(emp, punches) {
-      const body = document.getElementById('history-body');
-      const sub = document.getElementById('history-sub');
-      if (!emp) {
-        body.innerHTML = '<div class="empty-state">No employee selected.</div>';
-        sub.textContent = 'Per-employee timeline · persisted in IndexedDB';
-        return;
-      }
-      if (!punches.length) {
-        body.innerHTML = '<div class="empty-state">No punches recorded yet for this employee.</div>';
-        sub.textContent = 'No punches yet · first clock-in will appear here';
-        return;
-      }
-
-      punches.sort((a, b) => b.timestamp - a.timestamp);
+    function renderHistory(emp,punches){
+      const body = document.getElementById('history-body'), sub = document.getElementById('history-sub');
+      if(!emp){ body.innerHTML='<div class="empty-state">No employee selected.</div>'; sub.textContent='Per-employee timeline · persisted in IndexedDB'; return; }
+      if(!punches.length){ body.innerHTML='<div class="empty-state">No punches recorded yet for this employee.</div>'; sub.textContent='No punches yet · first clock-in will appear here'; return; }
+      punches.sort((a,b)=>b.timestamp-a.timestamp);
       sub.textContent = punches.length + ' punches · newest first';
-
-      const table = document.createElement('table');
-      table.className = 'history-table';
-      const thead = document.createElement('thead');
-      thead.innerHTML = `
-        <tr>
-          <th>When</th>
-          <th>Type</th>
-          <th>Source</th>
-          <th>ID</th>
-        </tr>`;
-      table.appendChild(thead);
-
+      const table = document.createElement('table'); table.className='history-table';
+      const thead = document.createElement('thead'); thead.innerHTML = '<tr><th>When</th><th>Type</th><th>Source</th><th>ID</th></tr>'; table.appendChild(thead);
       const tbody = document.createElement('tbody');
-      punches.forEach(p => {
-        const tr = document.createElement('tr');
-        const tdWhen = document.createElement('td');
-        tdWhen.textContent = formatDateTime(p.timestamp);
-        const tdType = document.createElement('td');
-        const tag = document.createElement('span');
-        tag.className = 'tag';
-        const dot = document.createElement('span');
-        dot.className = 'dot ' + (p.type === 'in' ? '' : 'red');
-        const label = document.createElement('span');
-        label.textContent = p.type === 'in' ? 'Clock in' : 'Clock out';
-        tag.appendChild(dot);
-        tag.appendChild(label);
-        tdType.appendChild(tag);
-
-        const tdSource = document.createElement('td');
-        tdSource.textContent = p.source || 'manual';
-
-        const tdId = document.createElement('td');
-        tdId.className = 'mono';
-        tdId.textContent = p.id;
-
-        tr.appendChild(tdWhen);
-        tr.appendChild(tdType);
-        tr.appendChild(tdSource);
-        tr.appendChild(tdId);
-        tbody.appendChild(tr);
+      punches.forEach(p=>{
+        const tr=document.createElement('tr');
+        const tdWhen=document.createElement('td'); tdWhen.textContent = formatDateTime(p.timestamp);
+        const tdType=document.createElement('td'); const tag=document.createElement('span'); tag.className='tag';
+        const dot=document.createElement('span'); dot.className='dot ' + (p.type==='in' ? '' : 'red'); const label=document.createElement('span'); label.textContent = p.type==='in' ? 'Clock in' : 'Clock out';
+        tag.appendChild(dot); tag.appendChild(label); tdType.appendChild(tag);
+        const tdSource=document.createElement('td'); tdSource.textContent = p.source||'manual';
+        const tdId=document.createElement('td'); tdId.className='mono'; tdId.textContent = p.id;
+        tr.appendChild(tdWhen); tr.appendChild(tdType); tr.appendChild(tdSource); tr.appendChild(tdId); tbody.appendChild(tr);
       });
-      table.appendChild(tbody);
-
-      body.innerHTML = '';
-      body.appendChild(table);
+      table.appendChild(tbody); body.innerHTML=''; body.appendChild(table);
     }
 
-    async function loadAndRenderEmployee(empId) {
-      const emp = employeesCache.find(e => e.id === empId);
-      if (!emp) return;
-      const punches = await getAll(PUNCH_STORE, 'by_employee', IDBKeyRange.only(empId));
+    async function loadAndRenderEmployee(empId){
+      const emp = employeesCache.find(e=>e.id===empId); if(!emp) return;
+      const punches = await getAll(PUNCH_STORE,'by_employee',IDBKeyRange.only(empId));
       const statusInfo = computeStatusForEmployee(punches);
-      renderCurrentState(emp, statusInfo);
-      renderHistory(emp, punches);
+      renderCurrentState(emp,statusInfo); renderHistory(emp,punches);
     }
 
-    async function handlePunch(empId, type) {
-      try {
-        const punches = await getAll(PUNCH_STORE, 'by_employee', IDBKeyRange.only(empId));
+    async function handlePunch(empId,type){
+      try{
+        const punches = await getAll(PUNCH_STORE,'by_employee',IDBKeyRange.only(empId));
         const statusInfo = computeStatusForEmployee(punches);
-        if (type === 'in' && statusInfo.status === 'in') return;
-        if (type === 'out' && statusInfo.status === 'out') return;
-
-        const id = 'P-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-        const punch = { id, employeeId: empId, type, timestamp: Date.now(), source: 'manual' };
-        await put(PUNCH_STORE, punch);
-
-        // immediate pill update (safe lookup)
+        if(type==='in' && statusInfo.status==='in') return;
+        if(type==='out' && statusInfo.status==='out') return;
+        const id = 'P-'+Date.now()+'-'+Math.floor(Math.random()*1000);
+        const punch = { id, employeeId:empId, type, timestamp:Date.now(), source:'manual' };
+        await put(PUNCH_STORE,punch);
         const currentPill = document.querySelector(`.employee-item[data-id="${empId}"] .status-pill`);
-        if (currentPill) {
-          currentPill.className = 'status-pill ' + (type === 'in' ? 'status-in' : 'status-out');
-          currentPill.textContent = type === 'in' ? 'Clocked in' : 'Clocked out';
-        }
-
-        // re-render list and detail
-        renderEmployeesList();
-        await loadAndRenderEmployee(empId);
-      } catch (err) {
-        console.error('handlePunch error', err);
-      }
+        if(currentPill){ currentPill.className='status-pill '+(type==='in'?'status-in':'status-out'); currentPill.textContent = type==='in' ? 'Clocked in' : 'Clocked out'; }
+        renderEmployeesList(); await loadAndRenderEmployee(empId);
+      }catch(err){ console.error('handlePunch error',err); }
     }
 
-    // --- Report generation --------------------------------------------------
-    function csvEscape(val) {
-      if (val == null) return '';
-      const s = String(val);
-      return (s.includes('"') || s.includes(',') || s.includes('\n')) ? `"${s.replace(/"/g, '""')}"` : s;
+    // CSV helpers
+    function csvEscape(val){ if(val==null) return ''; const s = String(val); return (s.includes('"')||s.includes(',')||s.includes('\n'))?`"${s.replace(/"/g,'""')}"`:s; }
+
+    // Build structured JSON report object
+    async function buildReportStruct(){
+      // Ensure caches are fresh
+      const punches = await getAll(PUNCH_STORE);
+      employeesCache = await getAll(EMP_STORE);
+      const employees = {};
+      employeesCache.forEach(e => { employees[e.id] = { id:e.id, name:e.name, role:e.role, location:e.location }; });
+      // sort punches ascending
+      punches.sort((a,b)=>a.timestamp-b.timestamp);
+      // Optional: compute derived status per employee (last punch)
+      const empLast = {};
+      punches.forEach(p=>{
+        empLast[p.employeeId] = { lastType:p.type, lastTimestamp:p.timestamp };
+      });
+      const report = {
+        generatedAt: new Date().toISOString(),
+        meta: {
+          employeeCount: employeesCache.length,
+          punchCount: punches.length
+        },
+        employees,
+        punches,
+        lastPunchByEmployee: empLast
+      };
+      lastGeneratedReport = report; // cache for modal download
+      return report;
     }
 
-    async function generateReport() {
-      const btn = document.getElementById('generate-report');
-      btn.disabled = true;
-      btn.textContent = 'Generating…';
-      try {
-        // fetch all punches and employees
+    // Download CSV renamed to 'download_report_YYYYMMDD.csv'
+    async function downloadCsvReport(){
+      const btn = document.getElementById('download-report');
+      btn.disabled = true; btn.textContent = 'Preparing…';
+      try{
         const punches = await getAll(PUNCH_STORE);
-        // ensure employeesCache is up to date
         employeesCache = await getAll(EMP_STORE);
-        const empMap = Object.fromEntries(employeesCache.map(e => [e.id, e]));
-
-        // Build CSV rows
+        const empMap = Object.fromEntries(employeesCache.map(e=>[e.id,e]));
         const headers = ['employeeId','employeeName','role','location','timestamp','datetime','type','source','punchId'];
         const rows = [headers.map(csvEscape).join(',')];
-
-        punches.sort((a,b) => a.timestamp - b.timestamp);
-        for (const p of punches) {
-          const emp = empMap[p.employeeId] || { name: '', role: '', location: '' };
+        punches.sort((a,b)=>a.timestamp-b.timestamp);
+        for(const p of punches){
+          const emp = empMap[p.employeeId] || { name:'', role:'', location:'' };
           const dt = new Date(p.timestamp).toISOString();
-          const row = [
-            p.employeeId,
-            emp.name || '',
-            emp.role || '',
-            emp.location || '',
-            p.timestamp,
-            dt,
-            p.type,
-            p.source || 'manual',
-            p.id
-          ].map(csvEscape).join(',');
+          const row = [p.employeeId, emp.name||'', emp.role||'', emp.location||'', p.timestamp, dt, p.type, p.source||'manual', p.id].map(csvEscape).join(',');
           rows.push(row);
         }
-
         const csv = rows.join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         const now = new Date();
-        const name = `timeclock_report_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.csv`;
-        a.href = url;
-        a.download = name;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-      } catch (err) {
-        console.error('generateReport error', err);
-        alert('Failed to generate report — see console for details.');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Generate report';
+        const fname = `download_report_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.csv`;
+        a.href = url; a.download = fname; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      }catch(err){
+        console.error('downloadCsvReport error',err); alert('Failed to prepare CSV — see console.');
+      }finally{
+        const btn2 = document.getElementById('download-report');
+        btn2.disabled = false; btn2.textContent = 'Download report';
       }
     }
 
-    document.getElementById('generate-report').addEventListener('click', generateReport);
+    // Modal controls & JSON view
+    const modalBackdrop = document.getElementById('modal-backdrop');
+    const jsonOutputEl = document.getElementById('json-output');
+    const modalCloseBtn = document.getElementById('modal-close');
+    const modalDownloadBtn = document.getElementById('modal-download');
 
-    // --- Live clock in footer -----------------------------------------------
-    function startNowTicker() {
-      const el = document.getElementById('now-label');
-      const update = () => {
-        const d = new Date();
-        el.textContent = d.toLocaleString();
-      };
-      update();
-      setInterval(update, 1000);
+    function openModal(){
+      modalBackdrop.style.display = 'flex'; modalBackdrop.setAttribute('aria-hidden','false');
+    }
+    function closeModal(){
+      modalBackdrop.style.display = 'none'; modalBackdrop.setAttribute('aria-hidden','true');
     }
 
-    // --- Boot ---------------------------------------------------------------
-    (async function boot() {
+    async function openReportModal(){
+      document.getElementById('view-report').disabled = true;
+      try{
+        const report = await buildReportStruct();
+        jsonOutputEl.textContent = JSON.stringify(report, null, 2);
+        openModal();
+      }catch(err){
+        console.error('openReportModal error',err);
+        alert('Failed to build report — see console.');
+      }finally{
+        document.getElementById('view-report').disabled = false;
+      }
+    }
+
+    // Download the lastGeneratedReport as JSON file
+    function downloadJsonReport(){
+      if(!lastGeneratedReport){
+        alert('No report generated yet — open the report view first.');
+        return;
+      }
+      const blob = new Blob([JSON.stringify(lastGeneratedReport, null, 2)], { type:'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const now = new Date();
+      const fname = `download_report_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.json`;
+      a.href = url; a.download = fname; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    }
+
+    // Live clock
+    function startNowTicker(){ const el = document.getElementById('now-label'); const update = ()=>el.textContent = new Date().toLocaleString(); update(); setInterval(update,1000); }
+
+    // Boot
+    (async function boot(){
       const dbStatusEl = document.getElementById('db-status');
-      try {
+      try{
         dbStatusEl.textContent = 'DB: opening…';
         db = await openDB();
         dbStatusEl.textContent = 'DB: open';
         const seeded = await seedBaselineIfEmpty();
-        if (seeded) {
-          dbStatusEl.textContent = 'DB: seeded baseline';
-        }
-
+        if(seeded) dbStatusEl.textContent = 'DB: seeded baseline';
         employeesCache = await getAll(EMP_STORE);
-        employeesCache.sort((a, b) => a.name.localeCompare(b.name));
+        employeesCache.sort((a,b)=>a.name.localeCompare(b.name));
         renderEmployeesList();
-
-        if (employeesCache.length) {
-          selectedEmployeeId = employeesCache[0].id;
-          renderEmployeesList();
-          loadAndRenderEmployee(selectedEmployeeId);
-        }
-      } catch (err) {
-        console.error(err);
-        dbStatusEl.textContent = 'DB error';
-      }
+        if(employeesCache.length){ selectedEmployeeId = employeesCache[0].id; renderEmployeesList(); loadAndRenderEmployee(selectedEmployeeId); }
+      }catch(err){ console.error(err); dbStatusEl.textContent = 'DB error'; }
       startNowTicker();
     })();
+
+    // Wiring
+    document.getElementById('download-report').addEventListener('click', downloadCsvReport);
+    document.getElementById('view-report').addEventListener('click', openReportModal);
+    modalCloseBtn.addEventListener('click', closeModal);
+    modalBackdrop.addEventListener('click', (e)=>{ if(e.target===modalBackdrop) closeModal(); });
+    modalDownloadBtn.addEventListener('click', downloadJsonReport);
+
+    // Expose for debugging
+    window._tc = { openDB, getAll, put, computeStatusForEmployee };
   </script>
 </body>
 </html>
