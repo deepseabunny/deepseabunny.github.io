@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Barcode</title>
+<style>
+  body {
+    margin: 0;
+    background: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+
+<canvas id="barcodeCanvas"></canvas>
+
+<!-- Libraries -->
+<script src="https://unpkg.com/pdf417-generator/dist/pdf417.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bwip-js/dist/bwip-js-min.js"></script>
+
+<script>
+  const canvas = document.getElementById("barcodeCanvas");
+  const ctx = canvas.getContext("2d");
+
+  function params() {
+    const p = new URLSearchParams(location.search);
+    return {
+      val: p.get("val") || "",
+      type: (p.get("barcode") || "").toLowerCase()
+    };
+  }
+
+  // --- RENDERERS ---
+
+  function renderPDF417(value) {
+    const scale = 2, quiet = 10;
+    const barcode = PDF417.generate(value);
+    const rows = barcode.length, cols = barcode[0].length;
+
+    canvas.width = cols * scale + quiet * 2;
+    canvas.height = rows * scale + quiet * 2;
+
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#000";
+
+    for (let y = 0; y < rows; y++)
+      for (let x = 0; x < cols; x++)
+        if (barcode[y][x])
+          ctx.fillRect(quiet + x * scale, quiet + y * scale, scale, scale);
+  }
+
+  function renderQR(value) {
+    QRCode.toCanvas(canvas, value, { margin: 1 }, err => {});
+  }
+
+  function renderCode128(value) {
+    JsBarcode(canvas, value, { format: "code128", displayValue: false });
+  }
+
+  function renderDataMatrix(value) {
+    // Using bwip-js
+    bwipjs.toCanvas(canvas, {
+      bcid: "datamatrix",
+      text: value,
+      scale: 3,
+      includetext: false
+    });
+  }
+
+  function renderAztec(value) {
+    bwipjs.toCanvas(canvas, {
+      bcid: "azteccode",
+      text: value,
+      scale: 3,
+      includetext: false
+    });
+  }
+
+  // --- MAIN ---
+
+  (function main() {
+    const { val, type } = params();
+    if (!val) return;
+
+    switch (type) {
+      case "pdf417": return renderPDF417(val);
+      case "qr":
+      case "qrcode": return renderQR(val);
+      case "code128": return renderCode128(val);
+      case "datamatrix": return renderDataMatrix(val);
+      case "aztec": return renderAztec(val);
+      default:
+        // fallback: QR
+        return renderQR(val);
+    }
+  })();
+</script>
+
+</body>
+</html>
