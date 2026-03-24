@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Barcode Generator – README & Usage</title>
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+    body {
+      margin: 0;
+      padding: 2rem;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #050509;
+      color: #e9ecf5;
+    }
+    .wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    h1, h2, h3 {
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 0.5rem;
+    }
+    h2 {
+      font-size: 1.3rem;
+      margin-top: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    h3 {
+      font-size: 1.05rem;
+      margin-top: 1.5rem;
+      margin-bottom: 0.25rem;
+    }
+    code {
+      font-family: "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      background: #111320;
+      padding: 0.1rem 0.3rem;
+      border-radius: 3px;
+      font-size: 0.9em;
+    }
+    pre {
+      background: #050814;
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      overflow-x: auto;
+      font-size: 0.9rem;
+    }
+    pre code {
+      background: transparent;
+      padding: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+    th, td {
+      border: 1px solid #22263a;
+      padding: 0.4rem 0.6rem;
+      text-align: left;
+    }
+    th {
+      background: #101426;
+      font-weight: 600;
+    }
+    tr:nth-child(even) td {
+      background: #080b18;
+    }
+    .tag {
+      display: inline-block;
+      padding: 0.1rem 0.4rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: #151a30;
+      color: #9aa4ff;
+      margin-right: 0.4rem;
+    }
+    .callout {
+      border-left: 3px solid #3f82ff;
+      background: #050814;
+      padding: 0.75rem 1rem;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+    a {
+      color: #8fb4ff;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    ul {
+      padding-left: 1.2rem;
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag">README</div>
+  <div class="tag">HOW TO USE</div>
+  <h1>Barcode Generator Endpoint</h1>
+  <p>
+    This document describes how to use the <strong>barcode generator HTML endpoint</strong> that renders
+    a barcode image based on URL parameters. The page outputs <strong>only the barcode image</strong>
+    (no UI, no text), making it ideal for embedding in dashboards, tools, and automations.
+  </p>
+
+  <h2>1. Overview</h2>
+  <p>
+    The generator is a single self-contained HTML file (for example, <code>barcode.html</code>).
+    When requested with query parameters, it draws a barcode onto a <code>&lt;canvas&gt;</code>
+    and shows nothing else.
+  </p>
+
+  <div class="callout">
+    <strong>Conceptually:</strong><br />
+    <code>barcode.html?val=YOUR_DATA&amp;barcode=TYPE</code> → page responds with a rendered barcode image.
+  </div>
+
+  <h2>2. Supported barcode types</h2>
+  <p>The following barcode formats are supported via in-browser libraries:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Barcode Type</th>
+        <th><code>barcode</code> parameter value</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>PDF417</td>
+        <td><code>pdf417</code></td>
+        <td>2D stacked barcode, good for dense data.</td>
+      </tr>
+      <tr>
+        <td>QR Code</td>
+        <td><code>qr</code> or <code>qrcode</code></td>
+        <td>Standard QR code.</td>
+      </tr>
+      <tr>
+        <td>Code128</td>
+        <td><code>code128</code></td>
+        <td>Linear barcode, common in logistics.</td>
+      </tr>
+      <tr>
+        <td>DataMatrix</td>
+        <td><code>datamatrix</code></td>
+        <td>Compact 2D code, often used in manufacturing.</td>
+      </tr>
+      <tr>
+        <td>Aztec</td>
+        <td><code>aztec</code></td>
+        <td>2D code, robust for small print areas.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>3. File contents (generator HTML)</h2>
+  <p>Save the following as <code>barcode.html</code> (or any name you prefer):</p>
+
+  <pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;meta charset="UTF-8"&gt;
+&lt;title&gt;Barcode&lt;/title&gt;
+&lt;style&gt;
+  body {
+    margin: 0;
+    background: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  canvas { display: block; }
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+&lt;canvas id="barcodeCanvas"&gt;&lt;/canvas&gt;
+
+&lt;!-- Libraries --&gt;
+&lt;script src="https://cdn.jsdelivr.net/npm/bwip-js/dist/bwip-js-min.js"&gt;&lt;/script&gt;
+&lt;script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"&gt;&lt;/script&gt;
+
+&lt;script&gt;
+  const canvas = document.getElementById("barcodeCanvas");
+
+  function getParams() {
+    const p = new URLSearchParams(location.search);
+    return {
+      val: p.get("val") || "",
+      type: (p.get("barcode") || "").toLowerCase()
+    };
+  }
+
+  function renderPDF417(value) {
+    bwipjs.toCanvas(canvas, {
+      bcid: "pdf417",
+      text: value,
+      scale: 3,
+      includetext: false
+    });
+  }
+
+  function renderCode128(value) {
+    bwipjs.toCanvas(canvas, {
+      bcid: "code128",
+      text: value,
+      scale: 3,
+      includetext: false
+    });
+  }
+
+  function renderDataMatrix(value) {
+    bwipjs.toCanvas(canvas, {
+      bcid: "datamatrix",
+      text: value,
+      scale: 3,
+      includetext: false
+    });
+  }
+
+  function renderAztec(value) {
+    bwipjs.toCanvas(canvas, {
+      bcid: "azteccode",
+      text: value,
+      scale: 3,
+      includetext: false
+    });
+  }
+
+  function renderQR(value) {
+    QRCode.toCanvas(canvas, value, { margin: 1 });
+  }
+
+  (function main() {
+    const { val, type } = getParams();
+    if (!val) return;
+
+    switch (type) {
+      case "pdf417":   return renderPDF417(val);
+      case "code128":  return renderCode128(val);
+      case "datamatrix": return renderDataMatrix(val);
+      case "aztec":    return renderAztec(val);
+      case "qr":
+      case "qrcode":   return renderQR(val);
+      default:         return renderQR(val); // fallback
+    }
+  })();
+&lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+  <h2>4. Basic usage</h2>
+
+  <h3>4.1 Direct browser usage</h3>
+  <p>
+    Once the file is hosted (or opened via a local server), you can generate barcodes by
+    visiting URLs with the appropriate query parameters:
+  </p>
+
+  <ul>
+    <li>
+      <strong>PDF417</strong><br />
+      <code>barcode.html?val=HELLO123&amp;barcode=pdf417</code>
+    </li>
+    <li>
+      <strong>QR Code</strong><br />
+      <code>barcode.html?val=HELLO123&amp;barcode=qr</code>
+    </li>
+    <li>
+      <strong>Code128</strong><br />
+      <code>barcode.html?val=HELLO123&amp;barcode=code128</code>
+    </li>
+    <li>
+      <strong>DataMatrix</strong><br />
+      <code>barcode.html?val=HELLO123&amp;barcode=datamatrix</code>
+    </li>
+    <li>
+      <strong>Aztec</strong><br />
+      <code>barcode.html?val=HELLO123&amp;barcode=aztec</code>
+    </li>
+  </ul>
+
+  <h3>4.2 Embedding as an image</h3>
+  <p>
+    Because the page renders only a barcode image, you can embed it directly in other pages
+    using an <code>&lt;img&gt;</code> tag:
+  </p>
+
+  <pre><code>&lt;img
+  src="barcode.html?val=ORDER-12345&amp;barcode=code128"
+  alt="Order barcode"
+/&gt;</code></pre>
+
+  <p>
+    Any system that can construct a URL can now “ask” this HTML file to render a barcode on demand.
+  </p>
+
+  <h2>5. Parameters</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Required</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>val</code></td>
+        <td>Yes</td>
+        <td>The data encoded into the barcode (string).</td>
+      </tr>
+      <tr>
+        <td><code>barcode</code></td>
+        <td>Recommended</td>
+        <td>
+          The barcode type. If omitted or unrecognized, the generator falls back to QR code.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>6. Notes & extensions</h2>
+  <ul>
+    <li><strong>Background:</strong> Currently white. You can change the body background or canvas styling for transparency or theming.</li>
+    <li><strong>Scale:</strong> The <code>scale</code> parameter in bwip-js calls controls barcode size; increase for print use.</li>
+    <li><strong>Offline use:</strong> To run fully offline, download the JS libraries and reference them locally instead of via CDN.</li>
+    <li><strong>Error handling:</strong> If <code>val</code> is missing, the page renders nothing.</li>
+  </ul>
+
+  <p style="margin-top:2rem; font-size:0.85rem; color:#9aa0c2;">
+    This README is meant to live alongside <code>barcode.html</code> as a quick operational guide.
+  </p>
+</div>
+</body>
+</html>
