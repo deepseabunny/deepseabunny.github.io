@@ -676,42 +676,30 @@
     }
 
     // Updated handlePunch: write punch, immediately update UI pill, then re-render views
-    async function handlePunch(empId, type) {
-      try {
-        const punches = await getAll(PUNCH_STORE, 'by_employee', IDBKeyRange.only(empId));
-        const statusInfo = computeStatusForEmployee(punches);
-        if (type === 'in' && statusInfo.status === 'in') return;
-        if (type === 'out' && statusInfo.status === 'out') return;
+    window.handlePunch = async function (empId, type) {
+  console.log('handlePunch called', empId, type);
+  try {
+    const punchesBefore = await getAll(PUNCH_STORE, 'by_employee', IDBKeyRange.only(empId));
+    console.log('punches before', empId, punchesBefore);
 
-        const id = 'P-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-        const punch = {
-          id,
-          employeeId: empId,
-          type,
-          timestamp: Date.now(),
-          source: 'manual'
-        };
-        await put(PUNCH_STORE, punch);
+    const statusInfo = computeStatusForEmployee(punchesBefore);
+    console.log('status before', statusInfo);
 
-        // Immediately update the employee-list pill for responsive UI
-        const listEl = document.getElementById('employee-list');
-        const li = listEl.querySelector(`.employee-item[data-id="${empId}"]`);
-        if (li) {
-          const pill = li.querySelector('.status-pill');
-          if (pill) {
-            const newStatus = type === 'in' ? 'status-in' : 'status-out';
-            pill.className = 'status-pill ' + newStatus;
-            pill.textContent = type === 'in' ? 'Clocked in' : 'Clocked out';
-          }
-        }
+    if (type === 'in' && statusInfo.status === 'in') { console.log('already in — abort'); return; }
+    if (type === 'out' && statusInfo.status === 'out') { console.log('already out — abort'); return; }
 
-        // Re-fetch employees' punches for accuracy and re-render UI
-        renderEmployeesList();
-        await loadAndRenderEmployee(empId);
-      } catch (err) {
-        console.error('handlePunch error', err);
-      }
-    }
+    const id = 'P-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    const punch = { id, employeeId: empId, type, timestamp: Date.now(), source: 'manual' };
+    const res = await put(PUNCH_STORE, punch);
+    console.log('put result', res, punch);
+
+    const punchesAfter = await getAll(PUNCH_STORE, 'by_employee', IDBKeyRange.only(empId));
+    console.log('punches after', empId, punchesAfter);
+  } catch (err) {
+    console.error('handlePunch error', err);
+  }
+};
+
 
     // --- Live clock in footer -----------------------------------------------
     function startNowTicker() {
