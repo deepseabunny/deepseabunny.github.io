@@ -1,110 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>Warehouse Pick Path Simulator</title>
-<link rel="icon" href="data:,">
-
-<style>
-body {
-  font-family: system-ui, sans-serif;
-  background: #f4f4f4;
-  margin: 0;
-  padding: 20px;
-}
-
-h1 {
-  margin-top: 0;
-}
-
-.container {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 20px;
-}
-
-.panel {
-  background: white;
-  padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-}
-
-#pick-list div {
-  padding: 6px 4px;
-  border-bottom: 1px solid #ddd;
-  cursor: pointer;
-}
-
-#pick-list div.active {
-  background: #d1fad1;
-  font-weight: bold;
-}
-
-#grid {
-  display: grid;
-  grid-template-columns: repeat(8, 50px);
-  gap: 4px;
-  margin-top: 10px;
-}
-
-.cell {
-  width: 50px;
-  height: 50px;
-  background: #e0e0e0;
-  border-radius: 4px;
-  font-size: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.cell.pick {
-  background: #b7f7b7;
-}
-
-.cell.current {
-  background: #6ee76e;
-  font-weight: bold;
-}
-
-.cell.start {
-  background: #bcd4ff;
-}
-
-.small {
-  position: absolute;
-  bottom: 2px;
-  right: 4px;
-  font-size: 9px;
-  opacity: 0.6;
-}
-</style>
+<title>Warehouse Debug Version</title>
 </head>
 
 <body>
 
-<h1>Warehouse Pick Path Simulator</h1>
+<h1>Warehouse Pick Path – Debug Version</h1>
 
-<div class="container">
+<button id="gen">Generate Route</button>
+<button id="rand">Randomize</button>
 
-  <!-- LEFT PANEL -->
-  <div class="panel">
-    <button id="gen">Generate Route</button>
-    <button id="rand">Randomize</button>
+<h2>Pick List</h2>
+<div id="pick-list"></div>
 
-    <h3>Pick List</h3>
-    <div id="pick-list"></div>
-  </div>
-
-  <!-- RIGHT PANEL -->
-  <div class="panel">
-    <h3>Warehouse Map</h3>
-    <div id="grid"></div>
-  </div>
-
-</div>
+<h2>Grid</h2>
+<div id="grid"></div>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
@@ -168,8 +80,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     route.forEach((item,i)=>{
       const row = document.createElement("div");
-      row.textContent = `${item.code} → A${item.aisle}-B${item.bay}`;
-      if(i===currentStep) row.classList.add("active");
+      row.textContent = `${item.step}. ${item.code} → A${item.aisle}-B${item.bay}`;
+      if(i===currentStep) row.style.fontWeight = "bold";
       row.onclick = () => {
         currentStep = i;
         renderList();
@@ -190,19 +102,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
     for(let y=0;y<GRID_ROWS;y++){
       for(let x=0;x<GRID_COLS;x++){
-        const cell = document.createElement("div");
-        cell.className = "cell";
+        const div = document.createElement("div");
+        div.style.display = "inline-block";
+        div.style.width = "60px";
+        div.style.height = "40px";
+        div.style.border = "1px solid #000";
+        div.style.margin = "2px";
+        div.style.fontSize = "10px";
+        div.style.verticalAlign = "top";
+        div.style.padding = "2px";
 
         const key = `${x},${y}`;
         const pick = pickMap[key];
 
-        if(x===0 && y===0) cell.classList.add("start");
-        if(pick) cell.classList.add("pick");
-        if(pick && pick.step-1 === currentStep) cell.classList.add("current");
+        if(x===0 && y===0) div.style.background = "#cce0ff";
+        if(pick) div.style.background = "#b7f7b7";
+        if(pick && pick.step-1 === currentStep) div.style.background = "#6ee76e";
 
-        cell.innerHTML = `<span class="small">${x+1}-${y+1}</span>`;
-        grid.appendChild(cell);
+        div.textContent = `A${x+1}-B${y+1}`;
+        grid.appendChild(div);
       }
+      grid.appendChild(document.createElement("br"));
     }
   }
 
