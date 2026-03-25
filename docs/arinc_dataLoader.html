@@ -1,482 +1,474 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ARINC Data Loader Simulator</title>
-<style>
-  :root{
-    --bg:#f6f8fa;
-    --panel:#ffffff;
-    --text:#0b1220;
-    --muted:#6b7280;
-    --accent:#0b84ff;
-    --success:#16a34a;
-    --danger:#ef4444;
-    --glass: rgba(255,255,255,0.6);
-    --shadow: 0 6px 18px rgba(11,18,32,0.08);
-  }
-  :root[data-theme="dark"]{
-    --bg:#0b1220;
-    --panel:#0f1724;
-    --text:#e6eef8;
-    --muted:#9aa6bd;
-    --accent:#4aa3ff;
-    --success:#34d399;
-    --danger:#fb7185;
-    --glass: rgba(255,255,255,0.03);
-    --shadow: 0 6px 18px rgba(0,0,0,0.6);
-  }
-  *{box-sizing:border-box}
-  body{
-    margin:0;
-    font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
-    background:linear-gradient(180deg,var(--bg),#e9eef6 120%);
-    color:var(--text);
-    -webkit-font-smoothing:antialiased;
-    -moz-osx-font-smoothing:grayscale;
-    min-height:100vh;
-    padding:28px;
-  }
-  .app{
-    max-width:1100px;
-    margin:0 auto;
-    display:grid;
-    grid-template-columns:1fr 420px;
-    gap:20px;
-  }
-  header{
-    grid-column:1/-1;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    margin-bottom:6px;
-  }
-  h1{font-size:18px;margin:0}
-  .controls{display:flex;gap:8px;align-items:center}
-  .panel{
-    background:var(--panel);
-    border-radius:12px;
-    padding:16px;
-    box-shadow:var(--shadow);
-  }
-  .drop{
-    border:2px dashed rgba(11,18,32,0.06);
-    border-radius:10px;
-    padding:18px;
-    text-align:center;
-    transition:all .18s ease;
-    background:linear-gradient(180deg,transparent, var(--glass));
-  }
-  .drop.dragover{border-color:var(--accent);transform:translateY(-2px)}
-  .muted{color:var(--muted);font-size:13px}
-  .row{display:flex;gap:8px;align-items:center}
-  .btn{
-    background:var(--accent);
-    color:white;
-    border:none;
-    padding:8px 12px;
-    border-radius:8px;
-    cursor:pointer;
-    font-weight:600;
-  }
-  .btn.ghost{background:transparent;color:var(--accent);border:1px solid rgba(11,18,32,0.06)}
-  .small{padding:6px 8px;font-size:13px;border-radius:6px}
-  input[type="file"]{display:none}
-  .meta{font-size:13px;color:var(--muted);margin-top:8px}
-  .qa-list{margin-top:12px;display:grid;gap:8px}
-  .qa-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;background:linear-gradient(180deg,transparent, rgba(11,18,32,0.02))}
-  .pass{color:var(--success);font-weight:700}
-  .fail{color:var(--danger);font-weight:700}
-  select,input[type="text"]{padding:8px;border-radius:8px;border:1px solid rgba(11,18,32,0.06);background:transparent;color:var(--text)}
-  .log{height:260px;overflow:auto;font-family:monospace;font-size:12px;background:linear-gradient(180deg,transparent, rgba(11,18,32,0.02));padding:10px;border-radius:8px}
-  .progress{height:12px;background:rgba(11,18,32,0.06);border-radius:8px;overflow:hidden}
-  .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#6dd3ff);width:0%}
-  footer{grid-column:1/-1;margin-top:12px;text-align:center;color:var(--muted);font-size:13px}
-  .flex-col{display:flex;flex-direction:column}
-  .settings{display:flex;flex-direction:column;gap:8px}
-  .theme-toggle{background:transparent;border:1px solid rgba(11,18,32,0.06);padding:6px 10px;border-radius:8px;cursor:pointer}
-  .badge{font-size:12px;padding:4px 8px;border-radius:999px;background:rgba(11,18,32,0.04)}
-  .small-muted{font-size:12px;color:var(--muted)}
-  @media (max-width:980px){
-    .app{grid-template-columns:1fr; padding:16px}
-  }
-</style>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ARINC Data Loader Simulator with Samples</title>
+    <style>
+        :root {
+            --bg: #f6f8fa;
+            --panel: #fff;
+            --text: #0b1220;
+            --muted: #6b7280;
+            --accent: #0b84ff;
+            --success: #16a34a;
+            --danger: #ef4444;
+            --glass: rgba(255, 255, 255, 0.6);
+            --shadow: 0 6px 18px rgba(11, 18, 32, 0.08);
+        }
+
+        :root[data-theme="dark"] {
+            --bg: #0b1220;
+            --panel: #0f1724;
+            --text: #e6eef8;
+            --muted: #9aa6bd;
+            --accent: #4aa3ff;
+            --success: #34d399;
+            --danger: #fb7185;
+            --glass: rgba(255, 255, 255, 0.03);
+            --shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            font-family: Inter, system-ui, Segoe UI, Roboto, Arial;
+            background: linear-gradient(180deg, var(--bg), #e9eef6 120%);
+            color: var(--text);
+            padding: 28px
+        }
+
+        .app {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            gap: 20px
+        }
+
+        header {
+            grid-column: 1/-1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px
+        }
+
+        h1 {
+            font-size: 18px;
+            margin: 0
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: var(--shadow)
+        }
+
+        .drop {
+            border: 2px dashed rgba(11, 18, 32, 0.06);
+            border-radius: 10px;
+            padding: 18px;
+            text-align: center;
+            background: linear-gradient(180deg, transparent, var(--glass))
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+            align-items: center
+        }
+
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600
+        }
+
+        .btn.ghost {
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid rgba(11, 18, 32, 0.06)
+        }
+
+        .small {
+            padding: 6px 8px;
+            font-size: 13px;
+            border-radius: 6px
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        .meta {
+            font-size: 13px;
+            color: var(--muted);
+            margin-top: 8px
+        }
+
+        .qa-list {
+            margin-top: 12px;
+            display: grid;
+            gap: 8px
+        }
+
+        .qa-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-radius: 8px;
+            background: linear-gradient(180deg, transparent, rgba(11, 18, 32, 0.02))
+        }
+
+        .pass {
+            color: var(--success);
+            font-weight: 700
+        }
+
+        .fail {
+            color: var(--danger);
+            font-weight: 700
+        }
+
+        .log {
+            height: 260px;
+            overflow: auto;
+            font-family: monospace;
+            font-size: 12px;
+            background: linear-gradient(180deg, transparent, rgba(11, 18, 32, 0.02));
+            padding: 10px;
+            border-radius: 8px
+        }
+
+        .progress {
+            height: 12px;
+            background: rgba(11, 18, 32, 0.06);
+            border-radius: 8px;
+            overflow: hidden
+        }
+
+        .progress>i {
+            display: block;
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), #6dd3ff);
+            width: 0%
+        }
+
+        footer {
+            grid-column: 1/-1;
+            margin-top: 12px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        @media (max-width:980px) {
+            .app {
+                grid-template-columns: 1fr;
+                padding: 16px
+            }
+        }
+    </style>
 </head>
+
 <body>
-<div class="app" id="app">
-  <header>
-    <h1>ARINC Data Loader Simulator</h1>
-    <div class="controls">
-      <div class="small-muted">Theme</div>
-      <button id="themeBtn" class="theme-toggle small">Toggle Theme</button>
+    <div class="app" id="app">
+        <header>
+            <h1>ARINC Data Loader Simulator with Samples</h1>
+            <div class="row">
+                <div class="muted">Theme</div>
+                <button id="themeBtn" class="small">Toggle Theme</button>
+            </div>
+        </header>
+
+        <section class="panel" aria-labelledby="file-section">
+            <h2 style="font-size:15px;margin:0 0 10px 0">File Manager</h2>
+
+            <div id="drop" class="drop" tabindex="0">
+                <div style="font-weight:700">Drop file here or click to choose</div>
+                <div class="muted">Supported: binary images, ARINC manifest bundles, .bin, .img</div>
+
+                <div style="margin-top:10px" class="row">
+                    <label class="btn small" for="fileInput">Choose File</label>
+                    <input id="fileInput" type="file" />
+                    <button id="clearBtn" class="btn ghost small">Clear</button>
+                </div>
+
+                <div style="margin-top:10px" class="row">
+                    <input id="downloadUrl" type="text" placeholder="Download URL (http or https)" style="flex:1" />
+                    <button id="downloadBtn" class="btn small">Download</button>
+                </div>
+
+                <div style="margin-top:12px" class="row">
+                    <button id="loadGood" class="btn small">Load Sample Good</button>
+                    <button id="loadBad" class="btn small ghost">Load Sample Bad Manifest</button>
+                    <button id="loadCorrupt" class="btn small ghost">Load Corrupted Sample</button>
+                </div>
+
+                <div id="fileMeta" class="meta">No file loaded</div>
+            </div>
+
+            <div style="margin-top:12px" class="row">
+                <button id="qaBtn" class="btn small">Run QA</button>
+                <button id="parseBtn" class="btn small ghost">Parse Manifest</button>
+                <div style="flex:1"></div>
+                <div class="muted" id="fileStatus">Idle</div>
+            </div>
+
+            <div id="qaReport" class="qa-list" aria-live="polite"></div>
+        </section>
+
+        <aside class="panel">
+            <h2 style="font-size:15px;margin:0 0 10px 0">Upload Simulator</h2>
+
+            <div class="row" style="margin-bottom:8px">
+                <div style="flex:1">
+                    <label class="muted">Select Aircraft</label>
+                    <select id="aircraftSelect" style="width:100%;padding:8px;border-radius:8px;margin-top:6px">
+                        <option value="A320">Airbus A320</option>
+                        <option value="B737">Boeing 737</option>
+                        <option value="B787">Boeing 787</option>
+                        <option value="A350">Airbus A350</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row" style="gap:6px;margin-bottom:8px">
+                <div style="flex:1">
+                    <label class="muted">Transfer Rate KB/s</label>
+                    <input id="rateInput" type="text" value="200"
+                        style="width:100%;padding:8px;border-radius:8px;margin-top:6px" />
+                </div>
+                <div style="width:120px">
+                    <label class="muted">Packet Loss %</label>
+                    <input id="lossInput" type="text" value="0"
+                        style="width:100%;padding:8px;border-radius:8px;margin-top:6px" />
+                </div>
+            </div>
+
+            <div class="row" style="margin-top:8px">
+                <button id="uploadBtn" class="btn small">Simulate Upload</button>
+                <button id="verifyBtn" class="btn small ghost">Post Upload Verify</button>
+            </div>
+
+            <div style="margin-top:12px">
+                <div class="muted">Progress</div>
+                <div class="progress" style="margin-top:6px"><i id="progressBar"></i></div>
+            </div>
+
+            <h3 style="font-size:14px;margin-top:12px">Logs</h3>
+            <div id="log" class="log" aria-live="polite"></div>
+        </aside>
+
+        <footer class="muted">Simulator for testing QA and transfer flows. Not for production use.</footer>
     </div>
-  </header>
 
-  <section class="panel" aria-labelledby="file-section">
-    <h2 style="font-size:15px;margin:0 0 10px 0">File Manager</h2>
+    <script>
+        /* Extended simulator with sample data generation and corruption */
+        const state = { file: null, buffer: null, filename: null, qa: {}, manifest: null };
+        const el = id => document.getElementById(id);
+        const logEl = el('log'), qaReport = el('qaReport'), fileMeta = el('fileMeta'), fileStatus = el('fileStatus'), progressBar = el('progressBar');
 
-    <div id="drop" class="drop" tabindex="0">
-      <div style="font-weight:700">Drop file here or click to choose</div>
-      <div class="muted">Supported: binary images, ARINC manifest bundles, .bin, .img</div>
-      <div style="margin-top:10px" class="row">
-        <label class="btn small" for="fileInput">Choose File</label>
-        <input id="fileInput" type="file" />
-        <button id="clearBtn" class="btn ghost small">Clear</button>
-      </div>
-      <div style="margin-top:10px" class="row">
-        <input id="downloadUrl" type="text" placeholder="Download URL (http or https)" style="flex:1" />
-        <button id="downloadBtn" class="btn small">Download</button>
-      </div>
-      <div id="fileMeta" class="meta">No file loaded</div>
-    </div>
+        function log(...args) { const t = new Date().toISOString().slice(11, 23); logEl.innerText = `${t}  ${args.join(' ')}\n` + logEl.innerText; }
 
-    <div style="margin-top:12px" class="row">
-      <button id="qaBtn" class="btn small">Run QA</button>
-      <button id="parseBtn" class="btn small ghost">Parse Manifest</button>
-      <div style="flex:1"></div>
-      <div class="badge" id="fileStatus">Idle</div>
-    </div>
+        /* Theme */
+        const themeBtn = el('themeBtn');
+        function applyTheme(theme) { document.documentElement.setAttribute('data-theme', theme); localStorage.setItem('theme', theme); }
+        themeBtn.addEventListener('click', () => applyTheme((document.documentElement.getAttribute('data-theme') || 'light') === 'light' ? 'dark' : 'light'));
+        applyTheme(localStorage.getItem('theme') || 'light');
 
-    <div id="qaReport" class="qa-list" aria-live="polite"></div>
-  </section>
+        /* File load handlers */
+        const drop = el('drop'), fileInput = el('fileInput');
+        drop.addEventListener('click', () => fileInput.click());
+        drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
+        drop.addEventListener('dragleave', e => { e.preventDefault(); drop.classList.remove('dragover'); });
+        drop.addEventListener('drop', async e => { e.preventDefault(); drop.classList.remove('dragover'); const f = e.dataTransfer.files[0]; if (f) await loadFile(f); });
+        fileInput.addEventListener('change', async e => { const f = e.target.files[0]; if (f) await loadFile(f); });
+        el('clearBtn').addEventListener('click', clearFile);
 
-  <aside class="panel">
-    <h2 style="font-size:15px;margin:0 0 10px 0">Upload Simulator</h2>
+        async function loadFile(file) {
+            state.file = file; state.filename = file.name; fileStatus.innerText = 'Loaded';
+            fileMeta.innerText = `Name: ${file.name} • Size: ${file.size} bytes • Type: ${file.type || 'binary'}`;
+            const ab = await file.arrayBuffer(); state.buffer = ab; state.qa = {}; state.manifest = null; qaReport.innerHTML = '';
+            log('Loaded file', file.name, file.size, 'bytes');
+        }
 
-    <div class="settings">
-      <label class="small-muted">Select Aircraft</label>
-      <select id="aircraftSelect">
-        <option value="A320">Airbus A320</option>
-        <option value="B737">Boeing 737</option>
-        <option value="B787">Boeing 787</option>
-        <option value="A350">Airbus A350</option>
-      </select>
+        /* Download by URL */
+        el('downloadBtn').addEventListener('click', async () => {
+            const url = el('downloadUrl').value.trim(); if (!url) return alert('Enter a download URL');
+            try { fileStatus.innerText = 'Downloading'; log('Downloading', url); const resp = await fetch(url); if (!resp.ok) throw new Error('HTTP ' + resp.status); const blob = await resp.blob(); const name = (new URL(url)).pathname.split('/').pop() || 'download.bin'; const file = new File([blob], name); await loadFile(file); fileStatus.innerText = 'Downloaded'; } catch (err) { fileStatus.innerText = 'Error'; log('Download failed', err.message); alert('Download failed: ' + err.message); }
+        });
 
-      <label class="small-muted">Transfer Rate KB/s</label>
-      <input id="rateInput" type="text" value="200" />
+        /* Clear */
+        function clearFile() { state.file = null; state.buffer = null; state.filename = null; state.qa = {}; state.manifest = null; fileMeta.innerText = 'No file loaded'; qaReport.innerHTML = ''; fileStatus.innerText = 'Idle'; log('Cleared loaded file'); }
 
-      <label class="small-muted">Packet Loss %</label>
-      <input id="lossInput" type="text" value="0" />
+        /* QA */
+        el('qaBtn').addEventListener('click', async () => { if (!state.buffer) return alert('No file loaded'); fileStatus.innerText = 'QA running'; qaReport.innerHTML = ''; log('Starting QA for', state.filename || 'file'); const sha = await computeSHA256(state.buffer); const crc = computeCRC32(new Uint8Array(state.buffer)); state.qa.sha256 = sha; state.qa.crc32 = crc; addQAItem('SHA-256', sha, true); addQAItem('CRC32', crc.toString(16).padStart(8, '0'), true); const manifest = parseManifest(state.buffer); if (manifest) { state.manifest = manifest; addQAItem('Manifest detected', manifest.title || 'ARINC manifest', true); if (manifest.sha256) { const ok = manifest.sha256.toLowerCase() === sha.toLowerCase(); addQAItem('Manifest SHA match', manifest.sha256, ok); } const aircraft = el('aircraftSelect').value; const compat = checkCompatibility(aircraft, manifest); addQAItem('Aircraft compatibility', compat.ok ? 'Compatible' : 'Incompatible', compat.ok); if (!compat.ok) addQAItem('Compatibility details', compat.reason, false); } else { addQAItem('Manifest detected', 'None', false); } fileStatus.innerText = 'QA complete'; log('QA complete'); });
 
-      <div class="row" style="margin-top:8px">
-        <button id="uploadBtn" class="btn small">Simulate Upload</button>
-        <button id="verifyBtn" class="btn small ghost">Post Upload Verify</button>
-      </div>
+        el('parseBtn').addEventListener('click', () => { if (!state.buffer) return alert('No file loaded'); const manifest = parseManifest(state.buffer); if (manifest) { state.manifest = manifest; alert('Manifest parsed: ' + JSON.stringify(manifest, null, 2)); log('Manifest parsed', manifest.title || ''); } else { alert('No manifest found'); log('No manifest found'); } });
 
-      <div style="margin-top:12px">
-        <div class="small-muted">Progress</div>
-        <div class="progress" style="margin-top:6px"><i id="progressBar"></i></div>
-      </div>
-    </div>
+        function addQAItem(label, value, pass) { const div = document.createElement('div'); div.className = 'qa-item'; const left = document.createElement('div'); left.innerHTML = `<strong>${label}</strong><div class="muted" style="margin-top:4px">${value}</div>`; const right = document.createElement('div'); right.innerHTML = `<div class="${pass ? 'pass' : 'fail'}">${pass ? 'PASS' : 'FAIL'}</div>`; div.appendChild(left); div.appendChild(right); qaReport.appendChild(div); }
 
-    <h3 style="font-size:14px;margin-top:12px">Logs</h3>
-    <div id="log" class="log" aria-live="polite"></div>
-  </aside>
+        /* Crypto and CRC */
+        async function computeSHA256(buffer) { const hash = await crypto.subtle.digest('SHA-256', buffer); return hex(new Uint8Array(hash)); }
+        function hex(bytes) { return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(''); }
+        const CRC32_TABLE = (() => { const t = new Uint32Array(256); for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) { c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); } t[i] = c >>> 0; } return t; })();
+        function computeCRC32(bytes) { let crc = 0xFFFFFFFF; for (let i = 0; i < bytes.length; i++) { crc = (crc >>> 8) ^ CRC32_TABLE[(crc ^ bytes[i]) & 0xFF]; } return (crc ^ 0xFFFFFFFF) >>> 0; }
 
-  <footer class="muted">Simulator for testing QA and transfer flows. Not for production use.</footer>
-</div>
+        /* Simple manifest parser looks for ASCII header and JSON line */
+        function parseManifest(buffer) {
+            try {
+                const bytes = new Uint8Array(buffer);
+                const text = new TextDecoder().decode(bytes.slice(0, 2048));
+                const idx = text.indexOf('ARINC-MANIFEST:');
+                if (idx === -1) return null;
+                const jsonStart = idx + 'ARINC-MANIFEST:'.length;
+                const jsonText = text.slice(jsonStart).split('\n')[0].trim();
+                const manifest = JSON.parse(jsonText);
+                return manifest;
+            } catch (e) { return null; }
+        }
 
-<script>
-/* ARINC Data Loader Simulator
-   - File handling with ArrayBuffer
-   - SHA-256 via Web Crypto
-   - CRC32 implemented in JS
-   - Simple manifest detection: looks for ASCII "ARINC-MANIFEST" header
-   - Simulated upload with configurable rate and packet loss
-*/
+        /* Compatibility table and helpers */
+        const compatibilityTable = {
+            "A320": { allowedParts: ["NAV", "FMS", "APU"], minVersion: "1.0" },
+            "B737": { allowedParts: ["NAV", "FMS"], minVersion: "1.1" },
+            "B787": { allowedParts: ["NAV", "FMS", "CAB"], minVersion: "2.0" },
+            "A350": { allowedParts: ["NAV", "FMS", "CAB", "ENG"], minVersion: "2.1" }
+        };
+        function checkCompatibility(aircraft, manifest) {
+            if (!manifest) return { ok: false, reason: 'No manifest' };
+            const rules = compatibilityTable[aircraft];
+            if (!rules) return { ok: false, reason: 'Unknown aircraft' };
+            const parts = manifest.parts || [];
+            for (const p of parts) {
+                if (!rules.allowedParts.includes(p.type)) return { ok: false, reason: `Part ${p.type} not allowed on ${aircraft}` };
+                if (compareVersion(p.version || '0.0', rules.minVersion) < 0) return { ok: false, reason: `Part ${p.type} version ${p.version} < required ${rules.minVersion}` };
+            }
+            return { ok: true };
+        }
+        function compareVersion(a, b) { const pa = a.split('.').map(n => parseInt(n || 0)); const pb = b.split('.').map(n => parseInt(n || 0)); for (let i = 0; i < Math.max(pa.length, pb.length); i++) { const na = pa[i] || 0, nb = pb[i] || 0; if (na > nb) return 1; if (na < nb) return -1; } return 0; }
 
-const state = {
-  file: null,
-  buffer: null,
-  filename: null,
-  qa: {},
-  manifest: null
-};
+        /* Simulated upload */
+        el('uploadBtn').addEventListener('click', async () => {
+            if (!state.buffer) return alert('No file loaded');
+            const rateKB = Math.max(1, parseInt(el('rateInput').value) || 200);
+            const lossPct = Math.max(0, Math.min(100, parseFloat(el('lossInput').value) || 0));
+            const totalBytes = state.buffer.byteLength;
+            const chunkSize = Math.max(1024, Math.floor(rateKB * 1024 / 4));
+            let sent = 0;
+            fileStatus.innerText = 'Uploading';
+            log('Simulated upload started', 'rateKB=' + rateKB, 'loss=' + lossPct + '%');
+            progressBar.style.width = '0%';
+            while (sent < totalBytes) {
+                await sleep(120);
+                if (Math.random() * 100 < lossPct) { log('Packet lost at', sent); continue; }
+                sent = Math.min(totalBytes, sent + chunkSize);
+                const pct = Math.round((sent / totalBytes) * 100);
+                progressBar.style.width = pct + '%';
+                log('Sent', sent, 'of', totalBytes, '(' + pct + '%)');
+            }
+            fileStatus.innerText = 'Upload complete';
+            log('Upload complete');
+        });
 
-const el = id => document.getElementById(id);
-const logEl = el('log');
-const qaReport = el('qaReport');
-const fileMeta = el('fileMeta');
-const fileStatus = el('fileStatus');
-const progressBar = el('progressBar');
+        /* Post upload verify */
+        el('verifyBtn').addEventListener('click', async () => {
+            if (!state.buffer) return alert('No file loaded');
+            fileStatus.innerText = 'Verifying';
+            log('Post upload verification started');
+            const sha = await computeSHA256(state.buffer);
+            const crc = computeCRC32(new Uint8Array(state.buffer));
+            const shaOk = state.qa.sha256 ? sha === state.qa.sha256 : true;
+            const crcOk = state.qa.crc32 ? crc === state.qa.crc32 : true;
+            addQAItem('Target SHA-256', sha, shaOk);
+            addQAItem('Target CRC32', crc.toString(16).padStart(8, '0'), crcOk);
+            fileStatus.innerText = 'Verify complete';
+            log('Post upload verification complete', 'shaOk=' + shaOk, 'crcOk=' + crcOk);
+        });
 
-function log(...args){
-  const t = new Date().toISOString().slice(11,23);
-  logEl.innerText = `${t}  ${args.join(' ')}\n` + logEl.innerText;
-}
+        /* Sleep util */
+        function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-/* Theme persistence */
-const themeBtn = el('themeBtn');
-function applyTheme(theme){
-  document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('theme', theme);
-}
-themeBtn.addEventListener('click', ()=>{
-  const cur = document.documentElement.getAttribute('data-theme') || 'light';
-  applyTheme(cur === 'light' ? 'dark' : 'light');
-});
-applyTheme(localStorage.getItem('theme') || 'light');
+        /* Sample data generation */
+        /* Creates a binary payload with an ASCII manifest header line at the start:
+           ARINC-MANIFEST:{"title":"...","sha256":"...","parts":[...]}
+           followed by payload bytes. For the "good" sample the manifest sha256 matches payload.
+        */
+        async function makeSampleBundle({ title = 'Sample Bundle', parts = [{ type: 'NAV', version: '1.0' }], payloadSize = 8192, corrupt = false, badManifest = false }) {
+            // create random payload
+            const payload = new Uint8Array(payloadSize);
+            for (let i = 0; i < payloadSize; i++) payload[i] = Math.floor(Math.random() * 256);
+            // compute sha for payload
+            const sha = hex(new Uint8Array(await crypto.subtle.digest('SHA-256', payload)));
+            // manifest object
+            const manifest = {
+                title,
+                parts,
+                sha256: badManifest ? sha.split('').reverse().join('') : sha
+            };
+            // build header line
+            const header = `ARINC-MANIFEST:${JSON.stringify(manifest)}\n`;
+            const headerBytes = new TextEncoder().encode(header);
+            // assemble buffer: header + payload
+            const total = new Uint8Array(headerBytes.length + payload.length);
+            total.set(headerBytes, 0);
+            total.set(payload, headerBytes.length);
+            // optionally corrupt some bytes
+            if (corrupt) {
+                for (let k = 0; k < Math.max(1, Math.floor(payloadSize * 0.01)); k++) {
+                    const idx = headerBytes.length + Math.floor(Math.random() * payload.length);
+                    total[idx] = total[idx] ^ (1 << (Math.floor(Math.random() * 8)));
+                }
+            }
+            // create File
+            const file = new File([total.buffer], `${title.replace(/\s+/g, '_')}.bin`, { type: 'application/octet-stream' });
+            return file;
+        }
 
-/* Drag and drop and file input */
-const drop = el('drop');
-const fileInput = el('fileInput');
-drop.addEventListener('click', ()=> fileInput.click());
-drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
-drop.addEventListener('dragleave', e => { e.preventDefault(); drop.classList.remove('dragover'); });
-drop.addEventListener('drop', async e => {
-  e.preventDefault(); drop.classList.remove('dragover');
-  const f = e.dataTransfer.files[0];
-  if(f) await loadFile(f);
-});
-fileInput.addEventListener('change', async e => {
-  const f = e.target.files[0];
-  if(f) await loadFile(f);
-});
-el('clearBtn').addEventListener('click', clearFile);
+        /* Buttons to load samples */
+        el('loadGood').addEventListener('click', async () => {
+            fileStatus.innerText = 'Generating sample';
+            log('Generating sample good bundle');
+            const file = await makeSampleBundle({ title: 'GoodBundle', parts: [{ type: 'NAV', version: '1.0' }, { type: 'FMS', version: '1.2' }], payloadSize: 16384 });
+            await loadFile(file);
+            fileStatus.innerText = 'Sample loaded';
+            log('Sample good loaded');
+        });
+        el('loadBad').addEventListener('click', async () => {
+            fileStatus.innerText = 'Generating sample';
+            log('Generating sample with bad manifest');
+            const file = await makeSampleBundle({ title: 'BadManifestBundle', parts: [{ type: 'ENG', version: '0.9' }], payloadSize: 8192, badManifest: true });
+            await loadFile(file);
+            fileStatus.innerText = 'Sample loaded';
+            log('Sample bad manifest loaded');
+        });
+        el('loadCorrupt').addEventListener('click', async () => {
+            fileStatus.innerText = 'Generating sample';
+            log('Generating corrupted sample');
+            const file = await makeSampleBundle({ title: 'CorruptBundle', parts: [{ type: 'NAV', version: '1.0' }], payloadSize: 16384, corrupt: true });
+            await loadFile(file);
+            fileStatus.innerText = 'Sample loaded';
+            log('Sample corrupted loaded');
+        });
 
-async function loadFile(file){
-  state.file = file;
-  state.filename = file.name;
-  fileStatus.innerText = 'Loaded';
-  fileMeta.innerText = `Name: ${file.name} • Size: ${file.size} bytes • Type: ${file.type || 'binary'}`;
-  const ab = await file.arrayBuffer();
-  state.buffer = ab;
-  state.qa = {};
-  qaReport.innerHTML = '';
-  log('Loaded file', file.name, file.size, 'bytes');
-}
+        /* Expose helpers for debugging */
+        window._sim = { state, computeSHA256, computeCRC32, parseManifest, compatibilityTable, makeSampleBundle };
 
-/* Download by URL */
-el('downloadBtn').addEventListener('click', async ()=>{
-  const url = el('downloadUrl').value.trim();
-  if(!url) return alert('Enter a download URL');
-  try{
-    fileStatus.innerText = 'Downloading';
-    log('Downloading', url);
-    const resp = await fetch(url);
-    if(!resp.ok) throw new Error('HTTP ' + resp.status);
-    const blob = await resp.blob();
-    const name = (new URL(url)).pathname.split('/').pop() || 'download.bin';
-    const file = new File([blob], name);
-    await loadFile(file);
-    fileStatus.innerText = 'Downloaded';
-  }catch(err){
-    fileStatus.innerText = 'Error';
-    log('Download failed', err.message);
-    alert('Download failed: ' + err.message);
-  }
-});
-
-/* Clear file */
-function clearFile(){
-  state.file = null; state.buffer = null; state.filename = null; state.qa = {}; state.manifest = null;
-  fileMeta.innerText = 'No file loaded';
-  qaReport.innerHTML = '';
-  fileStatus.innerText = 'Idle';
-  log('Cleared loaded file');
-}
-
-/* QA: SHA-256 and CRC32 */
-el('qaBtn').addEventListener('click', async ()=>{
-  if(!state.buffer) return alert('No file loaded');
-  fileStatus.innerText = 'QA running';
-  qaReport.innerHTML = '';
-  log('Starting QA for', state.filename || 'file');
-  const sha = await computeSHA256(state.buffer);
-  const crc = computeCRC32(new Uint8Array(state.buffer));
-  state.qa.sha256 = sha;
-  state.qa.crc32 = crc;
-  addQAItem('SHA-256', sha, true);
-  addQAItem('CRC32', crc.toString(16).padStart(8,'0'), true);
-  // Try to parse manifest
-  const manifest = parseManifest(state.buffer);
-  if(manifest){
-    state.manifest = manifest;
-    addQAItem('Manifest detected', manifest.title || 'ARINC manifest', true);
-    // Validate manifest signature if present
-    if(manifest.sha256){
-      const ok = manifest.sha256.toLowerCase() === sha.toLowerCase();
-      addQAItem('Manifest SHA match', manifest.sha256, ok);
-    }
-    // Validate aircraft compatibility
-    const aircraft = el('aircraftSelect').value;
-    const compat = checkCompatibility(aircraft, manifest);
-    addQAItem('Aircraft compatibility', compat.ok ? 'Compatible' : 'Incompatible', compat.ok);
-    if(!compat.ok) addQAItem('Compatibility details', compat.reason, false);
-  } else {
-    addQAItem('Manifest detected', 'None', false);
-  }
-  fileStatus.innerText = 'QA complete';
-  log('QA complete');
-});
-
-/* Parse manifest button explicit */
-el('parseBtn').addEventListener('click', ()=>{
-  if(!state.buffer) return alert('No file loaded');
-  const manifest = parseManifest(state.buffer);
-  if(manifest){
-    state.manifest = manifest;
-    alert('Manifest parsed: ' + JSON.stringify(manifest, null, 2));
-    log('Manifest parsed', manifest.title || '');
-  } else {
-    alert('No manifest found');
-    log('No manifest found');
-  }
-});
-
-/* Add QA item to UI */
-function addQAItem(label, value, pass){
-  const div = document.createElement('div');
-  div.className = 'qa-item';
-  const left = document.createElement('div');
-  left.innerHTML = `<strong>${label}</strong><div class="muted" style="margin-top:4px">${value}</div>`;
-  const right = document.createElement('div');
-  right.innerHTML = `<div class="${pass ? 'pass' : 'fail'}">${pass ? 'PASS' : 'FAIL'}</div>`;
-  div.appendChild(left); div.appendChild(right);
-  qaReport.appendChild(div);
-}
-
-/* Compute SHA-256 using Web Crypto */
-async function computeSHA256(buffer){
-  const hash = await crypto.subtle.digest('SHA-256', buffer);
-  return hex(new Uint8Array(hash));
-}
-function hex(bytes){
-  return Array.from(bytes).map(b => b.toString(16).padStart(2,'0')).join('');
-}
-
-/* CRC32 implementation */
-const CRC32_TABLE = (() => {
-  const t = new Uint32Array(256);
-  for(let i=0;i<256;i++){
-    let c = i;
-    for(let k=0;k<8;k++){
-      c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
-    }
-    t[i] = c >>> 0;
-  }
-  return t;
-})();
-function computeCRC32(bytes){
-  let crc = 0xFFFFFFFF;
-  for(let i=0;i<bytes.length;i++){
-    crc = (crc >>> 8) ^ CRC32_TABLE[(crc ^ bytes[i]) & 0xFF];
-  }
-  return (crc ^ 0xFFFFFFFF) >>> 0;
-}
-
-/* Simple ARINC manifest parser
-   - This is a simulator: it looks for ASCII header "ARINC-MANIFEST" and then reads a tiny JSON blob
-   - Real ARINC manifests are binary and normative; this is a test harness
-*/
-function parseManifest(buffer){
-  try{
-    const bytes = new Uint8Array(buffer);
-    const text = new TextDecoder().decode(bytes.slice(0, 1024));
-    const idx = text.indexOf('ARINC-MANIFEST:');
-    if(idx === -1) return null;
-    const jsonStart = idx + 'ARINC-MANIFEST:'.length;
-    const jsonText = text.slice(jsonStart).split('\n')[0].trim();
-    const manifest = JSON.parse(jsonText);
-    return manifest;
-  }catch(e){
-    return null;
-  }
-}
-
-/* Aircraft compatibility rules (simple JSON table) */
-const compatibilityTable = {
-  "A320": { allowedParts: ["NAV", "FMS", "APU"], minVersion: "1.0" },
-  "B737": { allowedParts: ["NAV", "FMS"], minVersion: "1.1" },
-  "B787": { allowedParts: ["NAV", "FMS", "CAB"], minVersion: "2.0" },
-  "A350": { allowedParts: ["NAV", "FMS", "CAB", "ENG"], minVersion: "2.1" }
-};
-function checkCompatibility(aircraft, manifest){
-  if(!manifest) return { ok:false, reason:'No manifest' };
-  const rules = compatibilityTable[aircraft];
-  if(!rules) return { ok:false, reason:'Unknown aircraft' };
-  const parts = manifest.parts || [];
-  for(const p of parts){
-    if(!rules.allowedParts.includes(p.type)){
-      return { ok:false, reason:`Part ${p.type} not allowed on ${aircraft}` };
-    }
-    if(compareVersion(p.version || '0.0', rules.minVersion) < 0){
-      return { ok:false, reason:`Part ${p.type} version ${p.version} < required ${rules.minVersion}` };
-    }
-  }
-  return { ok:true };
-}
-function compareVersion(a,b){
-  const pa = a.split('.').map(n=>parseInt(n||0));
-  const pb = b.split('.').map(n=>parseInt(n||0));
-  for(let i=0;i<Math.max(pa.length,pb.length);i++){
-    const na = pa[i]||0, nb = pb[i]||0;
-    if(na>nb) return 1;
-    if(na<nb) return -1;
-  }
-  return 0;
-}
-
-/* Simulated upload */
-el('uploadBtn').addEventListener('click', async ()=>{
-  if(!state.buffer) return alert('No file loaded');
-  const rateKB = Math.max(1, parseInt(el('rateInput').value) || 200);
-  const lossPct = Math.max(0, Math.min(100, parseFloat(el('lossInput').value) || 0));
-  const totalBytes = state.buffer.byteLength;
-  const chunkSize = Math.max(1024, Math.floor(rateKB * 1024 / 4)); // chunk per tick
-  let sent = 0;
-  fileStatus.innerText = 'Uploading';
-  log('Simulated upload started', 'rateKB=' + rateKB, 'loss=' + lossPct + '%');
-  progressBar.style.width = '0%';
-  while(sent < totalBytes){
-    // simulate network delay
-    await sleep(120);
-    // simulate packet loss
-    if(Math.random() * 100 < lossPct){
-      log('Packet lost at', sent);
-      // simulate retry by not advancing sent
-      continue;
-    }
-    sent = Math.min(totalBytes, sent + chunkSize);
-    const pct = Math.round((sent / totalBytes) * 100);
-    progressBar.style.width = pct + '%';
-    log('Sent', sent, 'of', totalBytes, '(' + pct + '%)');
-  }
-  fileStatus.innerText = 'Upload complete';
-  log('Upload complete');
-});
-
-/* Post upload verify recomputes SHA and CRC to simulate target verification */
-el('verifyBtn').addEventListener('click', async ()=>{
-  if(!state.buffer) return alert('No file loaded');
-  fileStatus.innerText = 'Verifying';
-  log('Post upload verification started');
-  // In a real system the target would compute; here we recompute and compare to QA
-  const sha = await computeSHA256(state.buffer);
-  const crc = computeCRC32(new Uint8Array(state.buffer));
-  const shaOk = state.qa.sha256 ? sha === state.qa.sha256 : true;
-  const crcOk = state.qa.crc32 ? crc === state.qa.crc32 : true;
-  addQAItem('Target SHA-256', sha, shaOk);
-  addQAItem('Target CRC32', crc.toString(16).padStart(8,'0'), crcOk);
-  fileStatus.innerText = 'Verify complete';
-  log('Post upload verification complete', 'shaOk=' + shaOk, 'crcOk=' + crcOk);
-});
-
-/* Utility sleep */
-function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
-
-/* Initialize small state */
-log('Simulator ready');
-
-/* Expose some helpers for debugging */
-window._sim = {
-  state,
-  computeSHA256,
-  computeCRC32,
-  parseManifest,
-  compatibilityTable
-};
-</script>
+        log('Simulator with samples ready');
+    </script>
 </body>
+
 </html>
