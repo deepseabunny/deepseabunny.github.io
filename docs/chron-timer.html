@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Linux‑Style Cron Simulator</title>
+
+  <!-- Bootswatch Cosmo -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.2/dist/cosmo/bootstrap.min.css" />
+
+  <style>
+    body {
+      padding: 2rem;
+    }
+
+    #log {
+      height: 300px;
+      overflow-y: auto;
+      background: #f8f9fa;
+      border: 1px solid #ddd;
+      padding: 1rem;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 0.9rem;
+    }
+
+    .job-table td {
+      font-family: monospace;
+    }
+
+    .status-running {
+      color: #28a745;
+      font-weight: bold;
+    }
+
+    .status-stopped {
+      color: #dc3545;
+      font-weight: bold;
+    }
+
+    .status-idle {
+      color: #6c757d;
+    }
+
+    .status-due {
+      color: #0d6efd;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1 class="mb-4">Linux‑Style Cron Simulator</h1>
+
+    <!-- Controls -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <button id="startBtn" class="btn btn-success">Start Cron Daemon</button>
+        <button id="stopBtn" class="btn btn-danger" disabled>Stop</button>
+
+        <p class="mt-3">
+          Status:
+          <span id="status" class="status-stopped">Stopped</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Crontab Editor -->
+    <div class="card mb-4">
+      <div class="card-header">Crontab</div>
+      <div class="card-body">
+        <textarea id="crontab" class="form-control" rows="6">
+* * * * * echo "Job A ran"
+*/2 * * * * echo "Job B ran every 2 minutes"
+*/10 * * * * echo "Job C ran every 10 minutes"
+        </textarea>
+        <button id="loadCrontab" class="btn btn-primary mt-3">Load Crontab</button>
+      </div>
+    </div>
+
+    <!-- Job Table -->
+    <h4>Loaded Jobs</h4>
+    <table class="table table-bordered job-table">
+      <thead>
+        <tr>
+          <th>Schedule</th>
+          <th>Command</th>
+          <th>Last Run</th>
+          <th>Status</th>
+          <th>Run Now</th>
+        </tr>
+      </thead>
+      <tbody id="jobTable"></tbody>
+    </table>
+
+    <!-- Log -->
+    <h4>Execution Log</h4>
+    <div id="log"></div>
+  </div>
+
+  <script>
+    let cronTimer = null;
+    let jobs = [];
+
+    function log(msg) {
+      const logBox = document.getElementById("log");
+      const ts = new Date().toLocaleTimeString();
+      logBox.innerHTML += `[${ts}] ${msg}<br>`;
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    // Parse a single crontab line
+    function parseCronLine(line) {
+      const parts = line.trim().split(/\s+/);
+      if (parts.length < 6) return null;
+
+      const [min, hour, dom, month, dow, ...cmdParts] = parts;
+      return {
+        schedule: { min, hour, dom, month, dow },
+        command: cmdParts.join(" "),
+        lastRun: "never",
+        status: "idle"
+      };
+    }
+
+    // Check if a cron field matches current time
+    function matchField(field, value) {
+      if (field === "*") return true;
+      if (field.startsWith("*/")) {
+        const step = parseInt(field.slice(2), 10);
+        return value % step === 0;
+      }
+      return parseInt(field, 10) === value;
+    }
+
+    // Evaluate if job should run
+    function isJobDue(job, now) {
+      const { min, hour, dom, month, dow } = job.schedule;
+      return (
+        matchField(min, now.getMinutes()) &&
+        matchField(hour, now.getHours()) &&
+        matchField(dom, now.getDate()) &&
+        matchField(month, now.getMonth() + 1) &&
+        matchField(dow, now.getDay())
+      );
+    }
+
+    function runJob(job) {
+      job.status = "running";
+      updateJobTable();
+      log(`RUN: ${job.command}`);
+
+      setTimeout(() => {
+        job.lastRun = new Date().toLocaleTimeString();
+        job.status = "idle";
+        updateJobTable();
+      }, 300);
+    }
+
+    function updateJobTable() {
+      const tbody = document.getElementById("jobTable");
+      tbody.innerHTML = "";
+
+      jobs.forEach((job, idx) => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+          <td>${Object.values(job.schedule).join(" ")}</td>
+          <td>${job.command}</td>
+          <td>${job.lastRun}</td>
+          <td class="status-${job.status}">${job.status}</td>
+          <td><button class="btn btn-sm btn-secondary" onclick="runJob(jobs[${idx}])">Run</button></td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    function loadCrontab() {
+      const lines = document.getElementById("crontab").value.split("\n");
+      jobs = [];
+
+      lines.forEach(line => {
+        if (line.trim() && !line.trim().startsWith("#")) {
+          const job = parseCronLine(line);
+          if (job) jobs.push(job);
+        }
+      });
+
+      updateJobTable();
+      log("Crontab loaded.");
+    }
+
+    function startCron() {
+      if (cronTimer) clearInterval(cronTimer);
+
+      cronTimer = setInterval(() => {
+        const now = new Date();
+        jobs.forEach(job => {
+          if (isJobDue(job, now)) {
+            job.status = "due";
+            updateJobTable();
+            runJob(job);
+          }
+        });
+      }, 1000);
+
+      document.getElementById("status").textContent = "Running";
+      document.getElementById("status").className = "status-running";
+      document.getElementById("startBtn").disabled = true;
+      document.getElementById("stopBtn").disabled = false;
+
+      log("Cron daemon started.");
+    }
+
+    function stopCron() {
+      clearInterval(cronTimer);
+      cronTimer = null;
+
+      document.getElementById("status").textContent = "Stopped";
+      document.getElementById("status").className = "status-stopped";
+      document.getElementById("startBtn").disabled = false;
+      document.getElementById("stopBtn").disabled = true;
+
+      log("Cron daemon stopped.");
+    }
+
+    document.getElementById("loadCrontab").onclick = loadCrontab;
+    document.getElementById("startBtn").onclick = startCron;
+    document.getElementById("stopBtn").onclick = stopCron;
+
+    loadCrontab();
+  </script>
+</body>
+
+</html>
