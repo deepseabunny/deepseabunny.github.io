@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>ARINC Data Loader Simulator with Samples</title>
+    <title>ARINC Data Loader Simulator — Fixed QA</title>
     <style>
         :root {
             --bg: #f6f8fa;
@@ -186,7 +186,7 @@
 <body>
     <div class="app" id="app">
         <header>
-            <h1>ARINC Data Loader Simulator with Samples</h1>
+            <h1>ARINC Data Loader Simulator — Fixed QA</h1>
             <div class="row">
                 <div class="muted">Theme</div>
                 <button id="themeBtn" class="small">Toggle Theme</button>
@@ -215,6 +215,8 @@
                     <button id="loadGood" class="btn small">Load Sample Good</button>
                     <button id="loadBad" class="btn small ghost">Load Sample Bad Manifest</button>
                     <button id="loadCorrupt" class="btn small ghost">Load Corrupted Sample</button>
+                    <button id="generateGood" class="btn small" title="Generate and download GoodBundle.bin">Generate
+                        GoodBundle</button>
                 </div>
 
                 <div id="fileMeta" class="meta">No file loaded</div>
@@ -276,8 +278,14 @@
     </div>
 
     <script>
-        /* Extended simulator with sample data generation and corruption */
-        const state = { file: null, buffer: null, filename: null, qa: {}, manifest: null };
+        /* ARINC Data Loader Simulator — fixed payload hashing and verification
+           - parseManifest returns {manifest, headerLength}
+           - QA and post-upload verify compute SHA/CRC over payload only
+           - computeSHA256 accepts ArrayBuffer or Uint8Array
+           - Generator creates GoodBundle with matching manifest.sha256
+        */
+
+        const state = { file: null, buffer: null, filename: null, qa: {}, manifest: null, headerLength: 0 };
         const el = id => document.getElementById(id);
         const logEl = el('log'), qaReport = el('qaReport'), fileMeta = el('fileMeta'), fileStatus = el('fileStatus'), progressBar = el('progressBar');
 
@@ -301,7 +309,7 @@
         async function loadFile(file) {
             state.file = file; state.filename = file.name; fileStatus.innerText = 'Loaded';
             fileMeta.innerText = `Name: ${file.name} • Size: ${file.size} bytes • Type: ${file.type || 'binary'}`;
-            const ab = await file.arrayBuffer(); state.buffer = ab; state.qa = {}; state.manifest = null; qaReport.innerHTML = '';
+            const ab = await file.arrayBuffer(); state.buffer = ab; state.qa = {}; state.manifest = null; state.headerLength = 0; qaReport.innerHTML = '';
             log('Loaded file', file.name, file.size, 'bytes');
         }
 
@@ -312,33 +320,135 @@
         });
 
         /* Clear */
-        function clearFile() { state.file = null; state.buffer = null; state.filename = null; state.qa = {}; state.manifest = null; fileMeta.innerText = 'No file loaded'; qaReport.innerHTML = ''; fileStatus.innerText = 'Idle'; log('Cleared loaded file'); }
+        function clearFile() { state.file = null; state.buffer = null; state.filename = null; state.qa = {}; state.manifest = null; state.headerLength = 0; fileMeta.innerText = 'No file loaded'; qaReport.innerHTML = ''; fileStatus.innerText = 'Idle'; log('Cleared loaded file'); }
 
-        /* QA */
-        el('qaBtn').addEventListener('click', async () => { if (!state.buffer) return alert('No file loaded'); fileStatus.innerText = 'QA running'; qaReport.innerHTML = ''; log('Starting QA for', state.filename || 'file'); const sha = await computeSHA256(state.buffer); const crc = computeCRC32(new Uint8Array(state.buffer)); state.qa.sha256 = sha; state.qa.crc32 = crc; addQAItem('SHA-256', sha, true); addQAItem('CRC32', crc.toString(16).padStart(8, '0'), true); const manifest = parseManifest(state.buffer); if (manifest) { state.manifest = manifest; addQAItem('Manifest detected', manifest.title || 'ARINC manifest', true); if (manifest.sha256) { const ok = manifest.sha256.toLowerCase() === sha.toLowerCase(); addQAItem('Manifest SHA match', manifest.sha256, ok); } const aircraft = el('aircraftSelect').value; const compat = checkCompatibility(aircraft, manifest); addQAItem('Aircraft compatibility', compat.ok ? 'Compatible' : 'Incompatible', compat.ok); if (!compat.ok) addQAItem('Compatibility details', compat.reason, false); } else { addQAItem('Manifest detected', 'None', false); } fileStatus.innerText = 'QA complete'; log('QA complete'); });
+        /* QA: compute over payload only */
+        el('qaBtn').addEventListener('click', async () => {
+            if (!state.buffer) return alert('No file loaded');
+            fileStatus.innerText = 'QA running';
+            qaReport.innerHTML = '';
+            log('Starting QA for', state.filename || 'file');
 
-        el('parseBtn').addEventListener('click', () => { if (!state.buffer) return alert('No file loaded'); const manifest = parseManifest(state.buffer); if (manifest) { state.manifest = manifest; alert('Manifest parsed: ' + JSON.stringify(manifest, null, 2)); log('Manifest parsed', manifest.title || ''); } else { alert('No manifest found'); log('No manifest found'); } });
+            // parse manifest and get header length
+            const parsed = parseManifestWithHeader(state.buffer);
+            if (parsed) {
+                state.manifest = parsed.manifest;
+                state.headerLength = parsed.headerLength;
+            } else {
+                state.manifest = null;
+                state.headerLength = 0;
+            }
 
-        function addQAItem(label, value, pass) { const div = document.createElement('div'); div.className = 'qa-item'; const left = document.createElement('div'); left.innerHTML = `<strong>${label}</strong><div class="muted" style="margin-top:4px">${value}</div>`; const right = document.createElement('div'); right.innerHTML = `<div class="${pass ? 'pass' : 'fail'}">${pass ? 'PASS' : 'FAIL'}</div>`; div.appendChild(left); div.appendChild(right); qaReport.appendChild(div); }
+            // payload slice: bytes after headerLength
+            const payloadBuffer = state.buffer.slice(state.headerLength);
 
-        /* Crypto and CRC */
-        async function computeSHA256(buffer) { const hash = await crypto.subtle.digest('SHA-256', buffer); return hex(new Uint8Array(hash)); }
+            // compute SHA and CRC over payload only
+            const sha = await computeSHA256(payloadBuffer);
+            const crc = computeCRC32(new Uint8Array(payloadBuffer));
+            state.qa.sha256 = sha;
+            state.qa.crc32 = crc;
+
+            addQAItem('SHA-256 (payload)', sha, true);
+            addQAItem('CRC32 (payload)', crc.toString(16).padStart(8, '0'), true);
+
+            if (state.manifest) {
+                addQAItem('Manifest detected', state.manifest.title || 'ARINC manifest', true);
+                if (state.manifest.sha256) {
+                    const ok = state.manifest.sha256.toLowerCase() === sha.toLowerCase();
+                    addQAItem('Manifest SHA match', state.manifest.sha256, ok);
+                }
+                const aircraft = el('aircraftSelect').value;
+                const compat = checkCompatibility(aircraft, state.manifest);
+                addQAItem('Aircraft compatibility', compat.ok ? 'Compatible' : 'Incompatible', compat.ok);
+                if (!compat.ok) addQAItem('Compatibility details', compat.reason, false);
+            } else {
+                addQAItem('Manifest detected', 'None', false);
+            }
+
+            fileStatus.innerText = 'QA complete';
+            log('QA complete');
+        });
+
+        /* Parse manifest button explicit */
+        el('parseBtn').addEventListener('click', () => {
+            if (!state.buffer) return alert('No file loaded');
+            const parsed = parseManifestWithHeader(state.buffer);
+            if (parsed) {
+                state.manifest = parsed.manifest;
+                state.headerLength = parsed.headerLength;
+                alert('Manifest parsed: ' + JSON.stringify(parsed.manifest, null, 2));
+                log('Manifest parsed', parsed.manifest.title || '');
+            } else {
+                alert('No manifest found');
+                log('No manifest found');
+            }
+        });
+
+        /* Add QA item to UI */
+        function addQAItem(label, value, pass) {
+            const div = document.createElement('div');
+            div.className = 'qa-item';
+            const left = document.createElement('div');
+            left.innerHTML = `<strong>${label}</strong><div class="muted" style="margin-top:4px">${value}</div>`;
+            const right = document.createElement('div');
+            right.innerHTML = `<div class="${pass ? 'pass' : 'fail'}">${pass ? 'PASS' : 'FAIL'}</div>`;
+            div.appendChild(left); div.appendChild(right);
+            qaReport.appendChild(div);
+        }
+
+        /* Compute SHA-256 accepts ArrayBuffer or Uint8Array */
+        async function computeSHA256(bufferOrArrayBuffer) {
+            let ab;
+            if (bufferOrArrayBuffer instanceof ArrayBuffer) ab = bufferOrArrayBuffer;
+            else if (ArrayBuffer.isView(bufferOrArrayBuffer)) ab = bufferOrArrayBuffer.buffer;
+            else throw new Error('Unsupported buffer type for SHA');
+            const hash = await crypto.subtle.digest('SHA-256', ab);
+            return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
         function hex(bytes) { return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(''); }
-        const CRC32_TABLE = (() => { const t = new Uint32Array(256); for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) { c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); } t[i] = c >>> 0; } return t; })();
-        function computeCRC32(bytes) { let crc = 0xFFFFFFFF; for (let i = 0; i < bytes.length; i++) { crc = (crc >>> 8) ^ CRC32_TABLE[(crc ^ bytes[i]) & 0xFF]; } return (crc ^ 0xFFFFFFFF) >>> 0; }
 
-        /* Simple manifest parser looks for ASCII header and JSON line */
-        function parseManifest(buffer) {
+        /* CRC32 implementation */
+        const CRC32_TABLE = (() => {
+            const t = new Uint32Array(256);
+            for (let i = 0; i < 256; i++) {
+                let c = i;
+                for (let k = 0; k < 8; k++) {
+                    c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+                }
+                t[i] = c >>> 0;
+            }
+            return t;
+        })();
+        function computeCRC32(bytes) {
+            let crc = 0xFFFFFFFF;
+            for (let i = 0; i < bytes.length; i++) {
+                crc = (crc >>> 8) ^ CRC32_TABLE[(crc ^ bytes[i]) & 0xFF];
+            }
+            return (crc ^ 0xFFFFFFFF) >>> 0;
+        }
+
+        /* Manifest parser that returns manifest and header byte length */
+        function parseManifestWithHeader(arrayBuffer) {
             try {
-                const bytes = new Uint8Array(buffer);
-                const text = new TextDecoder().decode(bytes.slice(0, 2048));
+                const bytes = new Uint8Array(arrayBuffer);
+                // decode first chunk where header is expected
+                const headSlice = bytes.slice(0, 4096);
+                const text = new TextDecoder().decode(headSlice);
                 const idx = text.indexOf('ARINC-MANIFEST:');
                 if (idx === -1) return null;
                 const jsonStart = idx + 'ARINC-MANIFEST:'.length;
-                const jsonText = text.slice(jsonStart).split('\n')[0].trim();
+                const nlPos = text.indexOf('\n', jsonStart);
+                if (nlPos === -1) return null;
+                const jsonText = text.slice(jsonStart, nlPos).trim();
                 const manifest = JSON.parse(jsonText);
-                return manifest;
-            } catch (e) { return null; }
+                // compute exact header byte length using encoder on the header substring
+                const headerText = text.slice(0, nlPos + 1);
+                const headerBytes = new TextEncoder().encode(headerText);
+                const headerLength = headerBytes.length;
+                return { manifest, headerLength };
+            } catch (e) {
+                return null;
+            }
         }
 
         /* Compatibility table and helpers */
@@ -384,17 +494,23 @@
             log('Upload complete');
         });
 
-        /* Post upload verify */
+        /* Post upload verify recomputes SHA and CRC over payload only */
         el('verifyBtn').addEventListener('click', async () => {
             if (!state.buffer) return alert('No file loaded');
             fileStatus.innerText = 'Verifying';
             log('Post upload verification started');
-            const sha = await computeSHA256(state.buffer);
-            const crc = computeCRC32(new Uint8Array(state.buffer));
+
+            // ensure we have headerLength from parse or compute it now
+            const parsed = parseManifestWithHeader(state.buffer);
+            const headerLen = parsed ? parsed.headerLength : 0;
+            const payloadBuffer = state.buffer.slice(headerLen);
+
+            const sha = await computeSHA256(payloadBuffer);
+            const crc = computeCRC32(new Uint8Array(payloadBuffer));
             const shaOk = state.qa.sha256 ? sha === state.qa.sha256 : true;
             const crcOk = state.qa.crc32 ? crc === state.qa.crc32 : true;
-            addQAItem('Target SHA-256', sha, shaOk);
-            addQAItem('Target CRC32', crc.toString(16).padStart(8, '0'), crcOk);
+            addQAItem('Target SHA-256 (payload)', sha, shaOk);
+            addQAItem('Target CRC32 (payload)', crc.toString(16).padStart(8, '0'), crcOk);
             fileStatus.innerText = 'Verify complete';
             log('Post upload verification complete', 'shaOk=' + shaOk, 'crcOk=' + crcOk);
         });
@@ -403,46 +519,37 @@
         function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
         /* Sample data generation */
-        /* Creates a binary payload with an ASCII manifest header line at the start:
-           ARINC-MANIFEST:{"title":"...","sha256":"...","parts":[...]}
-           followed by payload bytes. For the "good" sample the manifest sha256 matches payload.
-        */
-        async function makeSampleBundle({ title = 'Sample Bundle', parts = [{ type: 'NAV', version: '1.0' }], payloadSize = 8192, corrupt = false, badManifest = false }) {
-            // create random payload
+        async function makeSampleBundle({ title = 'GoodBundle', parts = [{ type: 'NAV', version: '1.0' }], payloadSize = 16384, corrupt = false, badManifest = false }) {
             const payload = new Uint8Array(payloadSize);
-            for (let i = 0; i < payloadSize; i++) payload[i] = Math.floor(Math.random() * 256);
-            // compute sha for payload
-            const sha = hex(new Uint8Array(await crypto.subtle.digest('SHA-256', payload)));
-            // manifest object
+            crypto.getRandomValues(payload);
+            const shaBuf = await crypto.subtle.digest('SHA-256', payload);
+            const sha = hex(new Uint8Array(shaBuf));
             const manifest = {
                 title,
                 parts,
-                sha256: badManifest ? sha.split('').reverse().join('') : sha
+                sha256: badManifest ? sha.split('').reverse().join('') : sha,
+                created: (new Date()).toISOString()
             };
-            // build header line
             const header = `ARINC-MANIFEST:${JSON.stringify(manifest)}\n`;
             const headerBytes = new TextEncoder().encode(header);
-            // assemble buffer: header + payload
             const total = new Uint8Array(headerBytes.length + payload.length);
             total.set(headerBytes, 0);
             total.set(payload, headerBytes.length);
-            // optionally corrupt some bytes
             if (corrupt) {
                 for (let k = 0; k < Math.max(1, Math.floor(payloadSize * 0.01)); k++) {
                     const idx = headerBytes.length + Math.floor(Math.random() * payload.length);
                     total[idx] = total[idx] ^ (1 << (Math.floor(Math.random() * 8)));
                 }
             }
-            // create File
             const file = new File([total.buffer], `${title.replace(/\s+/g, '_')}.bin`, { type: 'application/octet-stream' });
-            return file;
+            return { file, manifest, size: total.byteLength, payloadSha: sha, rawBytes: total.buffer };
         }
 
         /* Buttons to load samples */
         el('loadGood').addEventListener('click', async () => {
             fileStatus.innerText = 'Generating sample';
             log('Generating sample good bundle');
-            const file = await makeSampleBundle({ title: 'GoodBundle', parts: [{ type: 'NAV', version: '1.0' }, { type: 'FMS', version: '1.2' }], payloadSize: 16384 });
+            const { file } = await makeSampleBundle({ title: 'GoodBundle', parts: [{ type: 'NAV', version: '1.0' }, { type: 'FMS', version: '1.2' }], payloadSize: 16384 });
             await loadFile(file);
             fileStatus.innerText = 'Sample loaded';
             log('Sample good loaded');
@@ -450,7 +557,7 @@
         el('loadBad').addEventListener('click', async () => {
             fileStatus.innerText = 'Generating sample';
             log('Generating sample with bad manifest');
-            const file = await makeSampleBundle({ title: 'BadManifestBundle', parts: [{ type: 'ENG', version: '0.9' }], payloadSize: 8192, badManifest: true });
+            const { file } = await makeSampleBundle({ title: 'BadManifestBundle', parts: [{ type: 'ENG', version: '0.9' }], payloadSize: 8192, badManifest: true });
             await loadFile(file);
             fileStatus.innerText = 'Sample loaded';
             log('Sample bad manifest loaded');
@@ -458,16 +565,52 @@
         el('loadCorrupt').addEventListener('click', async () => {
             fileStatus.innerText = 'Generating sample';
             log('Generating corrupted sample');
-            const file = await makeSampleBundle({ title: 'CorruptBundle', parts: [{ type: 'NAV', version: '1.0' }], payloadSize: 16384, corrupt: true });
+            const { file } = await makeSampleBundle({ title: 'CorruptBundle', parts: [{ type: 'NAV', version: '1.0' }], payloadSize: 16384, corrupt: true });
             await loadFile(file);
             fileStatus.innerText = 'Sample loaded';
             log('Sample corrupted loaded');
         });
 
-        /* Expose helpers for debugging */
-        window._sim = { state, computeSHA256, computeCRC32, parseManifest, compatibilityTable, makeSampleBundle };
+        /* Generate GoodBundle, download and auto-load */
+        el('generateGood').addEventListener('click', async () => {
+            try {
+                fileStatus.innerText = 'Generating';
+                log('Generating GoodBundle.bin for download and load');
+                const { file, manifest, size, payloadSha, rawBytes } = await makeSampleBundle({
+                    title: 'GoodBundle',
+                    parts: [{ type: 'NAV', version: '1.0' }, { type: 'FMS', version: '1.2' }],
+                    payloadSize: 16384,
+                    corrupt: false,
+                    badManifest: false
+                });
 
-        log('Simulator with samples ready');
+                // trigger download
+                const blob = new Blob([rawBytes], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = file.name || 'GoodBundle.bin';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+
+                // load into simulator
+                await loadFile(file);
+                fileStatus.innerText = 'Generated & loaded';
+                log('Generated GoodBundle.bin', 'size=' + size, 'sha256=' + payloadSha);
+                console.log({ filename: file.name, size_bytes: size, payload_sha256: payloadSha, manifest });
+            } catch (err) {
+                fileStatus.innerText = 'Error';
+                log('Generation failed', err.message);
+                alert('Generation failed: ' + err.message);
+            }
+        });
+
+        /* Expose helpers for debugging */
+        window._sim = { state, computeSHA256, computeCRC32, parseManifestWithHeader, compatibilityTable, makeSampleBundle };
+
+        log('Simulator with fixed QA ready');
     </script>
 </body>
 
