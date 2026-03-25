@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>ARINC Data Loader Simulator — Fixed QA</title>
+    <title>ARINC Data Loader Simulator — Generators</title>
     <style>
         :root {
             --bg: #f6f8fa;
@@ -186,7 +186,7 @@
 <body>
     <div class="app" id="app">
         <header>
-            <h1>ARINC Data Loader Simulator — Fixed QA</h1>
+            <h1>ARINC Data Loader Simulator — Generators</h1>
             <div class="row">
                 <div class="muted">Theme</div>
                 <button id="themeBtn" class="small">Toggle Theme</button>
@@ -217,6 +217,10 @@
                     <button id="loadCorrupt" class="btn small ghost">Load Corrupted Sample</button>
                     <button id="generateGood" class="btn small" title="Generate and download GoodBundle.bin">Generate
                         GoodBundle</button>
+                    <button id="generateBad" class="btn small ghost"
+                        title="Generate and download BadManifestBundle.bin">Generate BadManifest</button>
+                    <button id="generateCorrupt" class="btn small ghost"
+                        title="Generate and download CorruptBundle.bin">Generate Corrupt</button>
                 </div>
 
                 <div id="fileMeta" class="meta">No file loaded</div>
@@ -278,11 +282,10 @@
     </div>
 
     <script>
-        /* ARINC Data Loader Simulator — fixed payload hashing and verification
-           - parseManifest returns {manifest, headerLength}
-           - QA and post-upload verify compute SHA/CRC over payload only
-           - computeSHA256 accepts ArrayBuffer or Uint8Array
-           - Generator creates GoodBundle with matching manifest.sha256
+        /* ARINC Data Loader Simulator — generators for Good, BadManifest, Corrupt
+           - parseManifestWithHeader returns {manifest, headerLength}
+           - QA and verify compute over payload only
+           - Generator functions create File and raw buffer for download + auto-load
         */
 
         const state = { file: null, buffer: null, filename: null, qa: {}, manifest: null, headerLength: 0 };
@@ -431,7 +434,6 @@
         function parseManifestWithHeader(arrayBuffer) {
             try {
                 const bytes = new Uint8Array(arrayBuffer);
-                // decode first chunk where header is expected
                 const headSlice = bytes.slice(0, 4096);
                 const text = new TextDecoder().decode(headSlice);
                 const idx = text.indexOf('ARINC-MANIFEST:');
@@ -441,7 +443,6 @@
                 if (nlPos === -1) return null;
                 const jsonText = text.slice(jsonStart, nlPos).trim();
                 const manifest = JSON.parse(jsonText);
-                // compute exact header byte length using encoder on the header substring
                 const headerText = text.slice(0, nlPos + 1);
                 const headerBytes = new TextEncoder().encode(headerText);
                 const headerLength = headerBytes.length;
@@ -499,12 +500,9 @@
             if (!state.buffer) return alert('No file loaded');
             fileStatus.innerText = 'Verifying';
             log('Post upload verification started');
-
-            // ensure we have headerLength from parse or compute it now
             const parsed = parseManifestWithHeader(state.buffer);
             const headerLen = parsed ? parsed.headerLength : 0;
             const payloadBuffer = state.buffer.slice(headerLen);
-
             const sha = await computeSHA256(payloadBuffer);
             const crc = computeCRC32(new Uint8Array(payloadBuffer));
             const shaOk = state.qa.sha256 ? sha === state.qa.sha256 : true;
@@ -519,7 +517,14 @@
         function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
         /* Sample data generation */
-        async function makeSampleBundle({ title = 'GoodBundle', parts = [{ type: 'NAV', version: '1.0' }], payloadSize = 16384, corrupt = false, badManifest = false }) {
+        /* makeSampleBundle options:
+           - title: string
+           - parts: array
+           - payloadSize: bytes
+           - corrupt: flip ~1% payload bits
+           - badManifest: set manifest.sha256 to wrong value
+        */
+        async function makeSampleBundle({ title = 'Bundle', parts = [{ type: 'NAV', version: '1.0' }], payloadSize = 16384, corrupt = false, badManifest = false }) {
             const payload = new Uint8Array(payloadSize);
             crypto.getRandomValues(payload);
             const shaBuf = await crypto.subtle.digest('SHA-256', payload);
@@ -545,7 +550,7 @@
             return { file, manifest, size: total.byteLength, payloadSha: sha, rawBytes: total.buffer };
         }
 
-        /* Buttons to load samples */
+        /* Existing sample load buttons */
         el('loadGood').addEventListener('click', async () => {
             fileStatus.innerText = 'Generating sample';
             log('Generating sample good bundle');
@@ -571,7 +576,7 @@
             log('Sample corrupted loaded');
         });
 
-        /* Generate GoodBundle, download and auto-load */
+        /* New: Generate + download GoodBundle */
         el('generateGood').addEventListener('click', async () => {
             try {
                 fileStatus.innerText = 'Generating';
@@ -583,34 +588,64 @@
                     corrupt: false,
                     badManifest: false
                 });
-
-                // trigger download
                 const blob = new Blob([rawBytes], { type: 'application/octet-stream' });
                 const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = file.name || 'GoodBundle.bin';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                URL.revokeObjectURL(url);
-
-                // load into simulator
+                const a = document.createElement('a'); a.href = url; a.download = file.name || 'GoodBundle.bin'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
                 await loadFile(file);
                 fileStatus.innerText = 'Generated & loaded';
                 log('Generated GoodBundle.bin', 'size=' + size, 'sha256=' + payloadSha);
                 console.log({ filename: file.name, size_bytes: size, payload_sha256: payloadSha, manifest });
-            } catch (err) {
-                fileStatus.innerText = 'Error';
-                log('Generation failed', err.message);
-                alert('Generation failed: ' + err.message);
-            }
+            } catch (err) { fileStatus.innerText = 'Error'; log('Generation failed', err.message); alert('Generation failed: ' + err.message); }
+        });
+
+        /* New: Generate + download BadManifestBundle */
+        el('generateBad').addEventListener('click', async () => {
+            try {
+                fileStatus.innerText = 'Generating';
+                log('Generating BadManifestBundle.bin for download and load');
+                const { file, manifest, size, payloadSha, rawBytes } = await makeSampleBundle({
+                    title: 'BadManifestBundle',
+                    parts: [{ type: 'ENG', version: '0.9' }],
+                    payloadSize: 8192,
+                    corrupt: false,
+                    badManifest: true
+                });
+                const blob = new Blob([rawBytes], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = file.name || 'BadManifestBundle.bin'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+                await loadFile(file);
+                fileStatus.innerText = 'Generated & loaded';
+                log('Generated BadManifestBundle.bin', 'size=' + size, 'sha256(wrong)=' + manifest.sha256);
+                console.log({ filename: file.name, size_bytes: size, payload_sha256: payloadSha, manifest });
+            } catch (err) { fileStatus.innerText = 'Error'; log('Generation failed', err.message); alert('Generation failed: ' + err.message); }
+        });
+
+        /* New: Generate + download CorruptBundle */
+        el('generateCorrupt').addEventListener('click', async () => {
+            try {
+                fileStatus.innerText = 'Generating';
+                log('Generating CorruptBundle.bin for download and load');
+                const { file, manifest, size, payloadSha, rawBytes } = await makeSampleBundle({
+                    title: 'CorruptBundle',
+                    parts: [{ type: 'NAV', version: '1.0' }],
+                    payloadSize: 16384,
+                    corrupt: true,
+                    badManifest: false
+                });
+                const blob = new Blob([rawBytes], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = file.name || 'CorruptBundle.bin'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+                await loadFile(file);
+                fileStatus.innerText = 'Generated & loaded';
+                log('Generated CorruptBundle.bin', 'size=' + size, 'payload_sha256(original)=' + payloadSha);
+                console.log({ filename: file.name, size_bytes: size, payload_sha256_original: payloadSha, manifest });
+            } catch (err) { fileStatus.innerText = 'Error'; log('Generation failed', err.message); alert('Generation failed: ' + err.message); }
         });
 
         /* Expose helpers for debugging */
         window._sim = { state, computeSHA256, computeCRC32, parseManifestWithHeader, compatibilityTable, makeSampleBundle };
 
-        log('Simulator with fixed QA ready');
+        log('Simulator with Good/Bad/Corrupt generators ready');
     </script>
 </body>
 
