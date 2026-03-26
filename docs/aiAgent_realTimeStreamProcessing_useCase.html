@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Logistics Agent Model – Real‑Time Stream Processing</title>
+  <!-- Bootswatch (Cosmo theme) -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/cosmo/bootstrap.min.css"
+  />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      padding-top: 3.5rem;
+    }
+    pre {
+      background: #1e1e1e;
+      color: #f5f5f5;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
+      overflow-x: auto;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    .badge-pill {
+      border-radius: 10rem;
+    }
+    .section-title {
+      border-left: 4px solid #2780e3;
+      padding-left: 0.75rem;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">AI Logistics Agent</a>
+    </div>
+  </nav>
+
+  <main class="container mb-5">
+    <!-- Header -->
+    <section class="mt-4">
+      <h1 class="mb-2">Autonomous Logistics Assignment Agent</h1>
+      <p class="lead">
+        A real‑time, stream‑driven AI agent that tracks assets, reacts to events, and assigns new loads the
+        moment a truck becomes free.
+      </p>
+      <p>
+        The agent consumes a continuous stream of logistics events (location updates, pickups, deliveries),
+        maintains an internal state of assets and loads, and automatically creates new assignments when a truck
+        completes a load and becomes available.
+      </p>
+    </section>
+
+    <!-- 1. Core Data Model -->
+    <section>
+      <h2 class="section-title">1. Core logistics data model</h2>
+      <p>
+        The agent maintains a normalized JSON state for <strong>assets</strong> (trucks, trailers),
+        <strong>loads</strong>, and <strong>assignments</strong>. This state is continuously updated from the
+        event stream.
+      </p>
+
+      <h5>1.1 Asset JSON</h5>
+      <pre><code>{
+  "assetId": "TRUCK-017",
+  "type": "TRUCK",
+  "status": "IN_TRANSIT",        // IDLE | IN_TRANSIT | LOADING | UNLOADING | MAINTENANCE
+  "currentLocation": { "lat": 33.45, "lng": -112.07 },
+  "currentLoadId": "LOAD-9921",  // null when free
+  "lastEventAt": "2026-03-26T23:38:00Z"
+}</code></pre>
+
+      <h5>1.2 Load JSON</h5>
+      <pre><code>{
+  "loadId": "LOAD-9921",
+  "status": "IN_TRANSIT",        // PLANNED | UNASSIGNED | ASSIGNED | IN_TRANSIT | DELIVERED | CANCELLED
+  "pickupLocation": { "lat": 33.44, "lng": -112.02 },
+  "dropoffLocation": { "lat": 33.30, "lng": -111.90 },
+  "assignedAssetId": "TRUCK-017",
+  "eta": "2026-03-27T01:10:00Z",
+  "priority": "HIGH"             // LOW | MEDIUM | HIGH
+}</code></pre>
+
+      <h5>1.3 Assignment JSON</h5>
+      <pre><code>{
+  "assignmentId": "ASG-5551",
+  "assetId": "TRUCK-017",
+  "loadId": "LOAD-9921",
+  "status": "ACTIVE",            // ACTIVE | COMPLETED | CANCELLED
+  "createdAt": "2026-03-26T21:00:00Z",
+  "completedAt": null
+}</code></pre>
+    </section>
+
+    <!-- 2. Real-Time Event Stream -->
+    <section>
+      <h2 class="section-title">2. Real‑time stream processing model</h2>
+      <p>
+        The AI agent consumes a continuous stream of events from telematics, TMS, and driver apps. Each event is
+        a fact about what just happened in the network.
+      </p>
+
+      <h5>2.1 Event types</h5>
+      <ul>
+        <li><strong>Location events:</strong> <code>ASSET_LOCATION_UPDATED</code></li>
+        <li><strong>Load lifecycle:</strong> <code>LOAD_PICKED_UP</code>, <code>LOAD_DELIVERED</code>, <code>LOAD_CANCELLED</code></li>
+        <li><strong>Asset lifecycle:</strong> <code>ASSET_BECAME_IDLE</code>, <code>ASSET_WENT_OFFLINE</code>, <code>ASSET_MAINTENANCE_REQUIRED</code></li>
+      </ul>
+
+      <h5>2.2 Example delivery event</h5>
+      <pre><code>{
+  "eventType": "LOAD_DELIVERED",
+  "assetId": "TRUCK-017",
+  "loadId": "LOAD-9921",
+  "timestamp": "2026-03-26T23:55:00Z",
+  "location": { "lat": 33.30, "lng": -111.90 }
+}</code></pre>
+
+      <p>
+        The agent applies each event to its internal state, then evaluates whether any asset has transitioned
+        into a <strong>free and assignable</strong> state.
+      </p>
+    </section>
+
+    <!-- 3. State Update & Detection -->
+    <section>
+      <h2 class="section-title">3. State update and free‑asset detection</h2>
+      <p>
+        For every incoming event, the agent first updates the canonical state, then runs detection logic to find
+        assets that are now idle and ready for a new load.
+      </p>
+
+      <h5>3.1 Applying events to state</h5>
+      <pre><code>function applyEventToState(event, state) {
+  switch (event.eventType) {
+    case "ASSET_LOCATION_UPDATED":
+      updateAssetLocation(state, event);
+      break;
+    case "LOAD_PICKED_UP":
+      markLoadPickedUp(state, event);
+      break;
+    case "LOAD_DELIVERED":
+      markLoadDelivered(state, event);
+      freeAssetFromLoad(state, event.assetId, event.loadId);
+      break;
+    case "ASSET_BECAME_IDLE":
+      markAssetIdle(state, event.assetId);
+      break;
+    // ...other event handlers
+  }
+}</code></pre>
+
+      <h5>3.2 Detecting free assets</h5>
+      <pre><code>function detectFreeAssets(state) {
+  return state.assets.filter(
+    (a) =&gt; a.status === "IDLE" &amp;&amp; !a.currentLoadId
+  );
+}</code></pre>
+
+      <p>
+        This mirrors the maintenance agent pattern: instead of “room needs maintenance”, the trigger is “truck is
+        now idle and unassigned”.
+      </p>
+    </section>
+
+    <!-- 4. Assignment Logic -->
+    <section>
+      <h2 class="section-title">4. Assignment logic and alerting</h2>
+      <p>
+        When an asset becomes free, the agent selects the best next load based on distance, priority, and time
+        windows, then creates an assignment and alerts operators and drivers.
+      </p>
+
+      <h5>4.1 Choosing the next load</h5>
+      <pre><code>function chooseBestLoad(asset, candidateLoads) {
+  // Example heuristic: prioritize by (priority, distance, pickup time window)
+  const scored = candidateLoads.map((load) =&gt; {
+    const distance = haversine(asset.currentLocation, load.pickupLocation);
+    const priorityScore = load.priority === "HIGH" ? 3 : load.priority === "MEDIUM" ? 2 : 1;
+    const score = priorityScore * 1000 - distance; // higher is better
+    return { load, score };
+  });
+
+  scored.sort((a, b) =&gt; b.score - a.score);
+  return scored.length &gt; 0 ? scored[0].load : null;
+}</code></pre>
+
+      <h5>4.2 Creating an assignment</h5>
+      <pre><code>function assignNextLoadToAsset(asset, candidateLoads) {
+  const load = chooseBestLoad(asset, candidateLoads);
+  if (!load) return null;
+
+  const assignment = {
+    assignmentId: `ASG-${Date.now()}`,
+    assetId: asset.assetId,
+    loadId: load.loadId,
+    status: "ACTIVE",
+    createdAt: new Date().toISOString(),
+    completedAt: null
+  };
+
+  asset.status = "IN_TRANSIT";
+  asset.currentLoadId = load.loadId;
+  load.status = "ASSIGNED";
+  load.assignedAssetId = asset.assetId;
+
+  return assignment;
+}</code></pre>
+
+      <h5>4.3 Alert payload</h5>
+      <pre><code>{
+  "alertType": "NEW_ASSIGNMENT",
+  "assetId": "TRUCK-017",
+  "loadId": "LOAD-1042",
+  "assignmentId": "ASG-7772",
+  "timestamp": "2026-03-26T23:56:10Z"
+}</code></pre>
+    </section>
+
+    <!-- 5. Agent Loop -->
+    <section>
+      <h2 class="section-title">5. AI agent loop over the stream</h2>
+      <p>
+        The logistics agent reacts to each event in the stream, updates state, detects free assets, and assigns
+        new loads in real time.
+      </p>
+
+      <pre><code>function logisticsAgentOnEvent(event, state) {
+  // 1. Update internal state from the event
+  applyEventToState(event, state);
+
+  // 2. After state change, detect free assets
+  const freeAssets = detectFreeAssets(state);
+
+  // 3. For each free asset, try to assign a new load
+  freeAssets.forEach((asset) =&gt; {
+    const candidateLoads = findUnassignedLoadsNearAsset(state, asset);
+    const assignment = assignNextLoadToAsset(asset, candidateLoads);
+    if (assignment) {
+      state.assignments.push(assignment);
+      dispatchAssignmentAlert(assignment, asset);
+    }
+  });
+}</code></pre>
+
+      <p>
+        This loop can run inside a stream processor (Kafka consumer, Kinesis app, Flink job, etc.), giving you
+        millisecond‑level reaction to network changes.
+      </p>
+    </section>
+
+    <!-- 6. Real-World Use Case -->
+    <section>
+      <h2 class="section-title">6. Real‑world logistics scenario</h2>
+      <p>
+        Consider a regional carrier operating a Phoenix‑centric network with daily freight between
+        <strong>Phoenix</strong>, <strong>Tucson</strong>, and <strong>Los Angeles</strong>. Trucks send GPS
+        pings every 30 seconds, and drivers update load status via a mobile app.
+      </p>
+
+      <h5>6.1 Scenario timeline</h5>
+      <ul>
+        <li><strong>08:00</strong> – TRUCK‑017 departs Phoenix with LOAD‑9921 to Tucson.</li>
+        <li><strong>09:45</strong> – Driver marks <code>LOAD_PICKED_UP</code> (already in transit).</li>
+        <li><strong>10:30</strong> – Driver marks <code>LOAD_DELIVERED</code> in Tucson.</li>
+        <li><strong>10:30:02</strong> – Agent receives <code>LOAD_DELIVERED</code> event.</li>
+        <li><strong>10:30:03</strong> – Agent marks TRUCK‑017 as <code>IDLE</code> at Tucson DC.</li>
+        <li><strong>10:30:04</strong> – Agent detects TRUCK‑017 as free, finds nearby unassigned loads.</li>
+        <li><strong>10:30:05</strong> – Agent assigns LOAD‑1042 (Tucson → Phoenix) to TRUCK‑017.</li>
+        <li><strong>10:30:06</strong> – Driver app receives <strong>NEW_ASSIGNMENT</strong> notification.</li>
+      </ul>
+
+      <h5>6.2 Stream of events for this scenario</h5>
+      <pre><code>[
+  {
+    "eventType": "LOAD_DELIVERED",
+    "assetId": "TRUCK-017",
+    "loadId": "LOAD-9921",
+    "timestamp": "2026-03-26T17:30:00Z",
+    "location": { "lat": 32.22, "lng": -110.97 } // Tucson DC
+  },
+  {
+    "eventType": "ASSET_BECAME_IDLE",
+    "assetId": "TRUCK-017",
+    "timestamp": "2026-03-26T17:30:01Z"
+  },
+  {
+    "eventType": "ASSET_LOCATION_UPDATED",
+    "assetId": "TRUCK-017",
+    "timestamp": "2026-03-26T17:30:01Z",
+    "location": { "lat": 32.22, "lng": -110.97 }
+  }
+]</code></pre>
+
+      <p>
+        As soon as these events are processed, the agent sees TRUCK‑017 as idle at the Tucson DC, matches it to
+        the highest‑priority outbound load back to Phoenix, and issues a new assignment without any dispatcher
+        intervention.
+      </p>
+    </section>
+
+    <!-- 7. Summary -->
+    <section class="mt-4">
+      <h2 class="section-title">7. Summary</h2>
+      <p>
+        This AI logistics agent:
+      </p>
+      <ul>
+        <li><strong>Consumes</strong> a real‑time stream of asset and load events</li>
+        <li><strong>Maintains</strong> a live state of trucks, loads, and assignments</li>
+        <li><strong>Detects</strong> when assets become free and assignable</li>
+        <li><strong>Chooses</strong> the best next load based on proximity and priority</li>
+        <li><strong>Emits</strong> clean assignment alerts for operators and drivers</li>
+      </ul>
+      <p>
+        Dropped into your documentation or simulator, this page becomes the canonical blueprint for a
+        stream‑driven, autonomous logistics assignment agent.
+      </p>
+    </section>
+  </main>
+
+  <!-- Optional Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
