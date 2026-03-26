@@ -481,6 +481,13 @@
             return { iin, idNumber, expYY, expMM, issueYY, issueMM };
         }
 
+        // return the last duplicate ID token from Track 3 including the leading "D"
+        function extractDupIdFromTrack3(t3raw) {
+            if (!t3raw) return "";
+            const matches = t3raw.match(/D0\d+/g); // returns tokens like "D01111111"
+            return matches && matches.length ? matches[matches.length - 1] : "";
+        }
+
         function formatYYMM(yy, mm) {
             if (!yy && !mm) return "";
             return `${yy || "??"}-${mm || "??"}`;
@@ -490,6 +497,10 @@
             const tracks = extractTracks(raw);
             const t1 = parseTrack1(tracks.track1);
             const t2 = parseTrack2(tracks.track2);
+
+            // Prioritize Track 3 token (including 'D'); fallback to Track 2 idNumber
+            const dupFromT3 = extractDupIdFromTrack3(tracks.track3);
+            t2.idNumber = dupFromT3 || t2.idNumber || "";
 
             return {
                 raw: tracks,
@@ -569,7 +580,7 @@
                 if (!result.raw.track1 && !result.raw.track2 && !result.raw.track3) {
                     setStatus("No valid AAMVA tracks detected. Check that % / ; / + and ? delimiters are present.", true);
                 } else {
-                    setStatus("Decoded using AAMVA magstripe conventions. Track 3 left raw by design.");
+                    setStatus("Decoded using AAMVA magstripe conventions. Track 3 token prioritized for ID; track 2 used as fallback.");
                 }
             } catch (e) {
                 console.error(e);
