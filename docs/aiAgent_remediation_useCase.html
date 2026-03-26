@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Maintenance Agent Model – Hotel/Motel/Apartment</title>
+  <!-- Bootswatch (Cosmo theme as example) -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/cosmo/bootstrap.min.css"
+  />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      padding-top: 3.5rem;
+    }
+    pre {
+      background: #1e1e1e;
+      color: #f5f5f5;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
+      overflow-x: auto;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    .badge-pill {
+      border-radius: 10rem;
+    }
+    .section-title {
+      border-left: 4px solid #2780e3;
+      padding-left: 0.75rem;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">AI Maintenance Agent</a>
+    </div>
+  </nav>
+
+  <main class="container mb-5">
+    <!-- Header -->
+    <section class="mt-4">
+      <h1 class="mb-2">Autonomous Maintenance Agent</h1>
+      <p class="lead">
+        A single maintenance crew, watching a unified JSON data model for rooms that need remediation in a
+        hotel / motel / apartment property.
+      </p>
+      <p>
+        The agent continuously inspects room states, creates maintenance tickets, and alerts the crew whenever
+        a room reflects a <strong>needs maintenance</strong> status—no extra ceremony, full auditability.
+      </p>
+    </section>
+
+    <!-- 1. JSON Data Model -->
+    <section>
+      <h2 class="section-title">1. JSON data model for rooms</h2>
+      <p>
+        Each room in the property is represented in a JSON structure. The agent treats this as the
+        <strong>source of truth</strong> for operational state.
+      </p>
+
+      <h5>1.1 Example property JSON</h5>
+      <pre><code>{
+  "propertyId": "PROP-001",
+  "name": "Downtown Suites",
+  "type": "HOTEL_MOTEL_APARTMENT",
+  "rooms": [
+    {
+      "roomId": "210",
+      "floor": 2,
+      "type": "STUDIO",
+      "status": "OCCUPIED",
+      "maintenanceStatus": "NEEDS_MAINTENANCE",
+      "flags": {
+        "needsCleaning": false,
+        "maintenanceIssue": true
+      },
+      "amenities": {
+        "internet": { "wifiStatus": "UP" },
+        "tv": { "tvStatus": "OUT_OF_SERVICE" },
+        "phone": { "phoneStatus": "OPERATIONAL" }
+      },
+      "maintenance": {
+        "activeTicketId": null,
+        "history": []
+      }
+    }
+  ],
+  "maintenanceTickets": []
+}</code></pre>
+
+      <p>
+        The key field for triggering the agent is
+        <code>maintenanceStatus</code> (e.g. <code>"NEEDS_MAINTENANCE"</code>), plus any supporting flags or
+        amenity states.
+      </p>
+    </section>
+
+    <!-- 2. Detection Logic -->
+    <section>
+      <h2 class="section-title">2. Detection logic for maintenance needs</h2>
+      <p>
+        The AI agent continuously scans the JSON model (or diffs between snapshots) to find rooms that require
+        remediation. A room is considered in need of maintenance if any of the following conditions are true:
+      </p>
+      <ul>
+        <li><strong>Primary status:</strong> <code>maintenanceStatus === "NEEDS_MAINTENANCE"</code></li>
+        <li><strong>Flags:</strong> <code>flags.maintenanceIssue === true</code></li>
+        <li><strong>Amenities:</strong> TV, phone, or internet marked as out of service</li>
+      </ul>
+
+      <h5>2.1 Conceptual detection function</h5>
+      <pre><code>function detectMaintenanceRooms(propertyJson) {
+  return propertyJson.rooms.filter((room) =&gt; {
+    const needsMaintenance =
+      room.maintenanceStatus === "NEEDS_MAINTENANCE" ||
+      room.flags?.maintenanceIssue === true ||
+      room.amenities?.tv?.tvStatus === "OUT_OF_SERVICE" ||
+      room.amenities?.phone?.phoneStatus === "OUT_OF_SERVICE" ||
+      room.amenities?.internet?.wifiStatus === "DOWN";
+
+    return needsMaintenance;
+  });
+}</code></pre>
+
+      <p>
+        This function returns a list of rooms that should generate or update maintenance tickets and trigger
+        alerts to the crew.
+      </p>
+    </section>
+
+    <!-- 3. Ticket Model -->
+    <section>
+      <h2 class="section-title">3. Maintenance ticket model</h2>
+      <p>
+        When a room is detected as needing maintenance, the agent creates a <strong>maintenance ticket</strong>.
+        All tickets are stored in a global registry and linked back to the room.
+      </p>
+
+      <h5>3.1 Ticket JSON schema</h5>
+      <pre><code>{
+  "ticketId": "MT-20260326-001",
+  "roomId": "210",
+  "issueType": "TV_OUTAGE",
+  "detectedAt": "2026-03-26T23:38:00Z",
+  "priority": "MEDIUM",
+  "status": "OPEN",
+  "assignedTo": "CREW-1",
+  "notes": []
+}</code></pre>
+
+      <p><strong>Priority rules:</strong></p>
+      <ul>
+        <li><span class="badge bg-danger badge-pill">HIGH</span> safety, leaks, electrical, HVAC failure</li>
+        <li><span class="badge bg-warning text-dark badge-pill">MEDIUM</span> TV, phone, internet outage</li>
+        <li><span class="badge bg-secondary badge-pill">LOW</span> cosmetic issues, minor flags</li>
+      </ul>
+
+      <h5>3.2 Ticket creation logic (simplified)</h5>
+      <pre><code>function createTicketForRoom(room) {
+  const issueType = deriveIssueType(room); // e.g. "TV_OUTAGE", "WIFI_DOWN"
+  const priority = derivePriority(issueType);
+
+  return {
+    ticketId: `MT-${Date.now()}`,
+    roomId: room.roomId,
+    issueType,
+    detectedAt: new Date().toISOString(),
+    priority,
+    status: "OPEN",
+    assignedTo: "CREW-1",
+    notes: []
+  };
+}</code></pre>
+    </section>
+
+    <!-- 4. Alerting the Crew -->
+    <section>
+      <h2 class="section-title">4. Alerting the single maintenance crew</h2>
+      <p>
+        The property has one maintenance crew. The agent’s job is to send clear, actionable alerts whenever a
+        new ticket is created or an existing one changes state.
+      </p>
+
+      <p><strong>Possible channels:</strong></p>
+      <ul>
+        <li><strong>Dashboard panel:</strong> a live list of open tickets</li>
+        <li><strong>Push / SMS / chat:</strong> message to a crew device or channel</li>
+        <li><strong>In‑app banner:</strong> visible inside an operator console</li>
+      </ul>
+
+      <h5>4.1 Alert payload example</h5>
+      <pre><code>{
+  "alertType": "MAINTENANCE_REQUIRED",
+  "roomId": "210",
+  "issue": "TV is OUT_OF_SERVICE",
+  "priority": "MEDIUM",
+  "ticketId": "MT-20260326-001",
+  "timestamp": "2026-03-26T23:38:00Z"
+}</code></pre>
+
+      <h5>4.2 Pseudo alert dispatch</h5>
+      <pre><code>function dispatchAlert(ticket, room) {
+  const alertPayload = {
+    alertType: "MAINTENANCE_REQUIRED",
+    roomId: room.roomId,
+    issue: ticket.issueType,
+    priority: ticket.priority,
+    ticketId: ticket.ticketId,
+    timestamp: ticket.detectedAt
+  };
+
+  // Example: send to a crew dashboard or messaging endpoint
+  sendToCrewChannel(alertPayload);
+}</code></pre>
+    </section>
+
+    <!-- 5. Lifecycle -->
+    <section>
+      <h2 class="section-title">5. Ticket and room lifecycle</h2>
+      <p>
+        The AI agent doesn’t just create tickets—it manages the full lifecycle and keeps the JSON model in sync
+        with reality.
+      </p>
+
+      <h5>5.1 Ticket states</h5>
+      <ul>
+        <li><strong>OPEN:</strong> issue detected</li>
+        <li><strong>ACKNOWLEDGED:</strong> crew has seen the ticket</li>
+        <li><strong>IN_PROGRESS:</strong> crew is working on the issue</li>
+        <li><strong>RESOLVED:</strong> crew reports fix completed</li>
+        <li><strong>VERIFIED:</strong> system confirms room is operational again</li>
+      </ul>
+
+      <h5>5.2 Lifecycle transitions (conceptual)</h5>
+      <pre><code>function resolveTicket(ticket, room, propertyJson) {
+  ticket.status = "RESOLVED";
+  ticket.resolvedAt = new Date().toISOString();
+
+  // Update room state
+  room.maintenanceStatus = "OK";
+  room.flags.maintenanceIssue = false;
+  if (room.amenities.tv.tvStatus === "OUT_OF_SERVICE") {
+    room.amenities.tv.tvStatus = "OPERATIONAL";
+  }
+
+  // Link ticket to room history
+  room.maintenance.activeTicketId = null;
+  room.maintenance.history.push(ticket.ticketId);
+
+  // Optionally: write an audit log entry
+  appendAuditLog(propertyJson, {
+    type: "MAINTENANCE_RESOLVED",
+    roomId: room.roomId,
+    ticketId: ticket.ticketId,
+    timestamp: ticket.resolvedAt
+  });
+}</code></pre>
+    </section>
+
+    <!-- 6. Agent Loop -->
+    <section>
+      <h2 class="section-title">6. AI agent loop (high-level)</h2>
+      <p>
+        The AI maintenance agent runs in a loop (or reacts to events) and keeps the property model aligned with
+        real‑world maintenance activity.
+      </p>
+
+      <pre><code>function maintenanceAgentTick(propertyJson) {
+  // 1. Detect rooms needing maintenance
+  const roomsNeedingMaintenance = detectMaintenanceRooms(propertyJson);
+
+  // 2. For each room, ensure a ticket exists and crew is alerted
+  roomsNeedingMaintenance.forEach((room) =&gt; {
+    if (!room.maintenance.activeTicketId) {
+      const ticket = createTicketForRoom(room);
+      propertyJson.maintenanceTickets.push(ticket);
+      room.maintenance.activeTicketId = ticket.ticketId;
+      dispatchAlert(ticket, room);
+    }
+  });
+
+  // 3. Optionally, reconcile resolved tickets and verify room states
+  reconcileResolvedTickets(propertyJson);
+}</code></pre>
+
+      <p>
+        This loop can be triggered on a schedule, on every JSON update, or via a streaming event system—whatever
+        best matches your operational environment.
+      </p>
+    </section>
+
+    <!-- 7. Summary -->
+    <section class="mt-4">
+      <h2 class="section-title">7. Summary</h2>
+      <p>
+        You now have a clear, operator‑centric AI agent model that:
+      </p>
+      <ul>
+        <li><strong>Watches</strong> the JSON data model for rooms needing maintenance</li>
+        <li><strong>Creates</strong> structured maintenance tickets with priorities</li>
+        <li><strong>Alerts</strong> a single maintenance crew with concise payloads</li>
+        <li><strong>Tracks</strong> ticket and room lifecycle with full auditability</li>
+      </ul>
+      <p>
+        This single‑page design can be dropped into your simulator or documentation stack as the canonical
+        description of your autonomous remediation agent.
+      </p>
+    </section>
+  </main>
+
+  <!-- Optional Bootstrap JS (not required for static content, but included for completeness) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
