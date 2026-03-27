@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>AI Agent Suite – README</title>
+
+    <!-- Bootswatch Cosmo Theme -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/cosmo/bootstrap.min.css" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <style>
+        body {
+            padding-top: 3.5rem;
+        }
+
+        pre {
+            background: #1e1e1e;
+            color: #f5f5f5;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .section-title {
+            border-left: 4px solid #2780e3;
+            padding-left: 0.75rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .badge-pill {
+            border-radius: 10rem;
+        }
+
+        .agent-card {
+            border: 1px solid #e1e1e1;
+            border-radius: 0.5rem;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1rem;
+            background: #ffffff;
+        }
+
+        .agent-card h5 {
+            margin-bottom: 0.25rem;
+        }
+
+        .agent-tag {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">AI Agent Suite – README</a>
+        </div>
+    </nav>
+
+    <main class="container mb-5">
+
+        <!-- Header -->
+        <section class="mt-4">
+            <h1 class="mb-2">AI Agent Suite Overview</h1>
+            <p class="lead">
+                A family of domain‑specific AI agents designed around real operational workflows: maintenance,
+                logistics,
+                predictive risk, and agriculture.
+            </p>
+            <p>
+                Each agent has a clear mandate, a concrete data model, and an operator‑centric loop: sense → understand
+                →
+                decide → act. This README ties them together and explains why they were created.
+            </p>
+        </section>
+
+        <!-- 1. Agent Catalog -->
+        <section>
+            <h2 class="section-title">1. Agent catalog</h2>
+            <p>
+                The suite currently includes five primary agents, each focused on a different domain but sharing a
+                common
+                architectural pattern.
+            </p>
+
+            <div class="agent-card">
+                <div class="agent-tag text-muted">Maintenance / Hospitality</div>
+                <h5>1.1 Autonomous Maintenance Agent</h5>
+                <p>
+                    Watches a hotel/motel/apartment JSON model for rooms that need maintenance, creates tickets, alerts
+                    a
+                    single crew, and tracks remediation lifecycle.
+                </p>
+                <ul>
+                    <li>Monitors room states and amenity status</li>
+                    <li>Generates maintenance tickets with priorities</li>
+                    <li>Alerts the maintenance crew with clear payloads</li>
+                    <li>Updates room history and audit logs on resolution</li>
+                </ul>
+            </div>
+
+            <div class="agent-card">
+                <div class="agent-tag text-muted">Logistics / Real‑Time</div>
+                <h5>1.2 Real‑Time Logistics Assignment Agent</h5>
+                <p>
+                    Listens to a stream of logistics events (location updates, pickups, deliveries), maintains
+                    asset/load
+                    state, and assigns new loads the moment a truck becomes free.
+                </p>
+                <ul>
+                    <li>Consumes asset and load events in real time</li>
+                    <li>Detects when trucks become idle and assignable</li>
+                    <li>Matches free assets to nearby loads</li>
+                    <li>Emits assignment alerts for dispatchers and drivers</li>
+                </ul>
+            </div>
+
+            <div class="agent-card">
+                <div class="agent-tag text-muted">Logistics / Predictive</div>
+                <h5>1.3 Predictive Logistics Risk Agent</h5>
+                <p>
+                    Uses historical and real‑time data to predict late deliveries, capacity shortages, and at‑risk
+                    loads,
+                    then recommends proactive interventions.
+                </p>
+                <ul>
+                    <li>Predicts ETA and late‑risk scores for loads</li>
+                    <li>Forecasts lane‑level capacity vs demand</li>
+                    <li>Generates escalation and mitigation recommendations</li>
+                    <li>Hands off re‑power scenarios to the real‑time agent</li>
+                </ul>
+            </div>
+
+            <div class="agent-card">
+                <div class="agent-tag text-muted">Agriculture / RAG</div>
+                <h5>1.4 RAG Agriculture Agent (Knowledge‑Grounded)</h5>
+                <p>
+                    Combines IoT sensor data with retrieved agronomy knowledge to generate context‑aware recommendations
+                    for irrigation and fertilization.
+                </p>
+                <ul>
+                    <li>Reads soil and weather sensors in real time</li>
+                    <li>Retrieves crop‑specific best‑practice documents</li>
+                    <li>Generates explainable recommendations per field</li>
+                    <li>Targets higher yield via better timing of inputs</li>
+                </ul>
+            </div>
+
+            <div class="agent-card">
+                <div class="agent-tag text-muted">Agriculture / CAG</div>
+                <h5>1.5 CAG Predictive Agriculture Agent</h5>
+                <p>
+                    A Contextualized, Adaptive, Generative agent that learns from field history, predicts stress and
+                    yield
+                    impacts, and produces proactive multi‑step action plans.
+                </p>
+                <ul>
+                    <li>Builds a rich context graph for each field</li>
+                    <li>Adapts predictive models as new seasons and data arrive</li>
+                    <li>Forecasts moisture stress, nutrient deficits, and yield loss</li>
+                    <li>Generates irrigation and fertilization plans to protect yield</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- 2. Shared Design Pattern -->
+        <section>
+            <h2 class="section-title">2. Shared design pattern</h2>
+            <p>
+                Although each agent operates in a different domain, they share a common architecture that makes them
+                composable and understandable.
+            </p>
+
+            <h5>2.1 Core loop</h5>
+            <pre><code>// Pseudocode for the shared agent pattern
+function agentTick(domainState, models, now) {
+  const context = buildContext(domainState, now);   // rooms, trucks, fields, etc.
+  const signals = detectOrPredict(context, models); // issues, free assets, risks, stress
+  const actions = decideActions(context, signals);  // tickets, assignments, plans
+  applyActions(domainState, actions);               // update state, alert operators
+}</code></pre>
+
+            <p>
+                This pattern appears in:
+            </p>
+            <ul>
+                <li>Maintenance: detect rooms needing remediation → create tickets → alert crew</li>
+                <li>Logistics: detect free trucks → assign loads → notify drivers</li>
+                <li>Predictive logistics: detect at‑risk loads → recommend re‑power/expedite</li>
+                <li>Agriculture: detect/predict stress → recommend irrigation/fertilization</li>
+            </ul>
+        </section>
+
+        <!-- 3. Reasons for Creation -->
+        <section>
+            <h2 class="section-title">3. Reasons these agents were created</h2>
+            <p>
+                These agents weren’t designed as abstract demos; they were shaped around real operator pain points and
+                the need for clear, inspectable automation.
+            </p>
+
+            <h5>3.1 Operator‑centric automation</h5>
+            <p>
+                Each agent is built to serve a human operator (maintenance crew, dispatcher, planner, grower) by:
+            </p>
+            <ul>
+                <li>Reducing manual monitoring and triage</li>
+                <li>Surfacing only the most relevant signals</li>
+                <li>Providing structured, explainable actions</li>
+                <li>Maintaining full auditability of decisions</li>
+            </ul>
+
+            <h5>3.2 Bridging real‑time and predictive views</h5>
+            <p>
+                The suite intentionally spans both reactive and predictive modes:
+            </p>
+            <ul>
+                <li>Reactive agents (maintenance, real‑time logistics) keep operations flowing minute‑to‑minute.</li>
+                <li>Predictive agents (logistics risk, CAG agriculture) look hours or days ahead to prevent crises.</li>
+            </ul>
+
+            <h5>3.3 Domain‑grounded experimentation</h5>
+            <p>
+                By anchoring each agent in a concrete domain (rooms, trucks, fields), you get:
+            </p>
+            <ul>
+                <li>Realistic data models and event flows</li>
+                <li>Clear success metrics (uptime, on‑time rate, yield)</li>
+                <li>A sandbox for testing AI patterns (RAG, CAG, streaming, forecasting)</li>
+            </ul>
+        </section>
+
+        <!-- 4. How Agents Interact -->
+        <section>
+            <h2 class="section-title">4. How these agents can interact</h2>
+            <p>
+                While each agent can run independently, the architecture anticipates cross‑agent coordination.
+            </p>
+
+            <ul>
+                <li>
+                    <strong>Logistics predictive → real‑time:</strong> risk agent flags a high‑risk load and proposes a
+                    re‑power; the real‑time agent evaluates and executes the new assignment.
+                </li>
+                <li>
+                    <strong>Agriculture CAG → irrigation control:</strong> CAG agent predicts stress and sends a
+                    schedule/volume plan to an irrigation controller.
+                </li>
+                <li>
+                    <strong>Maintenance → predictive models:</strong> maintenance history feeds future failure‑rate
+                    models for equipment or rooms.
+                </li>
+            </ul>
+
+            <p>
+                This turns the suite from a set of isolated tools into a loosely coupled ecosystem.
+            </p>
+        </section>
+
+        <!-- 5. Extending the Suite -->
+        <section>
+            <h2 class="section-title">5. Extending the agent suite</h2>
+            <p>
+                New agents can be added by following the same pattern:
+            </p>
+            <ol>
+                <li><strong>Define the domain state:</strong> JSON model of entities and events.</li>
+                <li><strong>Clarify the operator:</strong> who uses the agent and what decisions they make today.</li>
+                <li><strong>Choose the mode:</strong> reactive (event‑driven), predictive, or hybrid.</li>
+                <li><strong>Design the loop:</strong> context → detect/predict → decide → act.</li>
+                <li><strong>Make outputs structured:</strong> tickets, assignments, plans, alerts.</li>
+            </ol>
+
+            <p>
+                Examples of future agents:
+            </p>
+            <ul>
+                <li>Energy optimization agent for buildings or farms</li>
+                <li>Manufacturing quality agent using sensor and defect data</li>
+                <li>Financial risk agent for cash‑flow and credit exposure</li>
+            </ul>
+        </section>
+
+        <!-- 6. Quick Reference -->
+        <section class="mt-4">
+            <h2 class="section-title">6. Quick reference</h2>
+            <p>
+                Short descriptions you can use as anchors in docs or UI:
+            </p>
+            <ul>
+                <li><strong>Maintenance Agent:</strong> “Detects and dispatches room maintenance tasks.”</li>
+                <li><strong>Logistics Assignment Agent:</strong> “Keeps trucks busy by assigning loads in real time.”
+                </li>
+                <li><strong>Predictive Logistics Agent:</strong> “Forecasts late loads and capacity gaps before they
+                    hit.”</li>
+                <li><strong>RAG Agriculture Agent:</strong> “Grounds field decisions in agronomy knowledge.”</li>
+                <li><strong>CAG Agriculture Agent:</strong> “Learns your fields and predicts stress and yield impacts.”
+                </li>
+            </ul>
+        </section>
+
+    </main>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
