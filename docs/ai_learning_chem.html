@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>AI Periodic Table – Study Sheet</title>
+    <style>
+        :root {
+            --bg: #05060a;
+            --card: #101320;
+            --accent: #4fd1c5;
+            --accent-soft: rgba(79, 209, 197, 0.12);
+            --text-main: #f7fafc;
+            --text-soft: #a0aec0;
+            --border-subtle: #2d3748;
+            --danger: #f56565;
+            --success: #48bb78;
+            --warning: #ecc94b;
+            --muted: #4a5568;
+            --mono: "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: var(--sans);
+            background: radial-gradient(circle at top, #1a202c 0, #05060a 55%);
+            color: var(--text-main);
+        }
+
+        .page {
+            max-width: 1120px;
+            margin: 0 auto;
+        }
+
+        h1,
+        h2,
+        h3 {
+            margin: 0 0 8px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
+        h1 {
+            font-size: 1.9rem;
+        }
+
+        h2 {
+            font-size: 1.3rem;
+            margin-top: 24px;
+        }
+
+        p {
+            margin: 4px 0 10px;
+            color: var(--text-soft);
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(79, 209, 197, 0.08);
+            color: var(--accent);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .pill span {
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            color: var(--text-soft);
+        }
+
+        .grid-shell {
+            margin-top: 18px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(79, 209, 197, 0.12), rgba(56, 178, 172, 0.02));
+            padding: 1px;
+        }
+
+        .grid-inner {
+            background: radial-gradient(circle at top left, #111827 0, #05060a 60%);
+            border-radius: 15px;
+            padding: 16px;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            color: var(--text-soft);
+        }
+
+        .legend-swatch {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+        }
+
+        /* Legend swatches (ensure exact same colors used below) */
+        .legend-swatch.primitive {
+            background: #4fd1c5;
+        }
+
+        .legend-swatch.composition {
+            background: #63b3ed;
+        }
+
+        .legend-swatch.deployment {
+            background: #f6ad55;
+        }
+
+        .legend-swatch.emerging {
+            background: #ed64a6;
+        }
+
+        .matrix {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-size: 0.8rem;
+            margin-top: 6px;
+        }
+
+        .matrix th,
+        .matrix td {
+            border: 1px solid rgba(75, 85, 99, 0.7);
+            padding: 6px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .matrix th {
+            font-weight: 500;
+            color: var(--text-soft);
+            background: rgba(15, 23, 42, 0.9);
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .row-label {
+            font-weight: 500;
+            color: var(--text-soft);
+            background: rgba(15, 23, 42, 0.9);
+            text-align: left;
+            padding-left: 8px;
+            width: 120px;
+        }
+
+        .cell {
+            position: relative;
+            cursor: pointer;
+            border-radius: 8px;
+            padding: 6px 4px;
+            min-height: 46px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.6));
+            transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, border-color 0.08s ease-out, background 0.08s ease-out;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+        }
+
+        .cell.empty {
+            cursor: default;
+            opacity: 0.25;
+            background: transparent;
+            border-style: dashed;
+        }
+
+        .cell:hover:not(.empty) {
+            transform: translateY(-1px);
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 10px 25px rgba(15, 23, 42, 0.9);
+            border-color: rgba(255, 255, 255, 0.12);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(15, 23, 42, 0.95));
+        }
+
+        .abbr {
+            font-family: var(--mono);
+            font-size: 0.8rem;
+            color: var(--accent);
+        }
+
+        .name {
+            font-size: 0.7rem;
+            color: var(--text-soft);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .gen-tag {
+            position: absolute;
+            top: 4px;
+            right: 6px;
+            font-size: 0.6rem;
+            color: var(--muted);
+            font-family: var(--mono);
+        }
+
+        /* Row color treatments — subtle tinted backgrounds + border accent */
+        .row-primitive .cell {
+            background: linear-gradient(180deg, rgba(79, 209, 197, 0.06), rgba(15, 23, 42, 0.6));
+            border: 1px solid rgba(79, 209, 197, 0.18);
+        }
+
+        .row-composition .cell {
+            background: linear-gradient(180deg, rgba(99, 179, 237, 0.06), rgba(15, 23, 42, 0.6));
+            border: 1px solid rgba(99, 179, 237, 0.18);
+        }
+
+        .row-deployment .cell {
+            background: linear-gradient(180deg, rgba(246, 173, 85, 0.06), rgba(15, 23, 42, 0.6));
+            border: 1px solid rgba(246, 173, 85, 0.18);
+        }
+
+        .row-emerging .cell {
+            background: linear-gradient(180deg, rgba(237, 100, 166, 0.06), rgba(15, 23, 42, 0.6));
+            border: 1px solid rgba(237, 100, 166, 0.18);
+        }
+
+        /* Accent the abbreviation and generation tag to match row color */
+        .row-primitive .abbr,
+        .row-primitive .gen-tag {
+            color: #4fd1c5;
+        }
+
+        .row-composition .abbr,
+        .row-composition .gen-tag {
+            color: #63b3ed;
+        }
+
+        .row-deployment .abbr,
+        .row-deployment .gen-tag {
+            color: #f6ad55;
+        }
+
+        .row-emerging .abbr,
+        .row-emerging .gen-tag {
+            color: #ed64a6;
+        }
+
+        .detail-panel {
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            font-size: 0.85rem;
+        }
+
+        .detail-title {
+            font-family: var(--mono);
+            font-size: 0.85rem;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        .detail-meta {
+            font-size: 0.75rem;
+            color: var(--text-soft);
+            margin-bottom: 6px;
+        }
+
+        .detail-meta span {
+            margin-right: 10px;
+        }
+
+        .detail-body {
+            color: var(--text-soft);
+            line-height: 1.5;
+        }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr);
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .card {
+            background: rgba(15, 23, 42, 0.95);
+            border-radius: 14px;
+            padding: 14px 16px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+        }
+
+        .card h3 {
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+        }
+
+        .badge-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .badge {
+            font-size: 0.7rem;
+            padding: 3px 7px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            color: var(--text-soft);
+            background: rgba(15, 23, 42, 0.9);
+        }
+
+        .badge.key {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .quiz {
+            margin-top: 20px;
+        }
+
+        .quiz-item {
+            margin-bottom: 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            font-size: 0.85rem;
+        }
+
+        .quiz-item p {
+            margin-bottom: 6px;
+            color: var(--text-main);
+        }
+
+        .quiz-options {
+            display: grid;
+            gap: 4px;
+        }
+
+        .quiz-options label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--text-soft);
+            cursor: pointer;
+        }
+
+        .quiz-options input {
+            accent-color: var(--accent);
+        }
+
+        .quiz-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: var(--text-soft);
+        }
+
+        .btn {
+            border: none;
+            border-radius: 999px;
+            padding: 6px 14px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            background: linear-gradient(135deg, #4fd1c5, #63b3ed);
+            color: #0b1120;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.9);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn span {
+            font-family: var(--mono);
+            font-size: 0.75rem;
+        }
+
+        .quiz-result {
+            margin-top: 6px;
+            font-size: 0.8rem;
+        }
+
+        .quiz-result.ok {
+            color: var(--success);
+        }
+
+        .quiz-result.bad {
+            color: var(--danger);
+        }
+
+        .mapping-list {
+            list-style: none;
+            padding-left: 0;
+            margin: 6px 0 0;
+            font-size: 0.8rem;
+            color: var(--text-soft);
+        }
+
+        .mapping-list li {
+            margin-bottom: 4px;
+        }
+
+        .mapping-list code {
+            font-family: var(--mono);
+            font-size: 0.75rem;
+            background: rgba(15, 23, 42, 0.9);
+            padding: 2px 5px;
+            border-radius: 6px;
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            color: var(--accent);
+        }
+
+        @media (max-width: 800px) {
+            body {
+                padding: 16px;
+            }
+
+            .two-col {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .row-label {
+                width: 90px;
+                font-size: 0.7rem;
+            }
+
+            .matrix th {
+                font-size: 0.7rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">
+            <div>
+                <h1>AI Periodic Table – Study Mode</h1>
+                <p>
+                    Use this page to <strong>learn</strong> and then <strong>prove</strong> you understand the
+                    “periodic table” of AI technologies: generations (G1–G5) × layers
+                    (Primitives → Emerging).
+                </p>
+            </div>
+            <div>
+                <div class="pill">
+                    AI Stack Segment
+                    <span>G1–G5 · 4 Layers</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- MATRIX -->
+        <h2>1. Explore the matrix</h2>
+        <p>Click any cell to see what it means and why it matters.</p>
+
+        <div class="grid-shell">
+            <div class="grid-inner">
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-swatch primitive"></div>
+                        Primitives
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-swatch composition"></div>
+                        Compositions
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-swatch deployment"></div>
+                        Deployment
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-swatch emerging"></div>
+                        Emerging
+                    </div>
+                </div>
+
+                <table class="matrix">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>G1<br>Reactive</th>
+                            <th>G2<br>Retrieval</th>
+                            <th>G3<br>Orchestration</th>
+                            <th>G4<br>Validation</th>
+                            <th>G5<br>Models</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Row 1: Primitives -->
+                        <tr class="row-primitive">
+                            <td class="row-label">Row 1<br>Primitives</td>
+                            <td>
+                                <div class="cell" data-key="Pr" data-title="Pr — Prompts" data-row="Row 1 · Primitives"
+                                    data-col="G1 · Reactive"
+                                    data-body="Prompts are natural-language instructions given to a model. They are the simplest way to control behavior and define the task, context, and constraints. Everything else in the stack still depends on good prompting.">
+                                    <div class="gen-tag">G1</div>
+                                    <div class="abbr">Pr</div>
+                                    <div class="name">Prompts</div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="cell" data-key="Em" data-title="Em — Embeddings"
+                                    data-row="Row 1 · Primitives" data-col="G2 · Retrieval"
+                                    data-body="Embeddings turn text (or other data) into vectors that capture semantic meaning. They are the primitive that powers similarity search, memory, and retrieval.">
+                                    <div class="gen-tag">G2</div>
+                                    <div class="abbr">Em</div>
+                                    <div class="name">Embeddings</div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="cell empty"></div>
+                            </td>
+                            <td>
+                                <div class="cell empty"></div>
+                            </td>
+                            <td>
+                                <div class="cell" data-key="Lg" data-title="Lg — LLM" data-row="Row 1 · Primitives"
+                                    data-col="G5 · Models"
+                                    data-body="Large Language Models (LLMs) are the core generative engines. They map text (and sometimes other modalities) to text, enabling reasoning, generation, and interaction.">
+                                    <div class="gen-tag">G5</div>
+                                    <div class="abbr">Lg</div>
+                                    <div class="name">LLM</div>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Row 2: Compositions -->
+                        <tr class="row-composition">
+                            <td class="row-label">Row 2<br>Compositions</td>
+                            <td>
+                                <div class="cell" data-key="Fc" data-title="Fc — Function Call"
+                                    data-row="Row 2 · Compositions" data-col="G1 · Reactive"
+                                    data-body="Function calling lets an LLM decide when to call tools, APIs, or code. It turns the model from a pure text generator into a controller that can act in the world.">
+                                    <div class="gen-tag">G1</div>
+                                    <div class="abbr">Fc</div>
+                                    <div class="name">Function call</div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="cell" data-key="Vx" data-title="Vx — Vector" data-row="Row 2 · Compositions"
+                                    data-col="G2 · Retrieval"
+                                    data-body="Vector databases store embeddings and support fast similarity search. They are the memory substrate for retrieval-augmented systems.">
+                                    <div class="gen-tag">G2</div>
+                                    <div class="abbr">Vx</div>
+                                    <div class="name">Vector</div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="cell" data-key="Rg" data-title="Rg — RAG" data-row="Row 2 · Compositions"
+                                    data-col="G3 · Orchestration"
+                                    data-body="Retrieval-Augmented Generation (RAG) combines a retriever (vectors + embeddings) with an LLM. The model is grounded in external data instead of hallucinating.">
+                                    <div class="gen-tag">G3</div>
+                                    <div class="abbr">Rg</div>
+                                    <div class="name">RAG</div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="cell" data-key="Gr" data-title="Gr — Guardrails"
+                                    data-row="Row 2 · Compositions" data-col="G4 · Validation"
+                                    data-body="Guardrails enforce policies, constraints, and safety checks around model outputs. They help keep systems aligned with business, legal, and ethical requirements.">
+                                    <div class="gen-tag">G4</div>
+                                    <div class="abbr">Gr</div>
+                                    <div class="name">Guardrails</div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="cell" data-key="Mm" data-title="Mm — Multimodal"
+                                    data-row="Row 2 · Compositions" data-col="G5 · Models"
+                                    data-body="Multimodal models can work across text, images, audio, and sometimes video. They unify perception and language into a single reasoning system.">
+                                    <div class="gen-tag">G5</div>
+                                    <div class="abbr">Mm</div>
+                                    <div class="name">Multimodal</div>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Row 3: Deployment -->
+                        <tr class="row-deployment">
+                            <td class="row-label">Row 3<br>Deployment</td>
+                            <td>
+                                <div class="cell" data-key="Ag" data-title="Ag — Agent" data-row="Row 3 · Deployment"
+                                    data-col="G1 · Reactive"
+                                    data-body="Agents are systems that use models plus tools, memory, and goals to act over time. They move from single responses to multi-step behavior.">
+                                    <div class="gen-tag">G1</div>
+                                    <div class="abbr">Ag</div>
+                                    <div class="name">Agent</div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="cell" data-key="Ft" data-title="Ft — Finetune" data-row="Row 3 · Deployment"
+                                    data-col="G2 · Retrieval"
+                                    data-body="Finetuning adapts a base model to a specific domain or task using additional training data. It encodes domain knowledge directly into the weights.">
+                                    <div class="gen-tag">G2</div>
+                                    <div class="abbr">Ft</div>
+                                    <div class="name">Finetune</div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="cell" data-key="Fw" data-title="Fw — Framework"
+                                    data-row="Row 3 · Deployment" data-col="G3 · Orchestration"
+                                    data-body="Frameworks (like LangChain or LlamaIndex) provide building blocks to wire models, tools, retrieval, and workflows into full applications.">
+                                    <div class="gen-tag">G3</div>
+                                    <div class="abbr">Fw</div>
+                                    <div class="name">Framework</div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="cell" data-key="Re" data-title="Re — Red-team" data-row="Row 3 · Deployment"
+                                    data-col="G4 · Validation"
+                                    data-body="Red-teaming is adversarial testing of AI systems. It probes for failures, vulnerabilities, and unsafe behavior before deployment.">
+                                    <div class="gen-tag">G4</div>
+                                    <div class="abbr">Re</div>
+                                    <div class="name">Red-team</div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="cell" data-key="Sm" data-title="Sm — Small Models"
+                                    data-row="Row 3 · Deployment" data-col="G5 · Models"
+                                    data-body="Small models are efficient, specialized models that can run cheaply or on edge devices. They complement large models in real deployments.">
+                                    <div class="gen-tag">G5</div>
+                                    <div class="abbr">Sm</div>
+                                    <div class="name">Small</div>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Row 4: Emerging -->
+                        <tr class="row-emerging">
+                            <td class="row-label">Row 4<br>Emerging</td>
+                            <td>
+                                <div class="cell" data-key="Ma" data-title="Ma — Multi-agent"
+                                    data-row="Row 4 · Emerging" data-col="G1 · Reactive"
+                                    data-body="Multi-agent systems coordinate multiple agents that may have different roles or skills. They enable emergent, collaborative problem solving.">
+                                    <div class="gen-tag">G1</div>
+                                    <div class="abbr">Ma</div>
+                                    <div class="name">Multi-agent</div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="cell" data-key="Sy" data-title="Sy — Synthetic" data-row="Row 4 · Emerging"
+                                    data-col="G2 · Retrieval"
+                                    data-body="Synthetic data is generated (often by models) to augment or replace real data. It can be used for training, testing, or simulation.">
+                                    <div class="gen-tag">G2</div>
+                                    <div class="abbr">Sy</div>
+                                    <div class="name">Synthetic</div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="cell empty"></div>
+                            </td>
+                            <td>
+                                <div class="cell" data-key="In" data-title="In — Interpretability"
+                                    data-row="Row 4 · Emerging" data-col="G4 · Validation"
+                                    data-body="Interpretability tools aim to explain how models work internally: which features matter, how decisions are made, and where failures come from.">
+                                    <div class="gen-tag">G4</div>
+                                    <div class="abbr">In</div>
+                                    <div class="name">Interpret.</div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="cell" data-key="Th" data-title="Th — Thinking" data-row="Row 4 · Emerging"
+                                    data-col="G5 · Models"
+                                    data-body="Thinking refers to explicit reasoning patterns like chain-of-thought, planning, and tool-augmented reasoning. It pushes models toward more general problem solving.">
+                                    <div class="gen-tag">G5</div>
+                                    <div class="abbr">Th</div>
+                                    <div class="name">Thinking</div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="detail-panel" id="detail-panel">
+                    <div class="detail-title">Click a cell to inspect an element.</div>
+                    <div class="detail-meta">
+                        <span>Row: —</span>
+                        <span>Column: —</span>
+                    </div>
+                    <div class="detail-body">
+                        This panel will show: what the element is, where it sits in the stack, and why it matters for
+                        building AI systems.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- EXPLANATION CARDS -->
+        <div class="two-col">
+            <div class="card">
+                <h2 style="margin-top:0;">2. Learn the axes</h2>
+                <h3>Rows · Layers of abstraction</h3>
+                <p><strong>Row 1 – Primitives:</strong> the atoms (prompts, embeddings, LLMs).</p>
+                <p><strong>Row 2 – Compositions:</strong> molecules built from primitives (RAG, vectors, guardrails,
+                    multimodal).</p>
+                <p><strong>Row 3 – Deployment:</strong> how systems ship (agents, finetuning, frameworks, red-teaming,
+                    small models).</p>
+                <p><strong>Row 4 – Emerging:</strong> frontier behaviors (multi-agent, synthetic data, interpretability,
+                    thinking).</p>
+
+                <h3>Columns · Generations of capability</h3>
+                <p><strong>G1 – Reactive:</strong> prompt-in, response-out; basic agents and tools.</p>
+                <p><strong>G2 – Retrieval:</strong> memory and search via embeddings and vectors.</p>
+                <p><strong>G3 – Orchestration:</strong> frameworks and RAG pipelines wiring components together.</p>
+                <p><strong>G4 – Validation:</strong> guardrails, red-teaming, interpretability.</p>
+                <p><strong>G5 – Models:</strong> frontier model capabilities: LLMs, multimodal, small models, explicit
+                    thinking.</p>
+
+                <div class="badge-row">
+                    <div class="badge key">Mental model</div>
+                    <div class="badge">Atoms → Molecules → Systems → Ecosystems</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 style="margin-top:0;">3. Map to real systems</h2>
+                <p>Use this as a quick “translation” from the table to real-world stacks.</p>
+                <ul class="mapping-list">
+                    <li><code>Pr + Lg</code> → simple chat assistant with good prompting.</li>
+                    <li><code>Em + Vx + Rg</code> → retrieval-augmented knowledge base.</li>
+                    <li><code>Fc + Ag + Fw</code> → tool-using AI agent built on a framework.</li>
+                    <li><code>Gr + Re + In</code> → safety and validation layer for enterprise AI.</li>
+                    <li><code>Ma + Sy + Th</code> → experimental multi-agent, synthetic-data, reasoning-heavy systems.
+                    </li>
+                </ul>
+                <p style="margin-top:8px;">
+                    When you design an AI application, you’re basically choosing which
+                    <strong>row</strong> you’re operating in and which <strong>generation</strong> you’re leaning on.
+                </p>
+            </div>
+        </div>
+
+        <!-- QUIZ -->
+        <div class="card quiz">
+            <h2 style="margin-top:0;">4. Quick self-check quiz</h2>
+
+            <div class="quiz-item" data-answer="b">
+                <p>1. Which combination best describes a classic RAG system?</p>
+                <div class="quiz-options">
+                    <label><input type="radio" name="q1" value="a"> a) Prompts + Guardrails + Thinking</label>
+                    <label><input type="radio" name="q1" value="b"> b) Embeddings + Vector DB + LLM</label>
+                    <label><input type="radio" name="q1" value="c"> c) Multi-agent + Synthetic data</label>
+                </div>
+            </div>
+
+            <div class="quiz-item" data-answer="c">
+                <p>2. Where do <strong>Guardrails (Gr)</strong> sit in the matrix?</p>
+                <div class="quiz-options">
+                    <label><input type="radio" name="q2" value="a"> a) Row 1 · Primitives, G1 · Reactive</label>
+                    <label><input type="radio" name="q2" value="b"> b) Row 3 · Deployment, G3 · Orchestration</label>
+                    <label><input type="radio" name="q2" value="c"> c) Row 2 · Compositions, G4 · Validation</label>
+                </div>
+            </div>
+
+            <div class="quiz-item" data-answer="a">
+                <p>3. Which row is most about <strong>frontier / emerging</strong> behaviors?</p>
+                <div class="quiz-options">
+                    <label><input type="radio" name="q3" value="a"> a) Row 4 – Emerging</label>
+                    <label><input type="radio" name="q3" value="b"> b) Row 2 – Compositions</label>
+                    <label><input type="radio" name="q3" value="c"> c) Row 1 – Primitives</label>
+                </div>
+            </div>
+
+            <div class="quiz-item" data-answer="b">
+                <p>4. An enterprise-grade AI app with safety and testing leans heavily on which generation?</p>
+                <div class="quiz-options">
+                    <label><input type="radio" name="q4" value="a"> a) G1 – Reactive</label>
+                    <label><input type="radio" name="q4" value="b"> b) G4 – Validation</label>
+                    <label><input type="radio" name="q4" value="c"> c) G2 – Retrieval</label>
+                </div>
+            </div>
+
+            <div class="quiz-item" data-answer="c">
+                <p>5. <strong>Multi-agent (Ma)</strong> belongs to which conceptual layer?</p>
+                <div class="quiz-options">
+                    <label><input type="radio" name="q5" value="a"> a) Compositions</label>
+                    <label><input type="radio" name="q5" value="b"> b) Deployment</label>
+                    <label><input type="radio" name="q5" value="c"> c) Emerging</label>
+                </div>
+            </div>
+
+            <div class="quiz-footer">
+                <button class="btn" id="check-quiz">
+                    Check answers
+                    <span>⇧</span>
+                </button>
+                <div id="quiz-score" class="quiz-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Detail panel logic
+        const detailPanel = document.getElementById("detail-panel");
+        const detailTitle = detailPanel.querySelector(".detail-title");
+        const detailMeta = detailPanel.querySelector(".detail-meta");
+        const detailBody = detailPanel.querySelector(".detail-body");
+
+        document.querySelectorAll(".cell").forEach(cell => {
+            if (cell.classList.contains("empty")) return;
+            cell.addEventListener("click", () => {
+                const title = cell.dataset.title;
+                const row = cell.dataset.row;
+                const col = cell.dataset.col;
+                const body = cell.dataset.body;
+
+                detailTitle.textContent = title;
+                detailMeta.innerHTML = `<span>${row}</span><span>${col}</span>`;
+                detailBody.textContent = body;
+            });
+        });
+
+        // Quiz logic
+        const quizButton = document.getElementById("check-quiz");
+        const quizScore = document.getElementById("quiz-score");
+
+        quizButton.addEventListener("click", () => {
+            const items = document.querySelectorAll(".quiz-item");
+            let correct = 0;
+            let total = items.length;
+            let unanswered = 0;
+
+            items.forEach((item, index) => {
+                const answer = item.dataset.answer;
+                const name = "q" + (index + 1);
+                const chosen = item.querySelector(`input[name="${name}"]:checked`);
+                if (!chosen) {
+                    unanswered++;
+                    return;
+                }
+                if (chosen.value === answer) {
+                    correct++;
+                }
+            });
+
+            if (unanswered > 0) {
+                quizScore.textContent = `You left ${unanswered} question(s) blank. Fill them in, then check again.`;
+                quizScore.className = "quiz-result bad";
+                return;
+            }
+
+            quizScore.textContent = `Score: ${correct} / ${total} · ${correct === total
+                    ? "Nice. You’ve internalized this segment."
+                    : correct >= Math.ceil(total * 0.6)
+                        ? "Solid grasp. Review the misses and re-run."
+                        : "Keep iterating. Revisit the matrix, then retry."
+                }`;
+            quizScore.className = "quiz-result " + (correct === total ? "ok" : "bad");
+        });
+    </script>
+</body>
+
+</html> a 
