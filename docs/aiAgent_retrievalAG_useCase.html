@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>RAG Agriculture Agent – IoT‑Driven Crop Yield Optimization</title>
+
+    <!-- Bootswatch Cosmo Theme -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/cosmo/bootstrap.min.css" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <style>
+        body {
+            padding-top: 3.5rem;
+        }
+
+        pre {
+            background: #1e1e1e;
+            color: #f5f5f5;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .section-title {
+            border-left: 4px solid #2780e3;
+            padding-left: 0.75rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .badge-pill {
+            border-radius: 10rem;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">RAG Agriculture Agent</a>
+        </div>
+    </nav>
+
+    <main class="container mb-5">
+
+        <!-- Header -->
+        <section class="mt-4">
+            <h1 class="mb-2">RAG‑Powered IoT Agriculture Agent</h1>
+            <p class="lead">
+                A retrieval‑augmented generation (RAG) agent that fuses IoT sensor data with agronomy knowledge to
+                recommend actions that increase crop yield.
+            </p>
+            <p>
+                The agent continuously reads field sensors, retrieves relevant best‑practice guidance, and generates
+                context‑aware recommendations for irrigation, fertilization, and disease prevention.
+            </p>
+        </section>
+
+        <!-- 1. Goal -->
+        <section>
+            <h2 class="section-title">1. Goal and role of the agent</h2>
+            <p>
+                The agent’s primary objective is to <strong>maximize crop yield</strong> while preserving soil health
+                and
+                resource efficiency. It does this by:
+            </p>
+            <ul>
+                <li>Monitoring real‑time IoT sensor data from fields</li>
+                <li>Retrieving agronomy knowledge (research, manuals, local guidelines)</li>
+                <li>Generating tailored recommendations for each plot and crop</li>
+                <li>Explaining the “why” behind each recommendation</li>
+            </ul>
+        </section>
+
+        <!-- 2. Data Model -->
+        <section>
+            <h2 class="section-title">2. IoT sensor and field data model</h2>
+            <p>
+                The agent maintains a structured view of each field, crop, and sensor stream as its operational context.
+            </p>
+
+            <h5>2.1 Example field JSON</h5>
+            <pre><code>{
+  "fieldId": "FIELD-07",
+  "location": { "lat": 33.25, "lng": -111.82 },
+  "cropType": "CORN",
+  "growthStage": "VEGETATIVE",
+  "soilType": "LOAM",
+  "sensors": {
+    "soilMoisture": {
+      "unit": "VWC",
+      "latest": 0.19,
+      "thresholds": { "min": 0.18, "max": 0.30 }
+    },
+    "soilTemperature": {
+      "unit": "C",
+      "latest": 21.5
+    },
+    "airTemperature": {
+      "unit": "C",
+      "latest": 29.2
+    },
+    "humidity": {
+      "unit": "%",
+      "latest": 48
+    }
+  },
+  "lastIrrigationAt": "2026-03-26T05:00:00Z",
+  "lastFertilizationAt": "2026-03-20T00:00:00Z"
+}</code></pre>
+        </section>
+
+        <!-- 3. RAG Architecture -->
+        <section>
+            <h2 class="section-title">3. RAG architecture for agriculture</h2>
+            <p>
+                The agent uses a RAG pipeline: it retrieves relevant agronomy knowledge and then generates
+                sensor‑aware recommendations.
+            </p>
+
+            <h5>3.1 Knowledge sources</h5>
+            <ul>
+                <li>Crop‑specific best‑practice guides (e.g., corn, wheat, soy)</li>
+                <li>Local extension service bulletins</li>
+                <li>Soil and irrigation manuals</li>
+                <li>Historical farm records and yield data</li>
+            </ul>
+
+            <h5>3.2 Vectorized knowledge base</h5>
+            <pre><code>{
+  "docId": "GUIDE-CORN-IRRIGATION-01",
+  "title": "Irrigation Guidelines for Corn in Semi-Arid Regions",
+  "text": "Maintain soil moisture between 18% and 30% VWC during vegetative stage...",
+  "embedding": [0.12, -0.03, 0.44, ...]
+}</code></pre>
+
+            <p>
+                Documents are embedded and stored in a vector database. Queries derived from sensor context retrieve the
+                most relevant passages.
+            </p>
+        </section>
+
+        <!-- 4. Agent Loop -->
+        <section>
+            <h2 class="section-title">4. Agent loop: from sensors to recommendations</h2>
+            <p>
+                On each cycle, the agent reads sensor data, builds a query, retrieves knowledge, and generates a
+                recommendation.
+            </p>
+
+            <pre><code>function agricultureRagAgentTick(fieldState, ragStack, now) {
+  const context = buildSensorContext(fieldState, now);
+
+  const query = buildRagQuery(context); // e.g. "Irrigation and nitrogen advice for corn, vegetative stage, VWC=0.19"
+  const retrievedDocs = ragStack.vectorStore.search(query, { topK: 5 });
+
+  const answer = ragStack.llm.generate({
+    prompt: buildPrompt(context, retrievedDocs),
+    temperature: 0.2
+  });
+
+  const recommendation = parseRecommendation(answer);
+  storeRecommendation(fieldState.fieldId, recommendation, now);
+  maybeAlertFarmer(recommendation);
+}</code></pre>
+
+            <h5>4.1 Example prompt skeleton</h5>
+            <pre><code>System: You are an agronomy assistant focused on maximizing crop yield
+while preserving soil health and water efficiency.
+
+Context:
+- Crop: CORN
+- Growth stage: VEGETATIVE
+- Soil moisture: 0.19 VWC (target 0.18–0.30)
+- Soil type: LOAM
+- Last irrigation: 2026-03-26T05:00Z
+- Weather forecast: hot, dry next 48 hours
+
+Retrieved knowledge:
+[Top 3 relevant passages from agronomy guides...]
+
+User: Based on the context and retrieved knowledge, provide specific,
+actionable recommendations for irrigation and fertilization for the
+next 48 hours. Explain your reasoning briefly.</code></pre>
+        </section>
+
+        <!-- 5. Recommendation Model -->
+        <section>
+            <h2 class="section-title">5. Recommendation structure</h2>
+            <p>
+                Recommendations are structured so they can be logged, compared, and acted on by farm management systems.
+            </p>
+
+            <h5>5.1 Example recommendation JSON</h5>
+            <pre><code>{
+  "fieldId": "FIELD-07",
+  "generatedAt": "2026-03-26T18:30:00Z",
+  "cropType": "CORN",
+  "timeHorizonHours": 48,
+  "actions": [
+    {
+      "type": "IRRIGATION",
+      "when": "WITHIN_6_HOURS",
+      "amountMm": 18,
+      "reason": "Soil moisture at 19% VWC with hot, dry forecast; target 18–30% for vegetative corn."
+    },
+    {
+      "type": "FERTILIZATION",
+      "when": "WITHIN_24_HOURS",
+      "product": "NITROGEN",
+      "rateKgPerHa": 40,
+      "reason": "Vegetative stage with moderate N demand; aligns with regional corn guidelines."
+    }
+  ],
+  "riskFlags": [
+    "YIELD_RISK_IF_IRRIGATION_DELAYED",
+    "POTENTIAL_WATER_STRESS_NEXT_48H"
+  ]
+}</code></pre>
+        </section>
+
+        <!-- 6. Real-World Use Case -->
+        <section>
+            <h2 class="section-title">6. Real‑world agriculture scenario</h2>
+            <p>
+                A farm in a semi‑arid region grows corn and cotton. IoT sensors report soil moisture, temperature, and
+                humidity every 15 minutes. Historically, yields drop during heat waves due to late irrigation decisions.
+            </p>
+
+            <h5>6.1 Scenario timeline</h5>
+            <ul>
+                <li><strong>06:00</strong> – Soil moisture in FIELD‑07 drops to 0.19 VWC.</li>
+                <li><strong>06:05</strong> – Weather forecast updates: 2 days of high heat, low humidity.</li>
+                <li><strong>06:06</strong> – RAG agent runs, retrieves corn irrigation guidelines, and recommends 18 mm
+                    irrigation within 6 hours.</li>
+                <li><strong>06:10</strong> – Farmer dashboard shows “High yield risk if irrigation delayed.”</li>
+                <li><strong>07:00</strong> – Irrigation system is scheduled automatically for FIELD‑07.</li>
+                <li><strong>End of season</strong> – Yield analysis shows improved kernel set and reduced stress events.
+                </li>
+            </ul>
+
+            <p>
+                Over time, the agent can also incorporate historical yield outcomes into the knowledge base, improving
+                its recommendations for specific fields and microclimates.
+            </p>
+        </section>
+
+        <!-- 7. Summary -->
+        <section class="mt-4">
+            <h2 class="section-title">7. Summary</h2>
+            <p>
+                This RAG‑based agriculture agent:
+            </p>
+            <ul>
+                <li><strong>Monitors</strong> IoT sensor data in real time</li>
+                <li><strong>Retrieves</strong> relevant agronomy knowledge for each crop and stage</li>
+                <li><strong>Generates</strong> structured, explainable recommendations</li>
+                <li><strong>Targets</strong> higher crop yield with better irrigation and fertilization timing</li>
+            </ul>
+            <p>
+                It becomes a continuously learning agronomy co‑pilot, grounded in both field data and expert knowledge.
+            </p>
+        </section>
+
+    </main>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
