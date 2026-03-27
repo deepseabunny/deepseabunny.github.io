@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>CAG Agriculture Agent – IoT‑Driven Predictive Crop Yield Optimization</title>
+
+    <!-- Bootswatch Cosmo Theme -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/cosmo/bootstrap.min.css" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <style>
+        body {
+            padding-top: 3.5rem;
+        }
+
+        pre {
+            background: #1e1e1e;
+            color: #f5f5f5;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .section-title {
+            border-left: 4px solid #2780e3;
+            padding-left: 0.75rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .badge-pill {
+            border-radius: 10rem;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">CAG Agriculture Agent</a>
+        </div>
+    </nav>
+
+    <main class="container mb-5">
+
+        <!-- Header -->
+        <section class="mt-4">
+            <h1 class="mb-2">CAG‑Powered Predictive Agriculture Agent</h1>
+            <p class="lead">
+                A Contextualized, Adaptive, Generative (CAG) agent that uses IoT sensor data and historical outcomes to
+                predict stress, optimize inputs, and increase crop yield.
+            </p>
+            <p>
+                Unlike retrieval‑only systems, this agent learns from your fields over time, continuously updating
+                predictions and recommendations as new data streams in.
+            </p>
+        </section>
+
+        <!-- 1. Goal -->
+        <section>
+            <h2 class="section-title">1. Goal and role of the CAG agent</h2>
+            <p>
+                The agent’s primary objective is to <strong>maximize crop yield</strong> while preserving soil health
+                and
+                resource efficiency. It does this by:
+            </p>
+            <ul>
+                <li><strong>Monitoring</strong> real‑time IoT sensor data from fields</li>
+                <li><strong>Learning</strong> from historical sensor patterns and yield outcomes</li>
+                <li><strong>Predicting</strong> stress events and yield impacts before they occur</li>
+                <li><strong>Generating</strong> adaptive, field‑specific action plans</li>
+            </ul>
+        </section>
+
+        <!-- 2. Contextual Layer -->
+        <section>
+            <h2 class="section-title">2. Contextual layer: unified field model</h2>
+            <p>
+                The agent maintains a rich context for each field, linking environment, crop, and management history.
+            </p>
+
+            <h5>2.1 Example field context JSON</h5>
+            <pre><code>{
+  "fieldId": "FIELD-07",
+  "location": { "lat": 33.25, "lng": -111.82 },
+  "cropType": "CORN",
+  "growthStage": "VEGETATIVE",
+  "soilType": "LOAM",
+  "managementHistory": {
+    "irrigations": [
+      { "at": "2026-03-24T05:00:00Z", "amountMm": 20 },
+      { "at": "2026-03-26T05:00:00Z", "amountMm": 18 }
+    ],
+    "fertilizations": [
+      { "at": "2026-03-20T00:00:00Z", "product": "N", "rateKgPerHa": 40 }
+    ]
+  },
+  "sensors": {
+    "soilMoisture": {
+      "unit": "VWC",
+      "timeseries": [
+        { "t": "2026-03-26T16:00:00Z", "value": 0.21 },
+        { "t": "2026-03-26T18:00:00Z", "value": 0.19 }
+      ]
+    },
+    "soilTemperature": { "unit": "C", "latest": 21.5 },
+    "airTemperature": { "unit": "C", "latest": 29.2 },
+    "humidity": { "unit": "%", "latest": 48 }
+  },
+  "historicalYield": {
+    "2024": 10.2,
+    "2025": 9.7
+  }
+}</code></pre>
+        </section>
+
+        <!-- 3. Adaptive Learning Layer -->
+        <section>
+            <h2 class="section-title">3. Adaptive learning layer: predictive models</h2>
+            <p>
+                The agent trains and updates models that forecast key variables affecting yield:
+            </p>
+            <ul>
+                <li><strong>Soil moisture depletion</strong> (time until stress threshold)</li>
+                <li><strong>Heat and drought stress probability</strong></li>
+                <li><strong>Nutrient depletion</strong> (e.g., nitrogen availability)</li>
+                <li><strong>Yield trajectory</strong> for each field</li>
+            </ul>
+
+            <h5>3.1 Example model outputs for a field</h5>
+            <pre><code>{
+  "fieldId": "FIELD-07",
+  "generatedAt": "2026-03-26T18:30:00Z",
+  "predictions": {
+    "timeToMoistureStressHours": 11,
+    "heatStressProbabilityNext24h": 0.68,
+    "nitrogenDeficitIn48h": true,
+    "expectedYieldTonsPerHa": 10.8,
+    "yieldLossIfIrrigationDelayedPercent": [6, 9]
+  }
+}</code></pre>
+        </section>
+
+        <!-- 4. Generative Decision Layer -->
+        <section>
+            <h2 class="section-title">4. Generative decision layer: action planning</h2>
+            <p>
+                Using the contextual and predictive layers, the agent generates structured, field‑specific
+                recommendations aimed at preserving or increasing yield.
+            </p>
+
+            <h5>4.1 Recommendation generation loop</h5>
+            <pre><code>function cagAgricultureAgentTick(fieldState, models, now) {
+  const context = buildContext(fieldState, now);
+  const preds = models.predictAll(context); // moisture, stress, yield, nutrients
+
+  const recommendation = buildActionPlan(context, preds);
+  storeRecommendation(fieldState.fieldId, recommendation, now);
+  maybeAlertFarmer(recommendation);
+}</code></pre>
+
+            <h5>4.2 Example action plan JSON</h5>
+            <pre><code>{
+  "fieldId": "FIELD-07",
+  "generatedAt": "2026-03-26T18:30:00Z",
+  "timeHorizonHours": 48,
+  "actions": [
+    {
+      "type": "IRRIGATION",
+      "when": "WITHIN_6_HOURS",
+      "amountMm": 22,
+      "reason": "Moisture will hit stress threshold in ~11 hours; early irrigation avoids 6–9% yield loss."
+    },
+    {
+      "type": "FERTILIZATION",
+      "when": "WITHIN_36_HOURS",
+      "product": "NITROGEN",
+      "rateKgPerHa": 40,
+      "reason": "Model predicts nitrogen deficit in 48 hours during high demand vegetative stage."
+    },
+    {
+      "type": "SCHEDULING",
+      "when": "NEXT_3_DAYS",
+      "recommendation": "Shift irrigation to early morning to reduce heat stress.",
+      "reason": "High heat forecast; morning irrigation reduces evapotranspiration losses."
+    }
+  ],
+  "riskFlags": [
+    "YIELD_RISK_IF_IRRIGATION_DELAYED",
+    "NUTRIENT_DEFICIT_RISK",
+    "HEAT_STRESS_RISK"
+  ]
+}</code></pre>
+        </section>
+
+        <!-- 5. CAG vs RAG -->
+        <section>
+            <h2 class="section-title">5. Why CAG is suited for predictive analysis</h2>
+            <p>
+                Compared to a retrieval‑only (RAG) agent, the CAG agent:
+            </p>
+            <ul>
+                <li><strong>Learns</strong> from your own fields and seasons, not just documents</li>
+                <li><strong>Adapts</strong> its models as new sensor and yield data arrive</li>
+                <li><strong>Predicts</strong> future stress and yield impacts, not just current conditions</li>
+                <li><strong>Generates</strong> multi‑step plans that balance water, nutrients, and stress avoidance</li>
+            </ul>
+            <p>
+                This makes it ideal for proactive yield optimization under variable weather and soil conditions.
+            </p>
+        </section>
+
+        <!-- 6. Real-World Scenario -->
+        <section>
+            <h2 class="section-title">6. Real‑world predictive agriculture scenario</h2>
+            <p>
+                A farm in a semi‑arid region near Mesa, AZ grows corn and alfalfa under pivot irrigation. IoT sensors
+                report:
+            </p>
+            <ul>
+                <li>Soil moisture: 0.17 VWC</li>
+                <li>Air temperature: 31°C</li>
+                <li>Humidity: 22%</li>
+                <li>Soil temperature: 26°C</li>
+            </ul>
+
+            <p>The CAG agent predicts:</p>
+            <ul>
+                <li>Moisture will hit stress threshold in <strong>6 hours</strong></li>
+                <li>Heat stress probability tomorrow: <strong>0.81</strong></li>
+                <li>Yield loss risk if irrigation is delayed: <strong>8–12%</strong></li>
+            </ul>
+
+            <p>It generates the following plan:</p>
+            <ul>
+                <li>Irrigate <strong>immediately</strong> with <strong>20–25 mm</strong></li>
+                <li>Shift irrigation to early morning for the next 3 days</li>
+                <li>Apply nitrogen in 36 hours to support vegetative growth</li>
+            </ul>
+
+            <p>
+                Over the season, the agent compares predicted vs actual yields, updates its models, and becomes more
+                accurate for that specific farm and microclimate.
+            </p>
+        </section>
+
+        <!-- 7. Summary -->
+        <section class="mt-4">
+            <h2 class="section-title">7. Summary</h2>
+            <p>
+                This CAG agriculture agent:
+            </p>
+            <ul>
+                <li><strong>Contextualizes</strong> each field with rich environmental and management data</li>
+                <li><strong>Adapts</strong> predictive models as new seasons and data accumulate</li>
+                <li><strong>Generates</strong> proactive, multi‑step action plans to protect and increase yield</li>
+            </ul>
+            <p>
+                It acts as a predictive agronomy co‑pilot, turning IoT sensor streams into forward‑looking decisions
+                that
+                keep crops out of stress and closer to their yield potential.
+            </p>
+        </section>
+
+    </main>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
