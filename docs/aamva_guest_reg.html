@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8" />
-    <title>AAMVA Guest Registration — Editable + IndexedDB</title>
+    <title>AAMVA Guest Registration — Editable + IndexedDB + Validation</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <style>
         :root {
@@ -15,7 +15,7 @@
             --muted: #94a3b8;
             --text: #e6eef3;
             --glass: rgba(255, 255, 255, 0.03);
-            --mono: "JetBrains Mono", "Fira Code", Menlo, Monaco, Consolas, monospace;
+            --mono: "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
             --radius: 12px;
             --shadow-lg: 0 18px 50px rgba(2, 6, 23, 0.7);
             --shadow-sm: 0 6px 18px rgba(2, 6, 23, 0.6);
@@ -33,11 +33,11 @@
         body {
             margin: 0;
             padding: 28px;
-            font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
             background: radial-gradient(circle at 10% 10%, #071027 0%, #020617 40%, #000 100%);
             color: var(--text);
             -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+            -moz-osx-font-smoothing: grayscale
         }
 
         .header {
@@ -45,7 +45,7 @@
             align-items: baseline;
             justify-content: space-between;
             gap: 16px;
-            margin-bottom: 22px;
+            margin-bottom: 22px
         }
 
         .title {
@@ -73,7 +73,7 @@
             gap: 18px
         }
 
-        @media (max-width:980px) {
+        @media(max-width:980px) {
             .layout {
                 grid-template-columns: 1fr
             }
@@ -84,7 +84,7 @@
             border-radius: var(--radius);
             padding: 14px;
             border: 1px solid rgba(255, 255, 255, 0.03);
-            box-shadow: var(--shadow-lg);
+            box-shadow: var(--shadow-lg)
         }
 
         .controls {
@@ -106,7 +106,7 @@
             padding: 10px;
             font-size: 13px;
             outline: none;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02)
         }
 
         textarea:focus {
@@ -154,11 +154,11 @@
             gap: 16px;
             align-items: flex-start;
             box-shadow: 0 12px 30px rgba(34, 197, 94, 0.04);
-            transition: transform .22s ease, box-shadow .22s ease;
+            transition: transform .22s ease, box-shadow .22s ease
         }
 
         .preview.pop {
-            animation: popFlash .9s ease 0s 1;
+            animation: popFlash .9s ease 0s 1
         }
 
         @keyframes popFlash {
@@ -173,18 +173,6 @@
             100% {
                 transform: translateY(0) scale(1)
             }
-        }
-
-        .id-chip {
-            min-width: 220px;
-            padding: 12px 14px;
-            border-radius: 12px;
-            background: linear-gradient(180deg, #01130a, rgba(34, 197, 94, 0.03));
-            border: 1px solid rgba(34, 197, 94, 0.12);
-            box-shadow: 0 6px 18px rgba(2, 6, 23, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.02);
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
         }
 
         .label-inline {
@@ -223,7 +211,7 @@
             padding: 10px;
             border-radius: 10px;
             border: 1px solid rgba(255, 255, 255, 0.03);
-            word-break: break-all;
+            word-break: break-all
         }
 
         .list-head {
@@ -339,7 +327,7 @@
     <header class="header">
         <div class="title">
             <h1>AAMVA Guest Registration</h1>
-            <div class="subtitle">Scan → Decode → Edit → Register. Uses IndexedDB for storage.</div>
+            <div class="subtitle">Scan → Decode → Edit → Register. Uses IndexedDB and validates YYMM fields.</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
             <div class="badge">Local · searchable</div>
@@ -348,7 +336,7 @@
     </header>
 
     <div class="layout">
-        <!-- Left: input + editable preview/form -->
+        <!-- Left -->
         <section class="panel" style="display:flex;flex-direction:column">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
                 <div style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em">Input
@@ -357,7 +345,7 @@
             </div>
 
             <textarea id="input" spellcheck="false"
-                placeholder="%AZPHOENICS^KIV$DEEPSEA$V^1234 E MAIN ST$PHOENICS$AZ$85205^;6360260401379124=4911841122=?+1085205..."></textarea>
+                placeholder="%AZPHOENICS^KIV$DEEPSEA$V^1234 E MAIN ST..."></textarea>
 
             <div class="controls" style="margin-top:12px">
                 <button id="decodeBtn" class="btn primary">⏵ Decode</button>
@@ -400,15 +388,15 @@
                             <input id="streetInput" class="input" placeholder="Street" />
                             <input id="cityInput" class="input" placeholder="City" />
                             <input id="addrStateInput" class="input" placeholder="Addr state" />
-                            <input id="postalInput" class="input" placeholder="Postal code" />
+                            <input id="postalInput" class="input" placeholder="Postal code" maxlength="10" />
                         </div>
                     </div>
 
                     <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
                         <div style="width:140px"><label class="label-inline">Expiration (YY-MM)</label><input
-                                id="expInput" class="input" placeholder="YY-MM" /></div>
+                                id="expInput" class="input" placeholder="YY-MM" maxlength="5" /></div>
                         <div style="width:180px"><label class="label-inline">Issue / DOB (YY-MM)</label><input
-                                id="issueInput" class="input" placeholder="YY-MM" /></div>
+                                id="issueInput" class="input" placeholder="YY-MM" maxlength="5" /></div>
                         <div style="flex:1"></div>
                     </div>
                 </div>
@@ -419,21 +407,18 @@
                 entry.</div>
         </section>
 
-        <!-- Right: guest list -->
+        <!-- Right -->
         <section class="panel" style="display:flex;flex-direction:column">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
                 <div style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em">Registered
                     guests</div>
-                <div style="display:flex;gap:8px">
-                    <button id="exportBtn" class="small">⬇ Export CSV</button>
-                    <button id="clearAllBtn" class="small">🗑 Clear all</button>
-                </div>
+                <div style="display:flex;gap:8px"><button id="exportBtn" class="small">⬇ Export CSV</button><button
+                        id="clearAllBtn" class="small">🗑 Clear all</button></div>
             </div>
 
             <div class="list-head" style="margin-bottom:8px">
-                <div class="search" style="flex:1">
-                    <input id="search" type="search" placeholder="Search by name, id, city, state, postal" />
-                </div>
+                <div class="search" style="flex:1"><input id="search" type="search"
+                        placeholder="Search by name, id, city, state, postal" /></div>
                 <div style="margin-left:12px;color:var(--muted);font-size:13px" id="listStatus">No guests yet.</div>
             </div>
 
@@ -454,169 +439,49 @@
     </div>
 
     <script>
-        /* --- Decoder (unchanged) --- */
-        function extractTracks(raw) {
-            const cleaned = raw.replace(/\r?\n/g, " ").replace(/\s+/g, " ").trim();
-            const t1 = (cleaned.match(/%([^?]+)\?/) || [])[1] || "";
-            const t2 = (cleaned.match(/;([^?]+)\?/) || [])[1] || "";
-            const t3 = (cleaned.match(/\+([^?]+)\?/) || [])[1] || "";
-            return { track1: t1, track2: t2, track3: t3 };
-        }
-        function parseTrack1(track1) {
-            if (!track1) return { state: "", issuer: "", last: "", first: "", middle: "", street: "", city: "", addrState: "", postal: "" };
-            const parts = track1.split("^");
-            const header = parts[0] || ""; const nameField = parts[1] || ""; const addrField = parts[2] || "";
-            const state = header.slice(0, 2); const issuer = header.slice(2);
-            const np = nameField.split("$"); const last = np[0] || ""; const first = np[1] || ""; const middle = np[2] || "";
-            let street = ""; let city = ""; let addrState = ""; let postal = "";
-            if (addrField.includes("$")) {
-                const a = addrField.split("$");
-                street = a[0] || ""; city = a[1] || ""; addrState = a[2] || ""; postal = a[3] || "";
-            } else street = addrField || "";
-            return { state, issuer, last, first, middle, street, city, addrState, postal };
-        }
-        function parseTrack2(track2) {
-            if (!track2) return { iin: "", idNumber: "", expYY: "", expMM: "", issueYY: "", issueMM: "" };
-            const [primary, secondaryRaw] = track2.split("="); const secondary = secondaryRaw || "";
-            const iin = primary.slice(0, 4) || ""; const idNumber = primary.slice(4) || "";
-            const expYY = secondary.slice(0, 2) || ""; const expMM = secondary.slice(2, 4) || "";
-            const issueYY = secondary.slice(4, 6) || ""; const issueMM = secondary.slice(6, 8) || "";
-            return { iin, idNumber, expYY, expMM, issueYY, issueMM };
-        }
-        function extractDupIdFromTrack3(t3raw) {
-            if (!t3raw) return "";
-            const matches = t3raw.match(/D0\d+/g);
-            return matches && matches.length ? matches[matches.length - 1] : "";
-        }
-        function formatYYMM(yy, mm) {
-            if (!yy && !mm) return "";
-            return `${yy || "??"}-${mm || "??"}`;
-        }
-        function decodeAAMVA(raw) {
-            const tracks = extractTracks(raw); const t1 = parseTrack1(tracks.track1); const t2 = parseTrack2(tracks.track2);
-            const dupFromT3 = extractDupIdFromTrack3(tracks.track3);
-            t2.idNumber = dupFromT3 || t2.idNumber || "";
-            return { raw: tracks, track1: t1, track2: t2, track3: { raw: tracks.track3 } };
-        }
+        /* Decoder (unchanged) */
+        function extractTracks(raw) { const cleaned = raw.replace(/\r?\n/g, " ").replace(/\s+/g, " ").trim(); const t1 = (cleaned.match(/%([^?]+)\?/) || [])[1] || ""; const t2 = (cleaned.match(/;([^?]+)\?/) || [])[1] || ""; const t3 = (cleaned.match(/\+([^?]+)\?/) || [])[1] || ""; return { track1: t1, track2: t2, track3: t3 }; }
+        function parseTrack1(track1) { if (!track1) return { state: "", issuer: "", last: "", first: "", middle: "", street: "", city: "", addrState: "", postal: "" }; const parts = track1.split("^"); const header = parts[0] || ""; const nameField = parts[1] || ""; const addrField = parts[2] || ""; const state = header.slice(0, 2); const issuer = header.slice(2); const np = nameField.split("$"); const last = np[0] || ""; const first = np[1] || ""; const middle = np[2] || ""; let street = ""; let city = ""; let addrState = ""; let postal = ""; if (addrField.includes("$")) { const a = addrField.split("$"); street = a[0] || ""; city = a[1] || ""; addrState = a[2] || ""; postal = a[3] || "" } else street = addrField || ""; return { state, issuer, last, first, middle, street, city, addrState, postal }; }
+        function parseTrack2(track2) { if (!track2) return { iin: "", idNumber: "", expYY: "", expMM: "", issueYY: "", issueMM: "" }; const [primary, secondaryRaw] = track2.split("="); const secondary = secondaryRaw || ""; const iin = primary.slice(0, 4) || ""; const idNumber = primary.slice(4) || ""; const expYY = secondary.slice(0, 2) || ""; const expMM = secondary.slice(2, 4) || ""; const issueYY = secondary.slice(4, 6) || ""; const issueMM = secondary.slice(6, 8) || ""; return { iin, idNumber, expYY, expMM, issueYY, issueMM }; }
+        function extractDupIdFromTrack3(t3raw) { if (!t3raw) return ""; const matches = t3raw.match(/D0\d+/g); return matches && matches.length ? matches[matches.length - 1] : ""; }
+        function formatYYMM(yy, mm) { if (!yy && !mm) return ""; return `${yy || "??"}-${mm || "??"}`; }
+        function decodeAAMVA(raw) { const tracks = extractTracks(raw); const t1 = parseTrack1(tracks.track1); const t2 = parseTrack2(tracks.track2); const dupFromT3 = extractDupIdFromTrack3(tracks.track3); t2.idNumber = dupFromT3 || t2.idNumber || ""; return { raw: tracks, track1: t1, track2: t2, track3: { raw: tracks.track3 } }; }
 
-        /* --- IndexedDB-backed storage + registration (cache + async persistence) --- */
+        /* IndexedDB storage (cache + async persist) */
         let GUESTS_CACHE = [];
         const IDB_NAME = "aamva_db";
         const IDB_STORE = "guests";
         const IDB_VERSION = 1;
         let dbPromise = null;
-        function openDb() {
-            if (dbPromise) return dbPromise;
-            dbPromise = new Promise((resolve, reject) => {
-                const req = indexedDB.open(IDB_NAME, IDB_VERSION);
-                req.onupgradeneeded = (e) => {
-                    const db = e.target.result;
-                    if (!db.objectStoreNames.contains(IDB_STORE)) {
-                        const store = db.createObjectStore(IDB_STORE, { keyPath: "id" });
-                        store.createIndex("idNumber_idx", "idNumber", { unique: false });
-                    }
-                };
-                req.onsuccess = () => resolve(req.result);
-                req.onerror = () => reject(req.error);
-            });
-            return dbPromise;
-        }
-        async function idbLoadAll() {
-            const db = await openDb();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(IDB_STORE, "readonly");
-                const store = tx.objectStore(IDB_STORE);
-                const req = store.getAll();
-                req.onsuccess = () => resolve(req.result || []);
-                req.onerror = () => reject(req.error);
-            });
-        }
-        async function idbPut(item) {
-            const db = await openDb();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(IDB_STORE, "readwrite");
-                const store = tx.objectStore(IDB_STORE);
-                const req = store.put(item);
-                req.onsuccess = () => resolve(req.result);
-                req.onerror = () => reject(req.error);
-            });
-        }
-        async function idbDelete(id) {
-            const db = await openDb();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(IDB_STORE, "readwrite");
-                const store = tx.objectStore(IDB_STORE);
-                const req = store.delete(id);
-                req.onsuccess = () => resolve();
-                req.onerror = () => reject(req.error);
-            });
-        }
-        async function idbClearAll() {
-            const db = await openDb();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(IDB_STORE, "readwrite");
-                const store = tx.objectStore(IDB_STORE);
-                const req = store.clear();
-                req.onsuccess = () => resolve();
-                req.onerror = () => reject(req.error);
-            });
-        }
+        function openDb() { if (dbPromise) return dbPromise; dbPromise = new Promise((resolve, reject) => { const req = indexedDB.open(IDB_NAME, IDB_VERSION); req.onupgradeneeded = (e) => { const db = e.target.result; if (!db.objectStoreNames.contains(IDB_STORE)) { const store = db.createObjectStore(IDB_STORE, { keyPath: "id" }); store.createIndex("idNumber_idx", "idNumber", { unique: false }); } }; req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); }); return dbPromise; }
+        async function idbLoadAll() { const db = await openDb(); return new Promise((resolve, reject) => { const tx = db.transaction(IDB_STORE, "readonly"); const store = tx.objectStore(IDB_STORE); const req = store.getAll(); req.onsuccess = () => resolve(req.result || []); req.onerror = () => reject(req.error); }); }
+        async function idbPut(item) { const db = await openDb(); return new Promise((resolve, reject) => { const tx = db.transaction(IDB_STORE, "readwrite"); const store = tx.objectStore(IDB_STORE); const req = store.put(item); req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); }); }
+        async function idbDelete(id) { const db = await openDb(); return new Promise((resolve, reject) => { const tx = db.transaction(IDB_STORE, "readwrite"); const store = tx.objectStore(IDB_STORE); const req = store.delete(id); req.onsuccess = () => resolve(); req.onerror = () => reject(req.error); }); }
+        async function idbClearAll() { const db = await openDb(); return new Promise((resolve, reject) => { const tx = db.transaction(IDB_STORE, "readwrite"); const store = tx.objectStore(IDB_STORE); const req = store.clear(); req.onsuccess = () => resolve(); req.onerror = () => reject(req.error); }); }
 
         function loadGuests() { return GUESTS_CACHE.slice(); }
-        function saveGuests(list) {
-            GUESTS_CACHE = (list || []).slice();
-            (async () => {
-                try {
-                    // Put each item (upsert)
-                    for (const g of GUESTS_CACHE) await idbPut(g);
-                } catch (e) { console.error("Failed to persist guests to IDB:", e); }
-            })();
-        }
+        function saveGuests(list) { GUESTS_CACHE = (list || []).slice(); (async () => { try { for (const g of GUESTS_CACHE) await idbPut(g); } catch (e) { console.error("Failed to persist guests to IDB:", e); } })(); }
         function ensureInternalId(guest) { if (!guest.id) guest.id = "g_" + Date.now() + "_" + Math.floor(Math.random() * 9999); return guest.id; }
-
         function addOrUpdateGuest(guest) {
             const list = loadGuests();
             ensureInternalId(guest);
             const idx = list.findIndex(g => g.id && g.id === guest.id);
-            if (idx >= 0) {
-                list[idx] = guest;
-            } else {
+            if (idx >= 0) list[idx] = guest;
+            else {
                 const idxByNumber = guest.idNumber ? list.findIndex(g => g.idNumber && g.idNumber === guest.idNumber) : -1;
-                if (idxByNumber >= 0) {
-                    guest.id = list[idxByNumber].id;
-                    list[idxByNumber] = guest;
-                } else {
-                    list.push(guest);
-                }
+                if (idxByNumber >= 0) { guest.id = list[idxByNumber].id; list[idxByNumber] = guest; } else list.push(guest);
             }
             saveGuests(list);
             (async () => { try { await idbPut(guest); } catch (e) { console.error("IDB put error:", e); } })();
             return guest;
         }
-        function deleteGuestById(uid) {
-            let list = loadGuests();
-            list = list.filter(g => g.id !== uid);
-            saveGuests(list);
-            (async () => { try { await idbDelete(uid); } catch (e) { console.error("IDB delete error:", e); } })();
-        }
-        function clearAllGuests() {
-            GUESTS_CACHE = [];
-            (async () => { try { await idbClearAll(); } catch (e) { console.error("IDB clear error:", e); } })();
-        }
+        function deleteGuestById(uid) { let list = loadGuests(); list = list.filter(g => g.id !== uid); saveGuests(list); (async () => { try { await idbDelete(uid); } catch (e) { console.error("IDB delete error:", e); } })(); }
+        function clearAllGuests() { GUESTS_CACHE = []; (async () => { try { await idbClearAll(); } catch (e) { console.error("IDB clear error:", e); } })(); }
 
-        (async function initStorage() {
-            try {
-                const items = await idbLoadAll();
-                if (Array.isArray(items) && items.length) GUESTS_CACHE = items.slice();
-                else GUESTS_CACHE = [];
-            } catch (e) {
-                console.error("Failed to initialize IndexedDB:", e);
-                GUESTS_CACHE = [];
-            }
-            renderGuestList();
-        })();
+        /* init storage and render */
+        (async function initStorage() { try { const items = await idbLoadAll(); GUESTS_CACHE = Array.isArray(items) ? items.slice() : []; } catch (e) { console.error("Failed to init IDB:", e); GUESTS_CACHE = []; } renderGuestList(); })();
 
-        /* --- UI helpers & rendering --- */
+        /* UI helpers */
         function setVal(id, v) { const el = document.getElementById(id); if (!el) return; el.value = (v || "").toString(); }
         function setText(id, v) { const el = document.getElementById(id); if (!el) return; el.textContent = (v || "").toString() || "—"; }
         function showDupBadge(show) { const el = document.getElementById("dupBadge"); if (!el) return; el.style.display = show ? "inline-flex" : "none"; }
@@ -644,13 +509,7 @@
             setStatus("Decoded. Edit fields if needed, then register.", false);
         }
 
-        function isDuplicateId(idNumber, selfId) {
-            if (!idNumber) return false;
-            const list = loadGuests();
-            const matches = list.filter(g => g.idNumber === idNumber && g.id !== selfId);
-            return matches.length > 0;
-        }
-
+        function isDuplicateId(idNumber, selfId) { if (!idNumber) return false; const list = loadGuests(); const matches = list.filter(g => g.idNumber === idNumber && g.id !== selfId); return matches.length > 0; }
         function escapeHtml(s = "") { return s.toString().replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
 
         function renderGuestList(filter = "") {
@@ -660,53 +519,101 @@
             const status = document.getElementById("listStatus");
             tbody.innerHTML = "";
             const q = (filter || "").toLowerCase().trim();
-            const filtered = list.filter(g => {
-                if (!q) return true;
-                return [g.idNumber, g.firstName, g.lastName, g.middleName, g.street, g.city, g.state, g.postal].some(f => (f || "").toString().toLowerCase().includes(q));
-            }).sort((a, b) => (b.registeredAt || 0) - (a.registeredAt || 0));
-            if (!filtered.length) { table.style.display = "none"; status.textContent = list.length ? "No results for current search." : "No guests yet."; return }
-            table.style.display = "";
-            status.textContent = `${filtered.length} shown · ${list.length} total`;
+            const filtered = list.filter(g => { if (!q) return true; return [g.idNumber, g.firstName, g.lastName, g.middleName, g.street, g.city, g.state, g.postal].some(f => (f || "").toString().toLowerCase().includes(q)); }).sort((a, b) => (b.registeredAt || 0) - (a.registeredAt || 0));
+            if (!filtered.length) { table.style.display = "none"; status.textContent = list.length ? "No results for current search." : "No guests yet."; return; }
+            table.style.display = ""; status.textContent = `${filtered.length} shown · ${list.length} total`;
             filtered.forEach(g => {
-                const tr = document.createElement("tr");
-                if (isDuplicateId(g.idNumber, g.id)) tr.classList.add("dup-row");
+                const tr = document.createElement("tr"); if (isDuplicateId(g.idNumber, g.id)) tr.classList.add("dup-row");
                 const registered = g.registeredAt ? new Date(g.registeredAt).toLocaleString() : "";
                 const idCell = escapeHtml(g.idNumber || "");
                 const name = escapeHtml([g.firstName, g.middleName, g.lastName].filter(Boolean).join(" "));
                 const addr = escapeHtml([g.street, g.city, g.state, g.postal].filter(Boolean).join(", "));
                 const safeId = g.id ? g.id : "";
                 tr.innerHTML = `<td style="width:160px">${registered}</td>
-                    <td><code class="code">${idCell}</code></td>
-                    <td>${name}</td>
-                    <td>${addr}</td>
-                    <td style="width:80px">${escapeHtml(g.exp || "")}</td>
-                    <td style="width:110px; text-align:right" class="actions">
-                      <button class="small" data-action="view" data-id="${safeId}">View</button>
-                      <button class="small" data-action="delete" data-id="${safeId}">Delete</button>
-                    </td>`;
+      <td><code class="code">${idCell}</code></td>
+      <td>${name}</td>
+      <td>${addr}</td>
+      <td style="width:80px">${escapeHtml(g.exp || "")}</td>
+      <td style="width:110px; text-align:right" class="actions">
+        <button class="small" data-action="view" data-id="${safeId}">View</button>
+        <button class="small" data-action="delete" data-id="${safeId}">Delete</button>
+      </td>`;
                 tbody.appendChild(tr);
             });
         }
 
-        function setStatus(msg, isError) {
-            const el = document.getElementById("listStatus");
-            if (el) el.textContent = msg || "";
-            const s = document.getElementById("status");
-            if (s) { s.textContent = msg || ""; s.style.color = isError ? "var(--danger)" : "var(--muted)"; }
+        function setStatus(msg, isError) { const el = document.getElementById("listStatus"); if (el) el.textContent = msg || ""; const s = document.getElementById("status"); if (s) { s.textContent = msg || ""; s.style.color = isError ? "var(--danger)" : "var(--muted)"; } }
+
+        /* --- Validation: YYMM / YY-MM sanitizers and validators --- */
+        function sanitizeYYMMRaw(value) {
+            let v = (value || "").replace(/[^0-9\-]/g, "").slice(0, 5);
+            v = v.replace(/^-+/, "").replace(/-+$/, "");
+            const parts = v.split("-");
+            if (parts.length > 2) v = parts[0] + "-" + parts.slice(1).join("");
+            return v;
+        }
+        function normalizeToYYMM(value) {
+            if (!value) return "";
+            let v = value.replace(/\s+/g, "").replace(/[^0-9\-]/g, "");
+            if (v.indexOf("-") === -1) {
+                if (/^\d{4}$/.test(v)) return v.slice(0, 2) + "-" + v.slice(2);
+                return v.slice(0, 4);
+            } else {
+                const [a, b] = v.split("-");
+                const a2 = (a || "").slice(0, 2);
+                const b2 = (b || "").slice(0, 2);
+                return a2 + (b2 ? ("-" + b2) : "");
+            }
+        }
+        function isValidYYMM(value) {
+            if (!value) return false;
+            const compact = value.replace("-", "");
+            if (!/^\d{4}$/.test(compact)) return false;
+            const mm = parseInt(compact.slice(2, 4), 10);
+            return mm >= 1 && mm <= 12;
+        }
+
+        /* Wire sanitizer + formatting for expInput and issueInput */
+        ["expInput", "issueInput"].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.setAttribute("maxlength", "5");
+            el.addEventListener("input", (e) => {
+                const start = el.selectionStart;
+                const raw = el.value;
+                const sanitized = sanitizeYYMMRaw(raw);
+                if (/^\d{4}$/.test(sanitized)) el.value = sanitized.slice(0, 2) + "-" + sanitized.slice(2);
+                else el.value = sanitized;
+                try { el.setSelectionRange(start, start); } catch { }
+            });
+            el.addEventListener("blur", () => { el.value = normalizeToYYMM(el.value); });
+        });
+
+        /* Postal length already limited by maxlength attribute; add basic sanitizer on input */
+        const postalEl = document.getElementById("postalInput");
+        if (postalEl) {
+            postalEl.addEventListener("input", () => { postalEl.value = postalEl.value.replace(/[^\w\- ]/g, "").slice(0, 10); });
+        }
+
+        /* Validate before register */
+        function validateFormBeforeRegister() {
+            const exp = (document.getElementById("expInput").value || "").trim();
+            const issue = (document.getElementById("issueInput").value || "").trim();
+            if (exp && !isValidYYMM(exp)) { setStatus("Invalid expiration — expected YYMM or YY-MM with month 01–12.", true); document.getElementById("expInput").focus(); return false; }
+            if (issue && !isValidYYMM(issue)) { setStatus("Invalid issue/DOB — expected YYMM or YY-MM with month 01–12.", true); document.getElementById("issueInput").focus(); return false; }
+            const postal = (document.getElementById("postalInput").value || "");
+            if (postal.length > 10) { setStatus("Postal code too long (max 10).", true); document.getElementById("postalInput").focus(); return false; }
+            return true;
         }
 
         /* --- Events --- */
         document.getElementById("decodeBtn").addEventListener("click", () => {
             const raw = document.getElementById("input").value || "";
             if (!raw.trim()) { setStatus("Paste raw magstripe data first.", true); return }
-            try {
-                const res = decodeAAMVA(raw);
-                renderPreview(res);
-            } catch (e) { console.error(e); setStatus("Failed to decode. Check input format.", true) }
+            try { const res = decodeAAMVA(raw); renderPreview(res); } catch (e) { console.error(e); setStatus("Failed to decode. Check input format.", true); }
         });
 
         document.getElementById("createBtn").addEventListener("click", () => {
-            // clear form for manual new guest creation
             const ids = ["idInput", "firstInput", "middleInput", "lastInput", "stateInput", "streetInput", "cityInput", "addrStateInput", "postalInput", "expInput", "issueInput"];
             ids.forEach(i => setVal(i, ""));
             setText("issuer", "");
@@ -720,8 +627,7 @@
 
         document.getElementById("sampleBtn").addEventListener("click", () => {
             const sample = "%AZPHOENICS^KIV$DEEPSEA$V^1234 E MAIN ST$PHOENICS$AZ$85205^;6360260401379124=4911841122=?+1085205.     D.              1511157BK BRO.         D01111111.                 ?";
-            document.getElementById("input").value = sample;
-            setStatus("Sample loaded. Click Decode.", false);
+            document.getElementById("input").value = sample; setStatus("Sample loaded. Click Decode.", false);
         });
 
         document.getElementById("clearInputBtn").addEventListener("click", () => {
@@ -737,7 +643,7 @@
         });
 
         document.getElementById("registerBtn").addEventListener("click", () => {
-            // Collect values from editable form
+            if (!validateFormBeforeRegister()) return;
             const guest = {
                 registeredAt: Date.now(),
                 idNumber: (document.getElementById("idInput").value || "").trim(),
@@ -752,6 +658,8 @@
                 exp: (document.getElementById("expInput").value || "").trim(),
                 raw: (lastDecoded && lastDecoded.raw) ? lastDecoded.raw : { track1: "", track2: "", track3: "" }
             };
+            // If editing an existing saved record (via View) preserve internal id from lastDecoded
+            if (lastDecoded && lastDecoded.id) guest.id = lastDecoded.id;
             if (!guest.idNumber && !guest.firstName && !guest.lastName) { setStatus("Provide at least an ID or a name to register.", true); return; }
             const saved = addOrUpdateGuest(guest);
             renderGuestList(document.getElementById("search").value);
@@ -765,23 +673,11 @@
             if (action === "delete") { if (!confirm("Delete this guest?")) return; deleteGuestById(uid); renderGuestList(document.getElementById("search").value); setStatus("Guest deleted.", false); }
             else if (action === "view") {
                 const g = loadGuests().find(x => x.id === uid); if (!g) return;
-                // populate form with stored guest for editing
-                setVal("idInput", g.idNumber || "");
-                setText("issuer", g.issuer || "");
-                setVal("firstInput", g.firstName || "");
-                setVal("middleInput", g.middleName || "");
-                setVal("lastInput", g.lastName || "");
-                setVal("stateInput", g.state || "");
-                setVal("streetInput", g.street || "");
-                setVal("cityInput", g.city || "");
-                setVal("addrStateInput", g.state || "");
-                setVal("postalInput", g.postal || "");
-                setVal("expInput", g.exp || "");
-                document.getElementById("t3decoded").textContent = (g.raw && g.raw.track3) ? g.raw.track3 : "No Track 3 data.";
-                // attach internal id to lastDecoded so register updates same record
-                lastDecoded = { raw: g.raw, track1: { first: g.firstName, middle: g.middleName, last: g.lastName, street: g.street, city: g.city, addrState: g.state, state: g.state, postal: g.postal, issuer: g.issuer }, track2: { idNumber: g.idNumber, expYY: (g.exp || "").split("-")[0] || "", expMM: (g.exp || "").split("-")[1] || "" }, id: g.id };
-                // ensure the guest.id is preserved when re-registering: set it on the guest object later
-                // We will preserve id by reading from lastDecoded.id when saving
+                setVal("idInput", g.idNumber || ""); setText("issuer", g.issuer || ""); setVal("firstInput", g.firstName || ""); setVal("middleInput", g.middleName || "");
+                setVal("lastInput", g.lastName || ""); setVal("stateInput", g.state || ""); setVal("streetInput", g.street || ""); setVal("cityInput", g.city || "");
+                setVal("addrStateInput", g.state || ""); setVal("postalInput", g.postal || ""); setVal("expInput", g.exp || ""); document.getElementById("t3decoded").textContent = (g.raw && g.raw.track3) ? g.raw.track3 : "No Track 3 data.";
+                lastDecoded = { raw: g.raw, id: g.id };
+                showDupBadge(isDuplicateId(g.idNumber, g.id));
                 document.getElementById("registerBtn").disabled = false;
                 setStatus("Viewing saved guest — edit and re-register to update.", false);
             }
@@ -790,14 +686,10 @@
         document.getElementById("search").addEventListener("input", (e) => renderGuestList(e.target.value));
 
         document.getElementById("exportBtn").addEventListener("click", () => {
-            const list = loadGuests(); if (!list.length) { setStatus("No guests to export.", true); return }
+            const list = loadGuests(); if (!list.length) { setStatus("No guests to export.", true); return; }
             const csvHeader = ["registeredAt", "idNumber", "firstName", "middleName", "lastName", "street", "city", "state", "postal", "exp"].join(",");
-            const rows = list.map(g => [g.registeredAt || "", g.idNumber || "", g.firstName || "", g.middleName || "", g.lastName || "", g.street || "", g.city || "", g.state || "", g.postal || "", g.exp || ""]
-                .map(v => `"${(v || "").toString().replace(/"/g, '""')}"`).join(","));
-            const csv = [csvHeader].concat(rows).join("\n");
-            const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-            const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "guests.csv"; document.body.appendChild(a); a.click(); a.remove();
-            URL.revokeObjectURL(url); setStatus("Export started.", false);
+            const rows = list.map(g => [g.registeredAt || "", g.idNumber || "", g.firstName || "", g.middleName || "", g.lastName || "", g.street || "", g.city || "", g.state || "", g.postal || "", g.exp || ""].map(v => `"${(v || "").toString().replace(/"/g, '""')}"`).join(","));
+            const csv = [csvHeader].concat(rows).join("\n"); const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "guests.csv"; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); setStatus("Export started.", false);
         });
 
         document.getElementById("clearAllBtn").addEventListener("click", () => {
