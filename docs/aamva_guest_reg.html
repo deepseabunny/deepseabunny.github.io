@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8" />
-    <title>AAMVA Guest Registration — Highlighted UI</title>
+    <title>AAMVA Guest Registration — Editable + IndexedDB</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <style>
         :root {
@@ -40,7 +40,6 @@
             -moz-osx-font-smoothing: grayscale;
         }
 
-        /* Header */
         .header {
             display: flex;
             align-items: baseline;
@@ -51,7 +50,7 @@
 
         .title {
             display: flex;
-            flex-direction: column;
+            flex-direction: column
         }
 
         .title h1 {
@@ -59,20 +58,19 @@
             font-size: 20px;
             letter-spacing: 0.06em;
             text-transform: uppercase;
-            color: var(--text);
+            color: var(--text)
         }
 
         .subtitle {
             margin-top: 6px;
             color: var(--muted);
-            font-size: 13px;
+            font-size: 13px
         }
 
-        /* Layout */
         .layout {
             display: grid;
             grid-template-columns: 1.05fr 1.2fr;
-            gap: 18px;
+            gap: 18px
         }
 
         @media (max-width:980px) {
@@ -81,7 +79,6 @@
             }
         }
 
-        /* Panels */
         .panel {
             background: linear-gradient(180deg, rgba(12, 18, 33, 0.84), rgba(8, 12, 22, 0.85));
             border-radius: var(--radius);
@@ -90,7 +87,6 @@
             box-shadow: var(--shadow-lg);
         }
 
-        /* Input area */
         .controls {
             display: flex;
             gap: 10px;
@@ -118,7 +114,6 @@
             border-color: var(--accent-bright)
         }
 
-        /* Buttons */
         .btn {
             border-radius: 999px;
             padding: 8px 12px;
@@ -128,19 +123,19 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            border: 0;
+            border: 0
         }
 
         .btn.primary {
             background: linear-gradient(90deg, var(--accent) 0%, #16a34a 100%);
             color: #01210b;
-            box-shadow: 0 10px 30px rgba(34, 197, 94, 0.18);
+            box-shadow: 0 10px 30px rgba(34, 197, 94, 0.18)
         }
 
         .btn.ghost {
             background: transparent;
             color: var(--muted);
-            border: 1px solid rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.03)
         }
 
         .small-btn {
@@ -149,7 +144,6 @@
             border-radius: 8px
         }
 
-        /* Preview card — made prominent */
         .preview {
             margin-top: 12px;
             border-radius: 14px;
@@ -158,7 +152,7 @@
             border: 1px solid rgba(34, 197, 94, 0.08);
             display: flex;
             gap: 16px;
-            align-items: center;
+            align-items: flex-start;
             box-shadow: 0 12px 30px rgba(34, 197, 94, 0.04);
             transition: transform .22s ease, box-shadow .22s ease;
         }
@@ -169,22 +163,18 @@
 
         @keyframes popFlash {
             0% {
-                transform: translateY(6px) scale(.995);
-                box-shadow: 0 6px 20px rgba(34, 197, 94, 0.05)
+                transform: translateY(6px) scale(.995)
             }
 
             20% {
-                transform: translateY(0) scale(1.01);
-                box-shadow: 0 22px 55px rgba(34, 197, 94, 0.14)
+                transform: translateY(0) scale(1.01)
             }
 
             100% {
-                transform: translateY(0) scale(1);
-                box-shadow: 0 12px 30px rgba(34, 197, 94, 0.04)
+                transform: translateY(0) scale(1)
             }
         }
 
-        /* ID chip */
         .id-chip {
             min-width: 220px;
             padding: 12px 14px;
@@ -197,24 +187,27 @@
             gap: 8px;
         }
 
-        .id-chip .label {
+        .label-inline {
             font-size: 11px;
             color: var(--muted);
+            display: block;
+            margin-bottom: 6px;
             text-transform: uppercase;
-            letter-spacing: 0.1em
+            letter-spacing: 0.08em
         }
 
-        .id-chip .value {
-            font-family: var(--mono);
-            font-size: 20px;
-            color: var(--text);
-            background: linear-gradient(90deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.0));
-            padding: 6px 8px;
+        .input,
+        input[type=search],
+        textarea {
+            width: 100%;
+            padding: 8px;
             border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            background: transparent;
+            color: var(--text);
+            font-family: var(--mono)
         }
 
-        /* Big name area */
         .name-block {
             flex: 1;
             display: flex;
@@ -222,40 +215,6 @@
             gap: 6px
         }
 
-        .name-block .fullname {
-            font-size: 18px;
-            font-weight: 700;
-            color: #ecfff5
-        }
-
-        .name-block .meta {
-            color: var(--muted);
-            font-size: 13px
-        }
-
-        /* Tiny badges */
-        .badges {
-            display: flex;
-            gap: 8px;
-            align-items: center
-        }
-
-        .badge {
-            font-size: 12px;
-            padding: 6px 8px;
-            border-radius: 999px;
-            background: var(--glass);
-            border: 1px solid rgba(255, 255, 255, 0.02);
-            color: var(--muted)
-        }
-
-        .badge.dup {
-            background: linear-gradient(180deg, rgba(255, 107, 107, 0.06), rgba(255, 255, 255, 0.01));
-            border: 1px solid rgba(255, 107, 107, 0.12);
-            color: var(--danger)
-        }
-
-        /* Track raw area */
         .raw {
             margin-top: 12px;
             font-family: var(--mono);
@@ -267,7 +226,6 @@
             word-break: break-all;
         }
 
-        /* Guest list */
         .list-head {
             display: flex;
             align-items: center;
@@ -342,7 +300,6 @@
             cursor: pointer
         }
 
-        /* Utility */
         .muted {
             color: var(--muted)
         }
@@ -360,16 +317,29 @@
             color: var(--muted);
             font-size: 12px
         }
+
+        .badge {
+            font-size: 12px;
+            padding: 6px 8px;
+            border-radius: 999px;
+            background: var(--glass);
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            color: var(--muted)
+        }
+
+        .badge.dup {
+            background: linear-gradient(180deg, rgba(255, 107, 107, 0.06), rgba(255, 255, 255, 0.01));
+            border: 1px solid rgba(255, 107, 107, 0.12);
+            color: var(--danger)
+        }
     </style>
 </head>
 
 <body>
-
     <header class="header">
         <div class="title">
             <h1>AAMVA Guest Registration</h1>
-            <div class="subtitle">Scan → Decode → Register. Decoded results are highlighted for quick verification.
-            </div>
+            <div class="subtitle">Scan → Decode → Edit → Register. Uses IndexedDB for storage.</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
             <div class="badge">Local · searchable</div>
@@ -378,8 +348,7 @@
     </header>
 
     <div class="layout">
-
-        <!-- Left: input + preview -->
+        <!-- Left: input + editable preview/form -->
         <section class="panel" style="display:flex;flex-direction:column">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
                 <div style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em">Input
@@ -392,16 +361,17 @@
 
             <div class="controls" style="margin-top:12px">
                 <button id="decodeBtn" class="btn primary">⏵ Decode</button>
+                <button id="createBtn" class="btn ghost">✚ Create new guest</button>
                 <button id="registerBtn" class="btn ghost" disabled>➕ Register guest</button>
                 <button id="sampleBtn" class="btn ghost">⤓ Load sample</button>
                 <button id="clearInputBtn" class="btn ghost">✖ Clear</button>
             </div>
 
-            <!-- Prominent preview -->
+            <!-- Editable labeled form -->
             <div id="previewCard" class="preview" aria-live="polite" style="margin-top:14px">
-                <div class="id-chip">
-                    <div class="label">ID / DL</div>
-                    <div id="idNumber" class="value">—</div>
+                <div style="min-width:240px;display:flex;flex-direction:column;gap:8px">
+                    <label class="label-inline">ID / DL number</label>
+                    <input id="idInput" class="input" style="font-family:var(--mono);font-size:16px" />
                     <div style="display:flex;gap:6px;align-items:center;margin-top:6px">
                         <div class="badge">Issuer <span id="issuer"
                                 style="margin-left:8px;color:var(--accent-bright);font-weight:700"></span></div>
@@ -410,18 +380,43 @@
                 </div>
 
                 <div class="name-block">
-                    <div id="namePreview" class="fullname">—</div>
-                    <div id="addrPreview" class="meta muted">—</div>
-                    <div style="display:flex;gap:12px;align-items:center;margin-top:6px">
-                        <div class="code" id="exp">Exp: —</div>
-                        <div class="code" id="issue">Issue/DOB: —</div>
+                    <div style="display:flex;gap:8px">
+                        <div style="flex:1"><label class="label-inline">First name</label><input id="firstInput"
+                                class="input" /></div>
+                        <div style="width:120px"><label class="label-inline">Middle name</label><input id="middleInput"
+                                class="input" /></div>
+                    </div>
+
+                    <div style="display:flex;gap:8px;margin-top:6px">
+                        <div style="flex:1"><label class="label-inline">Last name</label><input id="lastInput"
+                                class="input" /></div>
+                        <div style="width:120px"><label class="label-inline">Jurisdiction (state)</label><input
+                                id="stateInput" class="input" /></div>
+                    </div>
+
+                    <div style="margin-top:8px">
+                        <label class="label-inline">Address</label>
+                        <div style="display:grid;grid-template-columns:1fr 180px 120px 120px;gap:8px">
+                            <input id="streetInput" class="input" placeholder="Street" />
+                            <input id="cityInput" class="input" placeholder="City" />
+                            <input id="addrStateInput" class="input" placeholder="Addr state" />
+                            <input id="postalInput" class="input" placeholder="Postal code" />
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+                        <div style="width:140px"><label class="label-inline">Expiration (YY-MM)</label><input
+                                id="expInput" class="input" placeholder="YY-MM" /></div>
+                        <div style="width:180px"><label class="label-inline">Issue / DOB (YY-MM)</label><input
+                                id="issueInput" class="input" placeholder="YY-MM" /></div>
+                        <div style="flex:1"></div>
                     </div>
                 </div>
-
             </div>
 
             <div class="raw" id="t3decoded" style="margin-top:12px">Track 3 raw payload will appear here.</div>
-            <div class="footer-note">Tip: After decoding, click “Register guest” to save to local storage.</div>
+            <div class="footer-note">Edit fields before registering. "Create new guest" clears the form for manual
+                entry.</div>
         </section>
 
         <!-- Right: guest list -->
@@ -455,12 +450,11 @@
                 </thead>
                 <tbody id="guestTbody"></tbody>
             </table>
-
         </section>
     </div>
 
     <script>
-        /* --- Decoder (unchanged logic) --- */
+        /* --- Decoder (unchanged) --- */
         function extractTracks(raw) {
             const cleaned = raw.replace(/\r?\n/g, " ").replace(/\s+/g, " ").trim();
             const t1 = (cleaned.match(/%([^?]+)\?/) || [])[1] || "";
@@ -505,47 +499,151 @@
             return { raw: tracks, track1: t1, track2: t2, track3: { raw: tracks.track3 } };
         }
 
-        /* --- Storage + registration (same as before) --- */
-        const STORAGE_KEY = "aamva_guests_v2_highlight";
-        function loadGuests() { try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : [] } catch { return [] } }
-        function saveGuests(list) { localStorage.setItem(STORAGE_KEY, JSON.stringify(list || [])) }
-        function addOrUpdateGuest(guest) {
-            const list = loadGuests(); const idx = list.findIndex(g => g.idNumber && g.idNumber === guest.idNumber);
-            if (idx >= 0) { guest.id = list[idx].id; list[idx] = guest } else { guest.id = "g_" + Date.now() + "_" + Math.floor(Math.random() * 9999); list.push(guest) }
-            saveGuests(list); return guest;
+        /* --- IndexedDB-backed storage + registration (cache + async persistence) --- */
+        let GUESTS_CACHE = [];
+        const IDB_NAME = "aamva_db";
+        const IDB_STORE = "guests";
+        const IDB_VERSION = 1;
+        let dbPromise = null;
+        function openDb() {
+            if (dbPromise) return dbPromise;
+            dbPromise = new Promise((resolve, reject) => {
+                const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+                req.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(IDB_STORE)) {
+                        const store = db.createObjectStore(IDB_STORE, { keyPath: "id" });
+                        store.createIndex("idNumber_idx", "idNumber", { unique: false });
+                    }
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+            return dbPromise;
         }
-        function deleteGuestById(uid) { let list = loadGuests(); list = list.filter(g => g.id !== uid); saveGuests(list) }
-        function clearAllGuests() { localStorage.removeItem(STORAGE_KEY) }
+        async function idbLoadAll() {
+            const db = await openDb();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(IDB_STORE, "readonly");
+                const store = tx.objectStore(IDB_STORE);
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = () => reject(req.error);
+            });
+        }
+        async function idbPut(item) {
+            const db = await openDb();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(IDB_STORE, "readwrite");
+                const store = tx.objectStore(IDB_STORE);
+                const req = store.put(item);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+        async function idbDelete(id) {
+            const db = await openDb();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(IDB_STORE, "readwrite");
+                const store = tx.objectStore(IDB_STORE);
+                const req = store.delete(id);
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+            });
+        }
+        async function idbClearAll() {
+            const db = await openDb();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(IDB_STORE, "readwrite");
+                const store = tx.objectStore(IDB_STORE);
+                const req = store.clear();
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+            });
+        }
 
-        /* --- UI helpers --- */
+        function loadGuests() { return GUESTS_CACHE.slice(); }
+        function saveGuests(list) {
+            GUESTS_CACHE = (list || []).slice();
+            (async () => {
+                try {
+                    // Put each item (upsert)
+                    for (const g of GUESTS_CACHE) await idbPut(g);
+                } catch (e) { console.error("Failed to persist guests to IDB:", e); }
+            })();
+        }
+        function ensureInternalId(guest) { if (!guest.id) guest.id = "g_" + Date.now() + "_" + Math.floor(Math.random() * 9999); return guest.id; }
+
+        function addOrUpdateGuest(guest) {
+            const list = loadGuests();
+            ensureInternalId(guest);
+            const idx = list.findIndex(g => g.id && g.id === guest.id);
+            if (idx >= 0) {
+                list[idx] = guest;
+            } else {
+                const idxByNumber = guest.idNumber ? list.findIndex(g => g.idNumber && g.idNumber === guest.idNumber) : -1;
+                if (idxByNumber >= 0) {
+                    guest.id = list[idxByNumber].id;
+                    list[idxByNumber] = guest;
+                } else {
+                    list.push(guest);
+                }
+            }
+            saveGuests(list);
+            (async () => { try { await idbPut(guest); } catch (e) { console.error("IDB put error:", e); } })();
+            return guest;
+        }
+        function deleteGuestById(uid) {
+            let list = loadGuests();
+            list = list.filter(g => g.id !== uid);
+            saveGuests(list);
+            (async () => { try { await idbDelete(uid); } catch (e) { console.error("IDB delete error:", e); } })();
+        }
+        function clearAllGuests() {
+            GUESTS_CACHE = [];
+            (async () => { try { await idbClearAll(); } catch (e) { console.error("IDB clear error:", e); } })();
+        }
+
+        (async function initStorage() {
+            try {
+                const items = await idbLoadAll();
+                if (Array.isArray(items) && items.length) GUESTS_CACHE = items.slice();
+                else GUESTS_CACHE = [];
+            } catch (e) {
+                console.error("Failed to initialize IndexedDB:", e);
+                GUESTS_CACHE = [];
+            }
+            renderGuestList();
+        })();
+
+        /* --- UI helpers & rendering --- */
+        function setVal(id, v) { const el = document.getElementById(id); if (!el) return; el.value = (v || "").toString(); }
         function setText(id, v) { const el = document.getElementById(id); if (!el) return; el.textContent = (v || "").toString() || "—"; }
-        function showDupBadge(show) { document.getElementById("dupBadge").style.display = show ? "inline-flex" : "none" }
-        function addPreviewPop() { const c = document.getElementById("previewCard"); c.classList.remove("pop"); void c.offsetWidth; c.classList.add("pop") }
+        function showDupBadge(show) { const el = document.getElementById("dupBadge"); if (!el) return; el.style.display = show ? "inline-flex" : "none"; }
+        function addPreviewPop() { const c = document.getElementById("previewCard"); c.classList.remove("pop"); void c.offsetWidth; c.classList.add("pop"); }
 
-        /* Render preview and determine duplicate */
         let lastDecoded = null;
         function renderPreview(result) {
             lastDecoded = result;
-            setText("idNumber", result.track2.idNumber || "—");
+            setVal("idInput", result.track2.idNumber || "");
             setText("issuer", result.track1.issuer || "");
-            const name = [result.track1.first, result.track1.middle, result.track1.last].filter(Boolean).join(" ") || result.track1.last || "";
-            setText("namePreview", name || "—");
-            const addr = [result.track1.street, result.track1.city, result.track1.addrState || result.track1.state, result.track1.postal].filter(Boolean).join(", ");
-            setText("addrPreview", addr || "—");
-            setText("exp", result.track2.expYY || result.track2.expMM ? ("Exp: " + formatYYMM(result.track2.expYY, result.track2.expMM)) : "Exp: —");
-            setText("issue", result.track2.issueYY || result.track2.issueMM ? ("Issue/DOB: " + formatYYMM(result.track2.issueYY, result.track2.issueMM)) : "Issue/DOB: —");
-            const t3 = result.raw.track3 || "";
-            document.getElementById("t3decoded").textContent = t3.trim() || "No Track 3 data detected.";
-            // duplicate check
-            const dup = isDuplicateId(result.track2.idNumber);
-            showDupBadge(!!dup);
-            // visual pop
+            setVal("firstInput", result.track1.first || "");
+            setVal("middleInput", result.track1.middle || "");
+            setVal("lastInput", result.track1.last || "");
+            setVal("stateInput", result.track1.state || "");
+            setVal("streetInput", result.track1.street || "");
+            setVal("cityInput", result.track1.city || "");
+            setVal("addrStateInput", result.track1.addrState || "");
+            setVal("postalInput", result.track1.postal || "");
+            setVal("expInput", formatYYMM(result.track2.expYY, result.track2.expMM) || "");
+            setVal("issueInput", formatYYMM(result.track2.issueYY, result.track2.issueMM) || "");
+            document.getElementById("t3decoded").textContent = result.raw.track3 ? result.raw.track3.trim() : "No Track 3 data detected.";
+            showDupBadge(isDuplicateId(result.track2.idNumber));
             addPreviewPop();
             document.getElementById("registerBtn").disabled = false;
-            setStatus("Decoded. Verify highlighted info, then register.", false);
+            setStatus("Decoded. Edit fields if needed, then register.", false);
         }
 
-        /* Guest list rendering */
         function isDuplicateId(idNumber, selfId) {
             if (!idNumber) return false;
             const list = loadGuests();
@@ -553,7 +651,7 @@
             return matches.length > 0;
         }
 
-        function escapeHtml(s = "") { return s.toString().replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])) }
+        function escapeHtml(s = "") { return s.toString().replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
 
         function renderGuestList(filter = "") {
             const list = loadGuests();
@@ -571,25 +669,25 @@
             status.textContent = `${filtered.length} shown · ${list.length} total`;
             filtered.forEach(g => {
                 const tr = document.createElement("tr");
-                tr.className = "row " + (isDuplicateId(g.idNumber, g.id) ? "dup-row" : "");
-                const registered = new Date(g.registeredAt).toLocaleString();
+                if (isDuplicateId(g.idNumber, g.id)) tr.classList.add("dup-row");
+                const registered = g.registeredAt ? new Date(g.registeredAt).toLocaleString() : "";
                 const idCell = escapeHtml(g.idNumber || "");
                 const name = escapeHtml([g.firstName, g.middleName, g.lastName].filter(Boolean).join(" "));
                 const addr = escapeHtml([g.street, g.city, g.state, g.postal].filter(Boolean).join(", "));
+                const safeId = g.id ? g.id : "";
                 tr.innerHTML = `<td style="width:160px">${registered}</td>
                     <td><code class="code">${idCell}</code></td>
                     <td>${name}</td>
                     <td>${addr}</td>
                     <td style="width:80px">${escapeHtml(g.exp || "")}</td>
                     <td style="width:110px; text-align:right" class="actions">
-                      <button class="small" data-action="view" data-id="${g.id}">View</button>
-                      <button class="small" data-action="delete" data-id="${g.id}">Delete</button>
+                      <button class="small" data-action="view" data-id="${safeId}">View</button>
+                      <button class="small" data-action="delete" data-id="${safeId}">Delete</button>
                     </td>`;
                 tbody.appendChild(tr);
             });
         }
 
-        /* Status line */
         function setStatus(msg, isError) {
             const el = document.getElementById("listStatus");
             if (el) el.textContent = msg || "";
@@ -597,7 +695,7 @@
             if (s) { s.textContent = msg || ""; s.style.color = isError ? "var(--danger)" : "var(--muted)"; }
         }
 
-        /* --- Event wiring --- */
+        /* --- Events --- */
         document.getElementById("decodeBtn").addEventListener("click", () => {
             const raw = document.getElementById("input").value || "";
             if (!raw.trim()) { setStatus("Paste raw magstripe data first.", true); return }
@@ -605,6 +703,19 @@
                 const res = decodeAAMVA(raw);
                 renderPreview(res);
             } catch (e) { console.error(e); setStatus("Failed to decode. Check input format.", true) }
+        });
+
+        document.getElementById("createBtn").addEventListener("click", () => {
+            // clear form for manual new guest creation
+            const ids = ["idInput", "firstInput", "middleInput", "lastInput", "stateInput", "streetInput", "cityInput", "addrStateInput", "postalInput", "expInput", "issueInput"];
+            ids.forEach(i => setVal(i, ""));
+            setText("issuer", "");
+            document.getElementById("t3decoded").textContent = "";
+            showDupBadge(false);
+            lastDecoded = null;
+            document.getElementById("registerBtn").disabled = false;
+            setStatus("Create new guest: fill fields and press Register.", false);
+            document.getElementById("idInput").focus();
         });
 
         document.getElementById("sampleBtn").addEventListener("click", () => {
@@ -616,52 +727,68 @@
         document.getElementById("clearInputBtn").addEventListener("click", () => {
             document.getElementById("input").value = "";
             document.getElementById("registerBtn").disabled = true;
-            setText("idNumber", "—"); setText("namePreview", "—"); setText("addrPreview", "—"); setText("exp", "Exp: —"); setText("issue", "Issue/DOB: —"); document.getElementById("t3decoded").textContent = "";
+            const ids = ["idInput", "firstInput", "middleInput", "lastInput", "stateInput", "streetInput", "cityInput", "addrStateInput", "postalInput", "expInput", "issueInput"];
+            ids.forEach(i => setVal(i, ""));
+            setText("issuer", "");
+            document.getElementById("t3decoded").textContent = "";
             showDupBadge(false);
             setStatus("", false);
+            lastDecoded = null;
         });
 
         document.getElementById("registerBtn").addEventListener("click", () => {
-            if (!lastDecoded) { setStatus("Nothing to register. Decode first.", true); return }
-            const gd = {
+            // Collect values from editable form
+            const guest = {
                 registeredAt: Date.now(),
-                idNumber: lastDecoded.track2.idNumber || "",
-                firstName: lastDecoded.track1.first || "",
-                middleName: lastDecoded.track1.middle || "",
-                lastName: lastDecoded.track1.last || "",
-                street: lastDecoded.track1.street || "",
-                city: lastDecoded.track1.city || "",
-                state: lastDecoded.track1.addrState || lastDecoded.track1.state || "",
-                postal: lastDecoded.track1.postal || "",
-                issuer: lastDecoded.track1.issuer || "",
-                exp: formatYYMM(lastDecoded.track2.expYY, lastDecoded.track2.expMM),
-                raw: lastDecoded.raw
+                idNumber: (document.getElementById("idInput").value || "").trim(),
+                firstName: (document.getElementById("firstInput").value || "").trim(),
+                middleName: (document.getElementById("middleInput").value || "").trim(),
+                lastName: (document.getElementById("lastInput").value || "").trim(),
+                street: (document.getElementById("streetInput").value || "").trim(),
+                city: (document.getElementById("cityInput").value || "").trim(),
+                state: (document.getElementById("addrStateInput").value || "").trim() || (document.getElementById("stateInput").value || "").trim(),
+                postal: (document.getElementById("postalInput").value || "").trim(),
+                issuer: (document.getElementById("issuer").textContent || "").trim(),
+                exp: (document.getElementById("expInput").value || "").trim(),
+                raw: (lastDecoded && lastDecoded.raw) ? lastDecoded.raw : { track1: "", track2: "", track3: "" }
             };
-            const saved = addOrUpdateGuest(gd);
+            if (!guest.idNumber && !guest.firstName && !guest.lastName) { setStatus("Provide at least an ID or a name to register.", true); return; }
+            const saved = addOrUpdateGuest(guest);
             renderGuestList(document.getElementById("search").value);
             setStatus(saved.idNumber ? `Registered: ${saved.idNumber}` : "Registered (no ID).", false);
             document.getElementById("registerBtn").disabled = true;
         });
 
-        /* table actions */
         document.getElementById("guestTbody").addEventListener("click", (ev) => {
             const btn = ev.target.closest("button"); if (!btn) return;
             const action = btn.dataset.action; const uid = btn.dataset.id;
-            if (action === "delete") { if (!confirm("Delete this guest?")) return; deleteGuestById(uid); renderGuestList(document.getElementById("search").value); setStatus("Guest deleted.", false) }
+            if (action === "delete") { if (!confirm("Delete this guest?")) return; deleteGuestById(uid); renderGuestList(document.getElementById("search").value); setStatus("Guest deleted.", false); }
             else if (action === "view") {
                 const g = loadGuests().find(x => x.id === uid); if (!g) return;
-                setText("idNumber", g.idNumber || "—"); setText("namePreview", [g.firstName, g.middleName, g.lastName].filter(Boolean).join(" ") || "—");
-                setText("addrPreview", [g.street, g.city, g.state, g.postal].filter(Boolean).join(", ") || "—");
-                setText("exp", g.exp ? ("Exp: " + g.exp) : "Exp: —");
+                // populate form with stored guest for editing
+                setVal("idInput", g.idNumber || "");
+                setText("issuer", g.issuer || "");
+                setVal("firstInput", g.firstName || "");
+                setVal("middleInput", g.middleName || "");
+                setVal("lastInput", g.lastName || "");
+                setVal("stateInput", g.state || "");
+                setVal("streetInput", g.street || "");
+                setVal("cityInput", g.city || "");
+                setVal("addrStateInput", g.state || "");
+                setVal("postalInput", g.postal || "");
+                setVal("expInput", g.exp || "");
                 document.getElementById("t3decoded").textContent = (g.raw && g.raw.track3) ? g.raw.track3 : "No Track 3 data.";
-                setStatus("Viewing saved guest.", false);
+                // attach internal id to lastDecoded so register updates same record
+                lastDecoded = { raw: g.raw, track1: { first: g.firstName, middle: g.middleName, last: g.lastName, street: g.street, city: g.city, addrState: g.state, state: g.state, postal: g.postal, issuer: g.issuer }, track2: { idNumber: g.idNumber, expYY: (g.exp || "").split("-")[0] || "", expMM: (g.exp || "").split("-")[1] || "" }, id: g.id };
+                // ensure the guest.id is preserved when re-registering: set it on the guest object later
+                // We will preserve id by reading from lastDecoded.id when saving
+                document.getElementById("registerBtn").disabled = false;
+                setStatus("Viewing saved guest — edit and re-register to update.", false);
             }
         });
 
-        /* search */
         document.getElementById("search").addEventListener("input", (e) => renderGuestList(e.target.value));
 
-        /* export / clear all */
         document.getElementById("exportBtn").addEventListener("click", () => {
             const list = loadGuests(); if (!list.length) { setStatus("No guests to export.", true); return }
             const csvHeader = ["registeredAt", "idNumber", "firstName", "middleName", "lastName", "street", "city", "state", "postal", "exp"].join(",");
@@ -672,15 +799,12 @@
             const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "guests.csv"; document.body.appendChild(a); a.click(); a.remove();
             URL.revokeObjectURL(url); setStatus("Export started.", false);
         });
+
         document.getElementById("clearAllBtn").addEventListener("click", () => {
             if (!confirm("Clear all registered guests? This cannot be undone.")) return;
             clearAllGuests(); renderGuestList(); setStatus("All guests cleared.", false);
         });
-
-        /* init */
-        renderGuestList();
     </script>
-
 </body>
 
 </html>
