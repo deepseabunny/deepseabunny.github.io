@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>AAMVA Guest Registration — Highlighted UI</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+        :root {
+            --bg: #05060a;
+            --panel: #071027;
+            --accent: #22c55e;
+            --accent-bright: #7CFFB2;
+            --danger: #ff6b6b;
+            --muted: #94a3b8;
+            --text: #e6eef3;
+            --glass: rgba(255, 255, 255, 0.03);
+            --mono: "JetBrains Mono", "Fira Code", Menlo, Monaco, Consolas, monospace;
+            --radius: 12px;
+            --shadow-lg: 0 18px 50px rgba(2, 6, 23, 0.7);
+            --shadow-sm: 0 6px 18px rgba(2, 6, 23, 0.6);
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        html,
+        body {
+            height: 100%
+        }
+
+        body {
+            margin: 0;
+            padding: 28px;
+            font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            background: radial-gradient(circle at 10% 10%, #071027 0%, #020617 40%, #000 100%);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+
+        .title {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .title h1 {
+            margin: 0;
+            font-size: 20px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text);
+        }
+
+        .subtitle {
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        /* Layout */
+        .layout {
+            display: grid;
+            grid-template-columns: 1.05fr 1.2fr;
+            gap: 18px;
+        }
+
+        @media (max-width:980px) {
+            .layout {
+                grid-template-columns: 1fr
+            }
+        }
+
+        /* Panels */
+        .panel {
+            background: linear-gradient(180deg, rgba(12, 18, 33, 0.84), rgba(8, 12, 22, 0.85));
+            border-radius: var(--radius);
+            padding: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Input area */
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            resize: vertical;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            background: linear-gradient(180deg, rgba(2, 6, 23, 0.6), rgba(2, 6, 23, 0.4));
+            color: var(--text);
+            font-family: var(--mono);
+            padding: 10px;
+            font-size: 13px;
+            outline: none;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+        }
+
+        textarea:focus {
+            box-shadow: 0 6px 30px rgba(34, 197, 94, 0.08);
+            border-color: var(--accent-bright)
+        }
+
+        /* Buttons */
+        .btn {
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 0;
+        }
+
+        .btn.primary {
+            background: linear-gradient(90deg, var(--accent) 0%, #16a34a 100%);
+            color: #01210b;
+            box-shadow: 0 10px 30px rgba(34, 197, 94, 0.18);
+        }
+
+        .btn.ghost {
+            background: transparent;
+            color: var(--muted);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .small-btn {
+            padding: 6px 10px;
+            font-size: 12px;
+            border-radius: 8px
+        }
+
+        /* Preview card — made prominent */
+        .preview {
+            margin-top: 12px;
+            border-radius: 14px;
+            padding: 14px;
+            background: linear-gradient(180deg, rgba(34, 197, 94, 0.04), rgba(255, 255, 255, 0.01));
+            border: 1px solid rgba(34, 197, 94, 0.08);
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            box-shadow: 0 12px 30px rgba(34, 197, 94, 0.04);
+            transition: transform .22s ease, box-shadow .22s ease;
+        }
+
+        .preview.pop {
+            animation: popFlash .9s ease 0s 1;
+        }
+
+        @keyframes popFlash {
+            0% {
+                transform: translateY(6px) scale(.995);
+                box-shadow: 0 6px 20px rgba(34, 197, 94, 0.05)
+            }
+
+            20% {
+                transform: translateY(0) scale(1.01);
+                box-shadow: 0 22px 55px rgba(34, 197, 94, 0.14)
+            }
+
+            100% {
+                transform: translateY(0) scale(1);
+                box-shadow: 0 12px 30px rgba(34, 197, 94, 0.04)
+            }
+        }
+
+        /* ID chip */
+        .id-chip {
+            min-width: 220px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: linear-gradient(180deg, #01130a, rgba(34, 197, 94, 0.03));
+            border: 1px solid rgba(34, 197, 94, 0.12);
+            box-shadow: 0 6px 18px rgba(2, 6, 23, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .id-chip .label {
+            font-size: 11px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em
+        }
+
+        .id-chip .value {
+            font-family: var(--mono);
+            font-size: 20px;
+            color: var(--text);
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.0));
+            padding: 6px 8px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        /* Big name area */
+        .name-block {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px
+        }
+
+        .name-block .fullname {
+            font-size: 18px;
+            font-weight: 700;
+            color: #ecfff5
+        }
+
+        .name-block .meta {
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        /* Tiny badges */
+        .badges {
+            display: flex;
+            gap: 8px;
+            align-items: center
+        }
+
+        .badge {
+            font-size: 12px;
+            padding: 6px 8px;
+            border-radius: 999px;
+            background: var(--glass);
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            color: var(--muted)
+        }
+
+        .badge.dup {
+            background: linear-gradient(180deg, rgba(255, 107, 107, 0.06), rgba(255, 255, 255, 0.01));
+            border: 1px solid rgba(255, 107, 107, 0.12);
+            color: var(--danger)
+        }
+
+        /* Track raw area */
+        .raw {
+            margin-top: 12px;
+            font-family: var(--mono);
+            font-size: 12px;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(255, 255, 255, 0.01));
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            word-break: break-all;
+        }
+
+        /* Guest list */
+        .list-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px
+        }
+
+        .search {
+            flex: 1;
+            display: flex;
+            gap: 8px
+        }
+
+        input[type=search] {
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            background: transparent;
+            color: var(--text)
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px
+        }
+
+        .table th {
+            font-size: 12px;
+            color: var(--muted);
+            text-transform: uppercase;
+            padding: 10px;
+            text-align: left
+        }
+
+        .table td {
+            padding: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.02);
+            vertical-align: middle
+        }
+
+        .row {
+            border-radius: 10px;
+            transition: transform .16s ease, box-shadow .16s ease
+        }
+
+        .row:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-sm)
+        }
+
+        .dup-row {
+            border-left: 4px solid var(--danger);
+            background: linear-gradient(90deg, rgba(255, 107, 107, 0.03), transparent)
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end
+        }
+
+        .small {
+            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            color: var(--muted);
+            cursor: pointer
+        }
+
+        /* Utility */
+        .muted {
+            color: var(--muted)
+        }
+
+        .code {
+            font-family: var(--mono);
+            font-size: 13px;
+            background: rgba(0, 0, 0, 0.35);
+            padding: 6px;
+            border-radius: 6px
+        }
+
+        .footer-note {
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 12px
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="title">
+            <h1>AAMVA Guest Registration</h1>
+            <div class="subtitle">Scan → Decode → Register. Decoded results are highlighted for quick verification.
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+            <div class="badge">Local · searchable</div>
+            <div class="badge">Track 1–3</div>
+        </div>
+    </header>
+
+    <div class="layout">
+
+        <!-- Left: input + preview -->
+        <section class="panel" style="display:flex;flex-direction:column">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <div style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em">Input
+                    swipe data</div>
+                <div class="muted">Paste raw tracks (% ; + ... ?)</div>
+            </div>
+
+            <textarea id="input" spellcheck="false"
+                placeholder="%AZPHOENICS^KIV$DEEPSEA$V^1234 E MAIN ST$PHOENICS$AZ$85205^;6360260401379124=4911841122=?+1085205..."></textarea>
+
+            <div class="controls" style="margin-top:12px">
+                <button id="decodeBtn" class="btn primary">⏵ Decode</button>
+                <button id="registerBtn" class="btn ghost" disabled>➕ Register guest</button>
+                <button id="sampleBtn" class="btn ghost">⤓ Load sample</button>
+                <button id="clearInputBtn" class="btn ghost">✖ Clear</button>
+            </div>
+
+            <!-- Prominent preview -->
+            <div id="previewCard" class="preview" aria-live="polite" style="margin-top:14px">
+                <div class="id-chip">
+                    <div class="label">ID / DL</div>
+                    <div id="idNumber" class="value">—</div>
+                    <div style="display:flex;gap:6px;align-items:center;margin-top:6px">
+                        <div class="badge">Issuer <span id="issuer"
+                                style="margin-left:8px;color:var(--accent-bright);font-weight:700"></span></div>
+                        <div id="dupBadge" class="badge dup" style="display:none">Duplicate</div>
+                    </div>
+                </div>
+
+                <div class="name-block">
+                    <div id="namePreview" class="fullname">—</div>
+                    <div id="addrPreview" class="meta muted">—</div>
+                    <div style="display:flex;gap:12px;align-items:center;margin-top:6px">
+                        <div class="code" id="exp">Exp: —</div>
+                        <div class="code" id="issue">Issue/DOB: —</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="raw" id="t3decoded" style="margin-top:12px">Track 3 raw payload will appear here.</div>
+            <div class="footer-note">Tip: After decoding, click “Register guest” to save to local storage.</div>
+        </section>
+
+        <!-- Right: guest list -->
+        <section class="panel" style="display:flex;flex-direction:column">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <div style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em">Registered
+                    guests</div>
+                <div style="display:flex;gap:8px">
+                    <button id="exportBtn" class="small">⬇ Export CSV</button>
+                    <button id="clearAllBtn" class="small">🗑 Clear all</button>
+                </div>
+            </div>
+
+            <div class="list-head" style="margin-bottom:8px">
+                <div class="search" style="flex:1">
+                    <input id="search" type="search" placeholder="Search by name, id, city, state, postal" />
+                </div>
+                <div style="margin-left:12px;color:var(--muted);font-size:13px" id="listStatus">No guests yet.</div>
+            </div>
+
+            <table class="table" id="guestTable" style="display:none">
+                <thead>
+                    <tr>
+                        <th style="width:160px">Registered</th>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Address</th>
+                        <th style="width:80px">Exp</th>
+                        <th style="width:110px"></th>
+                    </tr>
+                </thead>
+                <tbody id="guestTbody"></tbody>
+            </table>
+
+        </section>
+    </div>
+
+    <script>
+        /* --- Decoder (unchanged logic) --- */
+        function extractTracks(raw) {
+            const cleaned = raw.replace(/\r?\n/g, " ").replace(/\s+/g, " ").trim();
+            const t1 = (cleaned.match(/%([^?]+)\?/) || [])[1] || "";
+            const t2 = (cleaned.match(/;([^?]+)\?/) || [])[1] || "";
+            const t3 = (cleaned.match(/\+([^?]+)\?/) || [])[1] || "";
+            return { track1: t1, track2: t2, track3: t3 };
+        }
+        function parseTrack1(track1) {
+            if (!track1) return { state: "", issuer: "", last: "", first: "", middle: "", street: "", city: "", addrState: "", postal: "" };
+            const parts = track1.split("^");
+            const header = parts[0] || ""; const nameField = parts[1] || ""; const addrField = parts[2] || "";
+            const state = header.slice(0, 2); const issuer = header.slice(2);
+            const np = nameField.split("$"); const last = np[0] || ""; const first = np[1] || ""; const middle = np[2] || "";
+            let street = ""; let city = ""; let addrState = ""; let postal = "";
+            if (addrField.includes("$")) {
+                const a = addrField.split("$");
+                street = a[0] || ""; city = a[1] || ""; addrState = a[2] || ""; postal = a[3] || "";
+            } else street = addrField || "";
+            return { state, issuer, last, first, middle, street, city, addrState, postal };
+        }
+        function parseTrack2(track2) {
+            if (!track2) return { iin: "", idNumber: "", expYY: "", expMM: "", issueYY: "", issueMM: "" };
+            const [primary, secondaryRaw] = track2.split("="); const secondary = secondaryRaw || "";
+            const iin = primary.slice(0, 4) || ""; const idNumber = primary.slice(4) || "";
+            const expYY = secondary.slice(0, 2) || ""; const expMM = secondary.slice(2, 4) || "";
+            const issueYY = secondary.slice(4, 6) || ""; const issueMM = secondary.slice(6, 8) || "";
+            return { iin, idNumber, expYY, expMM, issueYY, issueMM };
+        }
+        function extractDupIdFromTrack3(t3raw) {
+            if (!t3raw) return "";
+            const matches = t3raw.match(/D0\d+/g);
+            return matches && matches.length ? matches[matches.length - 1] : "";
+        }
+        function formatYYMM(yy, mm) {
+            if (!yy && !mm) return "";
+            return `${yy || "??"}-${mm || "??"}`;
+        }
+        function decodeAAMVA(raw) {
+            const tracks = extractTracks(raw); const t1 = parseTrack1(tracks.track1); const t2 = parseTrack2(tracks.track2);
+            const dupFromT3 = extractDupIdFromTrack3(tracks.track3);
+            t2.idNumber = dupFromT3 || t2.idNumber || "";
+            return { raw: tracks, track1: t1, track2: t2, track3: { raw: tracks.track3 } };
+        }
+
+        /* --- Storage + registration (same as before) --- */
+        const STORAGE_KEY = "aamva_guests_v2_highlight";
+        function loadGuests() { try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : [] } catch { return [] } }
+        function saveGuests(list) { localStorage.setItem(STORAGE_KEY, JSON.stringify(list || [])) }
+        function addOrUpdateGuest(guest) {
+            const list = loadGuests(); const idx = list.findIndex(g => g.idNumber && g.idNumber === guest.idNumber);
+            if (idx >= 0) { guest.id = list[idx].id; list[idx] = guest } else { guest.id = "g_" + Date.now() + "_" + Math.floor(Math.random() * 9999); list.push(guest) }
+            saveGuests(list); return guest;
+        }
+        function deleteGuestById(uid) { let list = loadGuests(); list = list.filter(g => g.id !== uid); saveGuests(list) }
+        function clearAllGuests() { localStorage.removeItem(STORAGE_KEY) }
+
+        /* --- UI helpers --- */
+        function setText(id, v) { const el = document.getElementById(id); if (!el) return; el.textContent = (v || "").toString() || "—"; }
+        function showDupBadge(show) { document.getElementById("dupBadge").style.display = show ? "inline-flex" : "none" }
+        function addPreviewPop() { const c = document.getElementById("previewCard"); c.classList.remove("pop"); void c.offsetWidth; c.classList.add("pop") }
+
+        /* Render preview and determine duplicate */
+        let lastDecoded = null;
+        function renderPreview(result) {
+            lastDecoded = result;
+            setText("idNumber", result.track2.idNumber || "—");
+            setText("issuer", result.track1.issuer || "");
+            const name = [result.track1.first, result.track1.middle, result.track1.last].filter(Boolean).join(" ") || result.track1.last || "";
+            setText("namePreview", name || "—");
+            const addr = [result.track1.street, result.track1.city, result.track1.addrState || result.track1.state, result.track1.postal].filter(Boolean).join(", ");
+            setText("addrPreview", addr || "—");
+            setText("exp", result.track2.expYY || result.track2.expMM ? ("Exp: " + formatYYMM(result.track2.expYY, result.track2.expMM)) : "Exp: —");
+            setText("issue", result.track2.issueYY || result.track2.issueMM ? ("Issue/DOB: " + formatYYMM(result.track2.issueYY, result.track2.issueMM)) : "Issue/DOB: —");
+            const t3 = result.raw.track3 || "";
+            document.getElementById("t3decoded").textContent = t3.trim() || "No Track 3 data detected.";
+            // duplicate check
+            const dup = isDuplicateId(result.track2.idNumber);
+            showDupBadge(!!dup);
+            // visual pop
+            addPreviewPop();
+            document.getElementById("registerBtn").disabled = false;
+            setStatus("Decoded. Verify highlighted info, then register.", false);
+        }
+
+        /* Guest list rendering */
+        function isDuplicateId(idNumber, selfId) {
+            if (!idNumber) return false;
+            const list = loadGuests();
+            const matches = list.filter(g => g.idNumber === idNumber && g.id !== selfId);
+            return matches.length > 0;
+        }
+
+        function escapeHtml(s = "") { return s.toString().replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])) }
+
+        function renderGuestList(filter = "") {
+            const list = loadGuests();
+            const tbody = document.getElementById("guestTbody");
+            const table = document.getElementById("guestTable");
+            const status = document.getElementById("listStatus");
+            tbody.innerHTML = "";
+            const q = (filter || "").toLowerCase().trim();
+            const filtered = list.filter(g => {
+                if (!q) return true;
+                return [g.idNumber, g.firstName, g.lastName, g.middleName, g.street, g.city, g.state, g.postal].some(f => (f || "").toString().toLowerCase().includes(q));
+            }).sort((a, b) => (b.registeredAt || 0) - (a.registeredAt || 0));
+            if (!filtered.length) { table.style.display = "none"; status.textContent = list.length ? "No results for current search." : "No guests yet."; return }
+            table.style.display = "";
+            status.textContent = `${filtered.length} shown · ${list.length} total`;
+            filtered.forEach(g => {
+                const tr = document.createElement("tr");
+                tr.className = "row " + (isDuplicateId(g.idNumber, g.id) ? "dup-row" : "");
+                const registered = new Date(g.registeredAt).toLocaleString();
+                const idCell = escapeHtml(g.idNumber || "");
+                const name = escapeHtml([g.firstName, g.middleName, g.lastName].filter(Boolean).join(" "));
+                const addr = escapeHtml([g.street, g.city, g.state, g.postal].filter(Boolean).join(", "));
+                tr.innerHTML = `<td style="width:160px">${registered}</td>
+                    <td><code class="code">${idCell}</code></td>
+                    <td>${name}</td>
+                    <td>${addr}</td>
+                    <td style="width:80px">${escapeHtml(g.exp || "")}</td>
+                    <td style="width:110px; text-align:right" class="actions">
+                      <button class="small" data-action="view" data-id="${g.id}">View</button>
+                      <button class="small" data-action="delete" data-id="${g.id}">Delete</button>
+                    </td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        /* Status line */
+        function setStatus(msg, isError) {
+            const el = document.getElementById("listStatus");
+            if (el) el.textContent = msg || "";
+            const s = document.getElementById("status");
+            if (s) { s.textContent = msg || ""; s.style.color = isError ? "var(--danger)" : "var(--muted)"; }
+        }
+
+        /* --- Event wiring --- */
+        document.getElementById("decodeBtn").addEventListener("click", () => {
+            const raw = document.getElementById("input").value || "";
+            if (!raw.trim()) { setStatus("Paste raw magstripe data first.", true); return }
+            try {
+                const res = decodeAAMVA(raw);
+                renderPreview(res);
+            } catch (e) { console.error(e); setStatus("Failed to decode. Check input format.", true) }
+        });
+
+        document.getElementById("sampleBtn").addEventListener("click", () => {
+            const sample = "%AZPHOENICS^KIV$DEEPSEA$V^1234 E MAIN ST$PHOENICS$AZ$85205^;6360260401379124=4911841122=?+1085205.     D.              1511157BK BRO.         D01111111.                 ?";
+            document.getElementById("input").value = sample;
+            setStatus("Sample loaded. Click Decode.", false);
+        });
+
+        document.getElementById("clearInputBtn").addEventListener("click", () => {
+            document.getElementById("input").value = "";
+            document.getElementById("registerBtn").disabled = true;
+            setText("idNumber", "—"); setText("namePreview", "—"); setText("addrPreview", "—"); setText("exp", "Exp: —"); setText("issue", "Issue/DOB: —"); document.getElementById("t3decoded").textContent = "";
+            showDupBadge(false);
+            setStatus("", false);
+        });
+
+        document.getElementById("registerBtn").addEventListener("click", () => {
+            if (!lastDecoded) { setStatus("Nothing to register. Decode first.", true); return }
+            const gd = {
+                registeredAt: Date.now(),
+                idNumber: lastDecoded.track2.idNumber || "",
+                firstName: lastDecoded.track1.first || "",
+                middleName: lastDecoded.track1.middle || "",
+                lastName: lastDecoded.track1.last || "",
+                street: lastDecoded.track1.street || "",
+                city: lastDecoded.track1.city || "",
+                state: lastDecoded.track1.addrState || lastDecoded.track1.state || "",
+                postal: lastDecoded.track1.postal || "",
+                issuer: lastDecoded.track1.issuer || "",
+                exp: formatYYMM(lastDecoded.track2.expYY, lastDecoded.track2.expMM),
+                raw: lastDecoded.raw
+            };
+            const saved = addOrUpdateGuest(gd);
+            renderGuestList(document.getElementById("search").value);
+            setStatus(saved.idNumber ? `Registered: ${saved.idNumber}` : "Registered (no ID).", false);
+            document.getElementById("registerBtn").disabled = true;
+        });
+
+        /* table actions */
+        document.getElementById("guestTbody").addEventListener("click", (ev) => {
+            const btn = ev.target.closest("button"); if (!btn) return;
+            const action = btn.dataset.action; const uid = btn.dataset.id;
+            if (action === "delete") { if (!confirm("Delete this guest?")) return; deleteGuestById(uid); renderGuestList(document.getElementById("search").value); setStatus("Guest deleted.", false) }
+            else if (action === "view") {
+                const g = loadGuests().find(x => x.id === uid); if (!g) return;
+                setText("idNumber", g.idNumber || "—"); setText("namePreview", [g.firstName, g.middleName, g.lastName].filter(Boolean).join(" ") || "—");
+                setText("addrPreview", [g.street, g.city, g.state, g.postal].filter(Boolean).join(", ") || "—");
+                setText("exp", g.exp ? ("Exp: " + g.exp) : "Exp: —");
+                document.getElementById("t3decoded").textContent = (g.raw && g.raw.track3) ? g.raw.track3 : "No Track 3 data.";
+                setStatus("Viewing saved guest.", false);
+            }
+        });
+
+        /* search */
+        document.getElementById("search").addEventListener("input", (e) => renderGuestList(e.target.value));
+
+        /* export / clear all */
+        document.getElementById("exportBtn").addEventListener("click", () => {
+            const list = loadGuests(); if (!list.length) { setStatus("No guests to export.", true); return }
+            const csvHeader = ["registeredAt", "idNumber", "firstName", "middleName", "lastName", "street", "city", "state", "postal", "exp"].join(",");
+            const rows = list.map(g => [g.registeredAt || "", g.idNumber || "", g.firstName || "", g.middleName || "", g.lastName || "", g.street || "", g.city || "", g.state || "", g.postal || "", g.exp || ""]
+                .map(v => `"${(v || "").toString().replace(/"/g, '""')}"`).join(","));
+            const csv = [csvHeader].concat(rows).join("\n");
+            const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "guests.csv"; document.body.appendChild(a); a.click(); a.remove();
+            URL.revokeObjectURL(url); setStatus("Export started.", false);
+        });
+        document.getElementById("clearAllBtn").addEventListener("click", () => {
+            if (!confirm("Clear all registered guests? This cannot be undone.")) return;
+            clearAllGuests(); renderGuestList(); setStatus("All guests cleared.", false);
+        });
+
+        /* init */
+        renderGuestList();
+    </script>
+
+</body>
+
+</html>
