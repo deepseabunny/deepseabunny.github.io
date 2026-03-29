@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Data‑Labeling Stream Agent – Real‑Time Media Intelligence</title>
+
+  <!-- Bootswatch Cosmo Theme -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/cosmo/bootstrap.min.css"
+  />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    body { padding-top: 3.5rem; }
+    pre {
+      background: #1e1e1e;
+      color: #f5f5f5;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
+      overflow-x: auto;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+    }
+    .section-title {
+      border-left: 4px solid #2780e3;
+      padding-left: 0.75rem;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+    }
+    .badge-pill { border-radius: 10rem; }
+    .agent-card {
+      border: 1px solid #e1e1e1;
+      border-radius: 0.5rem;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+      background: #ffffff;
+    }
+    .agent-tag {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">Data‑Labeling Stream Agent</a>
+    </div>
+  </nav>
+
+  <main class="container mb-5">
+
+    <!-- Header -->
+    <section class="mt-4">
+      <h1 class="mb-2">Data‑Labeling Stream Agent</h1>
+      <p class="lead">
+        A real‑time intelligence agent that consumes raw telemetry from a media streaming platform and transforms
+        it into meaningful, labeled events that other agents can act on.
+      </p>
+      <p>
+        This agent serves as the “eyes and ears” of the entire multi‑agent ecosystem, turning noisy data streams
+        into structured signals that power coordination, prediction, and automated decision‑making.
+      </p>
+    </section>
+
+    <!-- 1. Purpose -->
+    <section>
+      <h2 class="section-title">1. Purpose of the agent</h2>
+      <p>
+        Modern streaming platforms generate massive volumes of telemetry: viewer counts, CDN logs, player
+        metrics, encoder stats, and edge‑node health. Most of this data is too granular for downstream agents to
+        interpret directly.
+      </p>
+      <p>
+        The Data‑Labeling Stream Agent solves this by:
+      </p>
+      <ul>
+        <li>Ingesting raw, high‑frequency telemetry</li>
+        <li>Detecting patterns, anomalies, and correlations</li>
+        <li>Labeling meaningful events in real time</li>
+        <li>Publishing structured signals to the shared event bus</li>
+      </ul>
+      <p>
+        These labeled events become the foundation for all other agents in the system.
+      </p>
+    </section>
+
+    <!-- 2. Telemetry Model -->
+    <section>
+      <h2 class="section-title">2. Telemetry and data model</h2>
+      <p>
+        The agent consumes multiple telemetry streams simultaneously. Each stream contributes signals that may
+        indicate emerging issues or opportunities.
+      </p>
+
+      <h5>2.1 Example raw telemetry snapshot</h5>
+      <pre><code>{
+  "region": "US-West",
+  "concurrentViewers": 118432,
+  "bufferRatio": 0.045,
+  "bitrateAvg": 2.1,
+  "bitrateDropRate": 0.32,
+  "cdn5xxRate": 0.012,
+  "edgeLatencyMs": 142,
+  "deviceType": "MOBILE",
+  "timestamp": "2026-03-29T23:18:00Z"
+}</code></pre>
+
+      <p>
+        The agent transforms this noisy input into semantic labels that downstream agents can consume instantly.
+      </p>
+    </section>
+
+    <!-- 3. Labeling Logic -->
+    <section>
+      <h2 class="section-title">3. Labeling logic and event generation</h2>
+      <p>
+        The agent uses anomaly detection, pattern recognition, and short‑horizon forecasting to identify
+        meaningful events. When a pattern is detected, it emits a labeled event.
+      </p>
+
+      <h5>3.1 Example labeled events</h5>
+      <pre><code>[
+  "VIEWERS_SURGING_US_WEST",
+  "EARLY_BUFFERING_CLUSTER_DETECTED",
+  "BITRATE_COLLAPSE_MOBILE_DEVICES",
+  "CDN_EDGE_DEGRADED_LON3",
+  "ENCODER_LATENCY_RISING_15_PERCENT"
+]</code></pre>
+
+      <p>
+        These labels form a shared vocabulary for the entire agent ecosystem.
+      </p>
+
+      <h5>3.2 Labeling pseudocode</h5>
+      <pre><code>function labelTelemetry(t) {
+  const labels = [];
+
+  if (t.concurrentViewers > forecast(t.region).expected * 1.25) {
+    labels.push(`VIEWERS_SURGING_${t.region.toUpperCase()}`);
+  }
+
+  if (t.bufferRatio > 0.04 &amp;&amp; t.bitrateDropRate > 0.25) {
+    labels.push("EARLY_BUFFERING_CLUSTER_DETECTED");
+  }
+
+  if (t.cdn5xxRate > 0.01 || t.edgeLatencyMs > 130) {
+    labels.push(`CDN_EDGE_DEGRADED_${t.region.toUpperCase()}`);
+  }
+
+  return labels;
+}</code></pre>
+    </section>
+
+    <!-- 4. Downstream Impact -->
+    <section>
+      <h2 class="section-title">4. How other agents use these labels</h2>
+      <p>
+        The Data‑Labeling Stream Agent enables clean separation of responsibilities across the ecosystem.
+      </p>
+
+      <div class="agent-card">
+        <div class="agent-tag text-muted">Load Monitoring Agent</div>
+        <p>Uses labels like <strong>VIEWERS_SURGING_*</strong> to detect traffic spikes early.</p>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-tag text-muted">QoE Agent</div>
+        <p>Uses <strong>EARLY_BUFFERING_CLUSTER_DETECTED</strong> to correlate quality issues across regions.</p>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-tag text-muted">Capacity Planning Agent</div>
+        <p>Uses <strong>CDN_EDGE_DEGRADED_*</strong> to forecast scaling needs.</p>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-tag text-muted">Orchestrator Agent</div>
+        <p>
+          Combines multiple labels to produce coordinated actions such as scaling, rerouting, or adjusting
+          bitrate ladders.
+        </p>
+      </div>
+    </section>
+
+    <!-- 5. Why It Matters -->
+    <section>
+      <h2 class="section-title">5. Why this agent is essential</h2>
+      <p>
+        Without a dedicated labeling agent, each downstream agent must independently parse raw telemetry,
+        resulting in:
+      </p>
+      <ul>
+        <li>Duplicated logic</li>
+        <li>Inconsistent interpretations</li>
+        <li>Slower reaction times</li>
+        <li>Higher operational complexity</li>
+      </ul>
+
+      <p>
+        With this agent in place, the entire system becomes more modular, faster, and easier to extend. New
+        agents can be added simply by subscribing to labeled events.
+      </p>
+    </section>
+
+    <!-- 6. Summary -->
+    <section class="mt-4">
+      <h2 class="section-title">6. Summary</h2>
+      <p>
+        The Data‑Labeling Stream Agent transforms raw telemetry into actionable intelligence. By detecting
+        patterns and emitting semantic labels, it enables clean coordination across load monitoring, QoE,
+        capacity planning, and orchestration agents. This agent forms the foundation of a scalable, intelligent,
+        multi‑agent streaming platform.
+      </p>
+    </section>
+
+  </main>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
