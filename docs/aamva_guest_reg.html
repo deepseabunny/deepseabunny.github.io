@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8" />
-    <title>AAMVA Guest Registration — Editable + IndexedDB + Validation</title>
+    <title>AAMVA Guest Registration — Editable + IndexedDB + Validation (street fix)</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <style>
         :root {
@@ -320,6 +320,30 @@
             border: 1px solid rgba(255, 107, 107, 0.12);
             color: var(--danger)
         }
+
+
+
+        /* responsive tweaks */
+        @media (max-width: 920px) {
+        .layout { grid-template-columns: 1fr; gap: 12px; }
+        .preview { padding: 10px; gap: 10px; }
+        .title h1 { font-size: 16px; }
+        }
+
+        /* tighten mobile behavior: stack address fields vertically on small screens */
+        @media (max-width: 600px) {
+        .address-grid { grid-template-columns: 1fr; gap: 8px; }
+        .address-grid input { min-width: 0; }
+        .preview { flex-direction: column; align-items: stretch; }
+        .panel { padding: 10px; }
+        .controls { gap: 6px; }
+        .btn { padding: 6px 8px; font-size: 12px; }
+        }
+
+        /* ensure address grid first column can shrink and inputs fill cells */
+        .address-grid > * { min-width: 0; }
+        .address-grid input { width: 100%; box-sizing: border-box; }
+
     </style>
 </head>
 
@@ -384,7 +408,7 @@
 
                     <div style="margin-top:8px">
                         <label class="label-inline">Address</label>
-                        <div style="display:grid;grid-template-columns:1fr 180px 120px 120px;gap:8px">
+                        <div class="address-grid">
                             <input id="streetInput" class="input" placeholder="Street" />
                             <input id="cityInput" class="input" placeholder="City" />
                             <input id="addrStateInput" class="input" placeholder="Addr state" />
@@ -658,7 +682,6 @@
                 exp: (document.getElementById("expInput").value || "").trim(),
                 raw: (lastDecoded && lastDecoded.raw) ? lastDecoded.raw : { track1: "", track2: "", track3: "" }
             };
-            // If editing an existing saved record (via View) preserve internal id from lastDecoded
             if (lastDecoded && lastDecoded.id) guest.id = lastDecoded.id;
             if (!guest.idNumber && !guest.firstName && !guest.lastName) { setStatus("Provide at least an ID or a name to register.", true); return; }
             const saved = addOrUpdateGuest(guest);
