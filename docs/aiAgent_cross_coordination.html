@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cross-Agent Coordination – Real-Time Media Streaming</title>
+
+  <!-- Bootswatch Cosmo Theme -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/cosmo/bootstrap.min.css"
+  />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    body { padding-top: 3.5rem; }
+    pre {
+      background: #1e1e1e;
+      color: #f5f5f5;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
+      overflow-x: auto;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    .section-title {
+      border-left: 4px solid #2780e3;
+      padding-left: 0.75rem;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+    }
+    .badge-pill { border-radius: 10rem; }
+    .agent-card {
+      border: 1px solid #e1e1e1;
+      border-radius: 0.5rem;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+      background: #ffffff;
+    }
+    .agent-tag {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .log-panel {
+      background: #0f172a;
+      color: #e5e7eb;
+      border-radius: 0.5rem;
+      padding: 0.75rem 1rem;
+      height: 260px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+    }
+    .log-entry {
+      margin-bottom: 0.25rem;
+      white-space: pre-wrap;
+    }
+    .log-entry span.time {
+      color: #9ca3af;
+      margin-right: 0.5rem;
+    }
+    .log-entry span.agent {
+      font-weight: 600;
+      margin-right: 0.35rem;
+    }
+    .log-entry span.type {
+      margin-right: 0.35rem;
+    }
+    .pill {
+      display: inline-block;
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .pill-load { background: #0ea5e9; color: #0f172a; }
+    .pill-quality { background: #22c55e; color: #022c22; }
+    .pill-capacity { background: #f97316; color: #451a03; }
+    .pill-orchestrator { background: #a855f7; color: #2e1065; }
+    .pill-alert { background: #ef4444; color: #450a0a; }
+    .scenario-btn {
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">Cross-Agent Coordination – Streaming</a>
+    </div>
+  </nav>
+
+  <main class="container mb-5">
+
+    <!-- Header -->
+    <section class="mt-4">
+      <h1 class="mb-2">Cross-Agent Coordination in a Real-Time Media Streaming Platform</h1>
+      <p class="lead">
+        A single-page simulation of multiple AI agents coordinating to keep a live streaming service stable:
+        load, quality, capacity, and an orchestrator agent working together.
+      </p>
+      <p>
+        The example shows how agents exchange signals and decisions when a popular live event causes sudden
+        traffic spikes and quality degradation.
+      </p>
+    </section>
+
+    <!-- 1. Agents -->
+    <section>
+      <h2 class="section-title">1. Agents in this scenario</h2>
+
+      <div class="row">
+        <div class="col-md-6">
+          <div class="agent-card">
+            <div class="agent-tag text-muted">Traffic / Telemetry</div>
+            <h5>1.1 Load Monitoring Agent</h5>
+            <p>
+              Watches real-time metrics: concurrent viewers, requests per second, error rates, and regional
+              hotspots. Emits <strong>LOAD_SPIKE</strong> and <strong>ERROR_RATE_HIGH</strong> events.
+            </p>
+          </div>
+
+          <div class="agent-card">
+            <div class="agent-tag text-muted">QoE / Player</div>
+            <h5>1.2 Quality of Experience (QoE) Agent</h5>
+            <p>
+              Monitors playback metrics: buffering ratio, bitrate, startup time, and rebuffer events. Emits
+              <strong>QUALITY_DEGRADATION</strong> and proposes bitrate or CDN changes.
+            </p>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="agent-card">
+            <div class="agent-tag text-muted">Infra / Capacity</div>
+            <h5>1.3 Capacity Planning Agent</h5>
+            <p>
+              Predicts near-future capacity needs based on trends and events. Emits
+              <strong>CAPACITY_RISK</strong> and recommends scaling edge nodes or transcoding pools.
+            </p>
+          </div>
+
+          <div class="agent-card">
+            <div class="agent-tag text-muted">Orchestration</div>
+            <h5>1.4 Orchestrator Agent</h5>
+            <p>
+              Listens to all other agents, correlates their signals, and decides coordinated actions:
+              scale-out, rerouting, bitrate policies, and operator alerts.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Shared Event Bus -->
+    <section>
+      <h2 class="section-title">2. Shared event bus and coordination model</h2>
+      <p>
+        Agents communicate through a shared event bus. Each agent publishes events and subscribes to the ones it
+        cares about. The orchestrator listens to all of them and issues composite decisions.
+      </p>
+
+      <pre><code>// Simplified event bus
+const EventBus = {
+  subscribers: {},
+  subscribe(type, handler) {
+    if (!this.subscribers[type]) this.subscribers[type] = [];
+    this.subscribers[type].push(handler);
+  },
+  publish(event) {
+    const handlers = this.subscribers[event.type] || [];
+    handlers.forEach(h =&gt; h(event));
+  }
+};</code></pre>
+    </section>
+
+    <!-- 3. Interactive Simulation -->
+    <section>
+      <h2 class="section-title">3. Interactive cross-agent simulation</h2>
+      <p>
+        Use the buttons below to trigger scenarios. Watch how the agents react and how the orchestrator composes
+        a coordinated response.
+      </p>
+
+      <div class="mb-3">
+        <button id="btnSpike" class="btn btn-primary scenario-btn">
+          Trigger: Live Event Traffic Spike
+        </button>
+        <button id="btnQuality" class="btn btn-warning scenario-btn">
+          Trigger: Regional Quality Degradation
+        </button>
+        <button id="btnCalm" class="btn btn-success scenario-btn">
+          Trigger: Traffic Normalization
+        </button>
+        <button id="btnClear" class="btn btn-outline-secondary scenario-btn">
+          Clear Log
+        </button>
+      </div>
+
+      <div class="row">
+        <div class="col-md-7">
+          <div class="log-panel" id="logPanel"></div>
+        </div>
+        <div class="col-md-5">
+          <h5>3.1 What the simulation demonstrates</h5>
+          <ul>
+            <li><strong>Load Agent</strong> detects spikes and errors.</li>
+            <li><strong>QoE Agent</strong> detects buffering and bitrate drops.</li>
+            <li><strong>Capacity Agent</strong> predicts near-future overload.</li>
+            <li><strong>Orchestrator</strong> combines signals into a single plan:
+              scale-out, reroute, adjust bitrate, and alert operators.</li>
+          </ul>
+          <p class="text-muted">
+            The logic is simplified but mirrors real-world streaming operations: telemetry → detection →
+            prediction → coordinated action.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Coordination Logic -->
+    <section>
+      <h2 class="section-title">4. Coordination logic (high-level)</h2>
+      <pre><code>// Orchestrator's decision sketch
+function orchestratorOnSignals(state) {
+  const { loadSpike, qualityIssue, capacityRisk } = state;
+
+  if (loadSpike &amp;&amp; qualityIssue &amp;&amp; capacityRisk) {
+    // Full incident
+    return [
+      "SCALE_OUT_EDGE_CLUSTER",
+      "REROUTE_TRAFFIC_TO_HEALTHY_REGIONS",
+      "LOWER_MAX_BITRATE_FOR_AFFECTED_REGION",
+      "ALERT_ONCALL_SRE"
+    ];
+  }
+
+  if (loadSpike &amp;&amp; !qualityIssue) {
+    return ["PREEMPTIVE_SCALE_OUT_EDGE_CLUSTER"];
+  }
+
+  if (qualityIssue &amp;&amp; !capacityRisk) {
+    return ["ADJUST_BITRATE_LADDER", "SWITCH_PRIMARY_CDN_FOR_REGION"];
+  }
+
+  if (!loadSpike &amp;&amp; !qualityIssue &amp;&amp; !capacityRisk) {
+    return ["GRADUAL_SCALE_IN_IF_SAFE"];
+  }
+
+  return ["INCREASE_MONITORING"];
+}</code></pre>
+    </section>
+
+    <!-- 5. Summary -->
+    <section class="mt-4">
+      <h2 class="section-title">5. Summary</h2>
+      <p>
+        This page demonstrates how multiple specialized agents—load monitoring, QoE, capacity planning, and an
+        orchestrator—can coordinate through a shared event bus to keep a real-time media streaming platform
+        stable during volatile traffic and quality conditions.
+      </p>
+      <p>
+        The same pattern generalizes to your logistics, maintenance, and agriculture agents: each agent owns its
+        domain, but coordination emerges from clean signals and a clear orchestrator that composes actions into a
+        single, operator-friendly plan.
+      </p>
+    </section>
+
+  </main>
+
+  <!-- JS Simulation -->
+  <script>
+    const logPanel = document.getElementById('logPanel');
+
+    function log(agent, type, message, pillClass) {
+      const div = document.createElement('div');
+      div.className = 'log-entry';
+      const time = new Date().toLocaleTimeString();
+      div.innerHTML =
+        '<span class="time">[' + time + ']</span>' +
+        '<span class="agent">' + agent + '</span>' +
+        '<span class="pill ' + pillClass + ' type">' + type + '</span>' +
+        '<span class="msg">' + message + '</span>';
+      logPanel.appendChild(div);
+      logPanel.scrollTop = logPanel.scrollHeight;
+    }
+
+    const EventBus = {
+      subscribers: {},
+      subscribe(type, handler) {
+        if (!this.subscribers[type]) this.subscribers[type] = [];
+        this.subscribers[type].push(handler);
+      },
+      publish(event) {
+        const handlers = this.subscribers[event.type] || [];
+        handlers.forEach(h => h(event));
+      }
+    };
+
+    const coordinationState = {
+      loadSpike: false,
+      qualityIssue: false,
+      capacityRisk: false
+    };
+
+    function resetState() {
+      coordinationState.loadSpike = false;
+      coordinationState.qualityIssue = false;
+      coordinationState.capacityRisk = false;
+    }
+
+    // Load Monitoring Agent
+    EventBus.subscribe('TRAFFIC_SPIKE', (event) => {
+      coordinationState.loadSpike = true;
+      log('LoadAgent', 'LOAD', 'Detected traffic spike: ' + event.region + ' viewers=' + event.viewers, 'pill-load');
+      EventBus.publish({ type: 'LOAD_SPIKE', region: event.region, viewers: event.viewers });
+    });
+
+    EventBus.subscribe('TRAFFIC_NORMALIZED', (event) => {
+      coordinationState.loadSpike = false;
+      log('LoadAgent', 'LOAD', 'Traffic normalized in ' + event.region, 'pill-load');
+      EventBus.publish({ type: 'LOAD_NORMAL', region: event.region });
+    });
+
+    // QoE Agent
+    EventBus.subscribe('PLAYER_METRICS', (event) => {
+      if (event.bufferRatio > 0.05) {
+        coordinationState.qualityIssue = true;
+        log('QoEAgent', 'QUALITY', 'High buffering in ' + event.region + ' (ratio=' + event.bufferRatio + ')', 'pill-quality');
+        EventBus.publish({ type: 'QUALITY_DEGRADATION', region: event.region, bufferRatio: event.bufferRatio });
+      } else {
+        coordinationState.qualityIssue = false;
+        log('QoEAgent', 'QUALITY', 'Quality acceptable in ' + event.region, 'pill-quality');
+      }
+    });
+
+    // Capacity Agent
+    EventBus.subscribe('LOAD_SPIKE', (event) => {
+      coordinationState.capacityRisk = true;
+      log('CapacityAgent', 'CAP', 'Predicting capacity risk in ' + event.region + ' (viewers=' + event.viewers + ')', 'pill-capacity');
+      EventBus.publish({ type: 'CAPACITY_RISK', region: event.region, horizonMinutes: 15 });
+    });
+
+    EventBus.subscribe('LOAD_NORMAL', (event) => {
+      coordinationState.capacityRisk = false;
+      log('CapacityAgent', 'CAP', 'Capacity risk cleared for ' + event.region, 'pill-capacity');
+    });
+
+    // Orchestrator Agent
+    function orchestratorDecide() {
+      const { loadSpike, qualityIssue, capacityRisk } = coordinationState;
+      let actions = [];
+
+      if (loadSpike && qualityIssue && capacityRisk) {
+        actions = [
+          'SCALE_OUT_EDGE_CLUSTER',
+          'REROUTE_TRAFFIC_TO_HEALTHY_REGIONS',
+          'LOWER_MAX_BITRATE_FOR_AFFECTED_REGION',
+          'ALERT_ONCALL_SRE'
+        ];
+      } else if (loadSpike && !qualityIssue) {
+        actions = ['PREEMPTIVE_SCALE_OUT_EDGE_CLUSTER'];
+      } else if (qualityIssue && !capacityRisk) {
+        actions = ['ADJUST_BITRATE_LADDER', 'SWITCH_PRIMARY_CDN_FOR_REGION'];
+      } else if (!loadSpike && !qualityIssue && !capacityRisk) {
+        actions = ['GRADUAL_SCALE_IN_IF_SAFE'];
+      } else {
+        actions = ['INCREASE_MONITORING'];
+      }
+
+      actions.forEach(a => {
+        const pill = a.includes('ALERT') ? 'pill-alert' : 'pill-orchestrator';
+        log('Orchestrator', 'ORCH', 'Action: ' + a, pill);
+      });
+    }
+
+    // Scenario buttons
+    document.getElementById('btnSpike').addEventListener('click', () => {
+      resetState();
+      log('System', 'INFO', '--- Scenario: Live Event Traffic Spike ---', 'pill-orchestrator');
+      EventBus.publish({ type: 'TRAFFIC_SPIKE', region: 'US-West', viewers: 120000 });
+      EventBus.publish({ type: 'PLAYER_METRICS', region: 'US-West', bufferRatio: 0.12 });
+      setTimeout(orchestratorDecide, 400);
+    });
+
+    document.getElementById('btnQuality').addEventListener('click', () => {
+      resetState();
+      log('System', 'INFO', '--- Scenario: Regional Quality Degradation ---', 'pill-orchestrator');
+      EventBus.publish({ type: 'PLAYER_METRICS', region: 'EU-Central', bufferRatio: 0.09 });
+      setTimeout(orchestratorDecide, 400);
+    });
+
+    document.getElementById('btnCalm').addEventListener('click', () => {
+      resetState();
+      log('System', 'INFO', '--- Scenario: Traffic Normalization ---', 'pill-orchestrator');
+      EventBus.publish({ type: 'TRAFFIC_NORMALIZED', region: 'US-West' });
+      EventBus.publish({ type: 'PLAYER_METRICS', region: 'US-West', bufferRatio: 0.01 });
+      setTimeout(orchestratorDecide, 400);
+    });
+
+    document.getElementById('btnClear').addEventListener('click', () => {
+      logPanel.innerHTML = '';
+    });
+  </script>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
