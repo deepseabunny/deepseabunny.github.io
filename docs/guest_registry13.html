@@ -1,368 +1,830 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Terminal Booking Console — Search All Records</title>
-<style>
-:root{
-  --bg:#050608; --border:#1f2933; --accent:#00ff9c; --text:#e5e7eb; --muted:#6b7280; --danger:#ff4b81;
-  --mono: "Fira Code","SF Mono",Menlo,Monaco,Consolas,monospace;
-}
-*{box-sizing:border-box}
-html,body{height:100%}
-body{
-  margin:0;background:radial-gradient(circle at top,#111827 0,#020617 45%,#000 100%);
-  color:var(--text);font-family:var(--mono);display:flex;justify-content:center;align-items:stretch;min-height:100vh;
-}
-.frame{width:100%;max-width:1400px;margin:12px;border-radius:10px;border:1px solid var(--border);background:#020617;display:flex;flex-direction:column;overflow:hidden}
-.frame-header{display:flex;align-items:center;gap:12px;padding:10px;border-bottom:1px solid var(--border)}
-.window-dots{display:flex;gap:8px}
-.dot{width:10px;height:10px;border-radius:999px}
-.dot.red{background:#f97373}.dot.yellow{background:#facc15}.dot.green{background:#22c55e}
-.frame-title{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Terminal Booking Console — Search All Records</title>
+    <style>
+        :root {
+            --bg: #050608;
+            --border: #1f2933;
+            --accent: #00ff9c;
+            --text: #e5e7eb;
+            --muted: #6b7280;
+            --danger: #ff4b81;
+            --mono: "Fira Code", "SF Mono", Menlo, Monaco, Consolas, monospace;
+        }
 
-.frame-body{display:grid;grid-template-columns:2.4fr 1.2fr;height:calc(100vh - 84px)}
-@media (max-width:1100px){.frame-body{grid-template-columns:1fr; height:auto}}
+        * {
+            box-sizing: border-box
+        }
 
-.pane{display:flex;flex-direction:column;border-right:1px solid var(--border);min-height:0}
-.pane:last-child{border-right:none}
-.pane-header{display:flex;align-items:center;justify-content:space-between;padding:10px;border-bottom:1px solid var(--border)}
-.pane-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
-.status-pill{font-size:11px;padding:4px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.25);color:var(--muted);display:inline-flex;align-items:center;gap:8px}
+        html,
+        body {
+            height: 100%
+        }
 
-.pane-body{padding:12px;overflow:auto}
-.units-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.legend{display:flex;gap:8px;align-items:center;font-size:12px}
-.legend-item{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid rgba(55,65,81,0.9);background:rgba(15,23,42,0.9);color:var(--muted)}
-.legend-swatch{width:12px;height:12px;border-radius:3px}
-.swatch-vacant{background:#16a34a}.swatch-occupied{background:#0ea5e9}.swatch-maint{background:#f97316}.swatch-qa{background:#a855f7}
+        body {
+            margin: 0;
+            background: radial-gradient(circle at top, #111827 0, #020617 45%, #000 100%);
+            color: var(--text);
+            font-family: var(--mono);
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+            min-height: 100vh;
+        }
 
-.units-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding-bottom:8px}
-@media (max-width:1200px){.units-grid{grid-template-columns:repeat(2,1fr)}}
-@media (max-width:700px){.units-grid{grid-template-columns:repeat(1,1fr)}}
+        .frame {
+            width: 100%;
+            max-width: 1400px;
+            margin: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #020617;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden
+        }
 
-.unit-card{position:relative;border-radius:8px;border:1px solid rgba(31,41,55,0.9);background:linear-gradient(180deg,#07101a,#020617);padding:16px;cursor:pointer;min-height:120px;display:flex;flex-direction:column;gap:8px;overflow:visible}
-.unit-card:hover{border-color:rgba(148,163,184,0.9)}
-.unit-card.active{border-color:var(--accent);box-shadow:0 0 0 1px rgba(0,255,156,0.08);transform:translateY(-2px)}
-.unit-number{font-size:18px;color:var(--text);font-weight:700;z-index:6}
-.unit-guest{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.unit-status{position:absolute;bottom:12px;right:12px;z-index:4;pointer-events:none}
-.unit-status-pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;border:1px solid rgba(55,65,81,0.9);background:rgba(2,6,23,0.9);font-size:12px;color:var(--muted)}
-.unit-status-dot{width:8px;height:8px;border-radius:999px}
-.status-vacant{color:#bbf7d0}.status-occupied{color:#bae6fd}.status-maint{color:#fed7aa}.status-qa{color:#e9d5ff}
-.dot-vacant{background:#16a34a}.dot-occupied{background:#0ea5e9}.dot-maint{background:#f97316}.dot-qa{background:#a855f7}
+        .frame-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            border-bottom: 1px solid var(--border)
+        }
 
-.subpane{border-bottom:1px solid var(--border);padding:10px}
-.subpane-title{font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}
-@media (max-width:768px){.form-grid{grid-template-columns:1fr}}
-label{font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:6px;display:block}
-input,select,textarea,button{font-family:var(--mono)}
-input,select,textarea{width:100%;background:#020617;border-radius:6px;border:1px solid rgba(31,41,55,0.9);padding:8px 10px;color:var(--text);font-size:13px}
-textarea{min-height:56px;resize:vertical}
-.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-button{border-radius:999px;border:1px solid rgba(55,65,81,0.9);background:transparent;color:var(--text);padding:8px 12px;cursor:pointer}
-.btn-primary{border-color:var(--accent);color:var(--accent)}
-.btn-danger{border-color:var(--danger);color:var(--danger)}
-.btn-ghost{border-style:dashed;color:var(--muted)}
+        .window-dots {
+            display: flex;
+            gap: 8px
+        }
 
-.search-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
-.search-input-wrap{position:relative;flex:1}
-.search-input-wrap::after{content:"▌";position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--accent);opacity:0.7;animation:blink 1s steps(2,start) infinite}
-@keyframes blink{0%,50%{opacity:0.7}50.01%,100%{opacity:0}}
-.search-input{padding-right:22px}
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px
+        }
 
-.guests-list{border-radius:8px;border:1px solid rgba(31,41,55,0.9);background:linear-gradient(180deg,#020617,#020617);max-height:360px;overflow:auto}
-.guest-row{display:grid;grid-template-columns:0.7fr 1.1fr 0.9fr 0.9fr;gap:8px;padding:8px 10px;border-bottom:1px solid rgba(31,41,55,0.9);align-items:center}
-.guest-row:nth-child(odd){background:rgba(15,23,42,0.7)}
-.guest-row-header{position:sticky;top:0;background:#020617;padding:8px 10px;color:var(--muted);font-size:11px;text-transform:uppercase}
-.guest-unit{color:var(--accent)}.guest-name{color:var(--text)}.guest-dates{color:var(--muted)}.guest-status{font-size:11px;text-transform:uppercase}
-.highlight{background:rgba(34,197,94,0.18);color:#bbf7d0;padding:0 2px;border-radius:3px}
-.archived-badge{font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid rgba(55,65,81,0.9);color:#c7b8ff;background:rgba(99,102,241,0.06)}
+        .dot.red {
+            background: #f97373
+        }
 
-.terminal-footer{padding:0px 12px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
-.log-line{font-size:12px;color:var(--muted)}
-</style>
+        .dot.yellow {
+            background: #facc15
+        }
+
+        .dot.green {
+            background: #22c55e
+        }
+
+        .frame-title {
+            font-size: 12px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .08em
+        }
+
+        .frame-body {
+            display: grid;
+            grid-template-columns: 2.4fr 1.2fr;
+            height: calc(100vh - 84px)
+        }
+
+        @media (max-width:1100px) {
+            .frame-body {
+                grid-template-columns: 1fr;
+                height: auto
+            }
+        }
+
+        .pane {
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border);
+            min-height: 0
+        }
+
+        .pane:last-child {
+            border-right: none
+        }
+
+        .pane-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .pane-title {
+            font-size: 11px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .12em
+        }
+
+        .status-pill {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            color: var(--muted);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .pane-body {
+            padding: 12px;
+            overflow: auto
+        }
+
+        .units-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px
+        }
+
+        .legend {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            font-size: 12px
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(55, 65, 81, 0.9);
+            background: rgba(15, 23, 42, 0.9);
+            color: var(--muted)
+        }
+
+        .legend-swatch {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px
+        }
+
+        .swatch-vacant {
+            background: #16a34a
+        }
+
+        .swatch-occupied {
+            background: #0ea5e9
+        }
+
+        .swatch-maint {
+            background: #f97316
+        }
+
+        .swatch-qa {
+            background: #a855f7
+        }
+
+        .units-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            padding-bottom: 8px
+        }
+
+        @media (max-width:1200px) {
+            .units-grid {
+                grid-template-columns: repeat(2, 1fr)
+            }
+        }
+
+        @media (max-width:700px) {
+            .units-grid {
+                grid-template-columns: repeat(1, 1fr)
+            }
+        }
+
+        .unit-card {
+            position: relative;
+            border-radius: 8px;
+            border: 1px solid rgba(31, 41, 55, 0.9);
+            background: linear-gradient(180deg, #07101a, #020617);
+            padding: 16px;
+            cursor: pointer;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow: visible
+        }
+
+        .unit-card:hover {
+            border-color: rgba(148, 163, 184, 0.9)
+        }
+
+        .unit-card.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px rgba(0, 255, 156, 0.08);
+            transform: translateY(-2px)
+        }
+
+        .unit-number {
+            font-size: 18px;
+            color: var(--text);
+            font-weight: 700;
+            z-index: 6
+        }
+
+        .unit-guest {
+            font-size: 13px;
+            color: var(--muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis
+        }
+
+        .unit-status {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            z-index: 4;
+            pointer-events: none
+        }
+
+        .unit-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(55, 65, 81, 0.9);
+            background: rgba(2, 6, 23, 0.9);
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        .unit-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px
+        }
+
+        .status-vacant {
+            color: #bbf7d0
+        }
+
+        .status-occupied {
+            color: #bae6fd
+        }
+
+        .status-maint {
+            color: #fed7aa
+        }
+
+        .status-qa {
+            color: #e9d5ff
+        }
+
+        .dot-vacant {
+            background: #16a34a
+        }
+
+        .dot-occupied {
+            background: #0ea5e9
+        }
+
+        .dot-maint {
+            background: #f97316
+        }
+
+        .dot-qa {
+            background: #a855f7
+        }
+
+        .subpane {
+            border-bottom: 1px solid var(--border);
+            padding: 10px
+        }
+
+        .subpane-title {
+            font-size: 11px;
+            color: var(--muted);
+            text-transform: uppercase;
+            margin-bottom: 8px
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 12px
+        }
+
+        @media (max-width:768px) {
+            .form-grid {
+                grid-template-columns: 1fr
+            }
+        }
+
+        label {
+            font-size: 11px;
+            color: var(--muted);
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            display: block
+        }
+
+        input,
+        select,
+        textarea,
+        button {
+            font-family: var(--mono)
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            background: #020617;
+            border-radius: 6px;
+            border: 1px solid rgba(31, 41, 55, 0.9);
+            padding: 8px 10px;
+            color: var(--text);
+            font-size: 13px
+        }
+
+        textarea {
+            min-height: 56px;
+            resize: vertical
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px
+        }
+
+        button {
+            border-radius: 999px;
+            border: 1px solid rgba(55, 65, 81, 0.9);
+            background: transparent;
+            color: var(--text);
+            padding: 8px 12px;
+            cursor: pointer
+        }
+
+        .btn-primary {
+            border-color: var(--accent);
+            color: var(--accent)
+        }
+
+        .btn-danger {
+            border-color: var(--danger);
+            color: var(--danger)
+        }
+
+        .btn-ghost {
+            border-style: dashed;
+            color: var(--muted)
+        }
+
+        .search-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px
+        }
+
+        .search-input-wrap {
+            position: relative;
+            flex: 1
+        }
+
+        .search-input-wrap::after {
+            content: "▌";
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--accent);
+            opacity: 0.7;
+            animation: blink 1s steps(2, start) infinite
+        }
+
+        @keyframes blink {
+
+            0%,
+            50% {
+                opacity: 0.7
+            }
+
+            50.01%,
+            100% {
+                opacity: 0
+            }
+        }
+
+        .search-input {
+            padding-right: 22px
+        }
+
+        .guests-list {
+            border-radius: 8px;
+            border: 1px solid rgba(31, 41, 55, 0.9);
+            background: linear-gradient(180deg, #020617, #020617);
+            max-height: 360px;
+            overflow: auto
+        }
+
+        .guest-row {
+            display: grid;
+            grid-template-columns: 0.7fr 1.1fr 0.9fr 0.9fr;
+            gap: 8px;
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(31, 41, 55, 0.9);
+            align-items: center
+        }
+
+        .guest-row:nth-child(odd) {
+            background: rgba(15, 23, 42, 0.7)
+        }
+
+        .guest-row-header {
+            position: sticky;
+            top: 0;
+            background: #020617;
+            padding: 8px 10px;
+            color: var(--muted);
+            font-size: 11px;
+            text-transform: uppercase
+        }
+
+        .guest-unit {
+            color: var(--accent)
+        }
+
+        .guest-name {
+            color: var(--text)
+        }
+
+        .guest-dates {
+            color: var(--muted)
+        }
+
+        .guest-status {
+            font-size: 11px;
+            text-transform: uppercase
+        }
+
+        .highlight {
+            background: rgba(34, 197, 94, 0.18);
+            color: #bbf7d0;
+            padding: 0 2px;
+            border-radius: 3px
+        }
+
+        .archived-badge {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            border: 1px solid rgba(55, 65, 81, 0.9);
+            color: #c7b8ff;
+            background: rgba(99, 102, 241, 0.06)
+        }
+
+        .terminal-footer {
+            padding: 0px 12px;
+            border-top: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            align-items: center
+        }
+
+        .log-line {
+            font-size: 12px;
+            color: var(--muted)
+        }
+    </style>
 </head>
+
 <body>
-<div class="frame">
-  <div class="frame-header">
-    <div style="display:flex;align-items:center;gap:12px">
-      <div class="window-dots"><div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div></div>
-      <div class="frame-title">/opt/booking/terminal — MULTI-UNIT</div>
-    </div>
-    <div class="status-pill"><div class="unit-status-dot dot-occupied" style="width:8px;height:8px"></div>SESSION ACTIVE</div>
-  </div>
-
-  <div class="frame-body">
-    <!-- LEFT: Units -->
-    <div class="pane">
-      <div class="pane-header">
-        <div class="pane-title">Units 101–157 / Status Grid</div>
-        <div class="status-pill"><div class="unit-status-dot dot-occupied" style="width:8px;height:8px"></div>LIVE</div>
-      </div>
-      <div class="pane-body">
-        <div class="units-toolbar">
-          <div class="legend">
-            <div class="legend-item"><div class="legend-swatch swatch-vacant"></div>Vacant</div>
-            <div class="legend-item"><div class="legend-swatch swatch-occupied"></div>Occupied</div>
-            <div class="legend-item"><div class="legend-swatch swatch-maint"></div>Maint</div>
-            <div class="legend-item"><div class="legend-swatch swatch-qa"></div>QA</div>
-          </div>
-          <div style="flex:1"></div>
-          <div id="dbStatus" style="font-size:12px;color:var(--muted)">IndexedDB: <span style="color:var(--accent)">ACTIVE</span></div>
+    <div class="frame">
+        <div class="frame-header">
+            <div style="display:flex;align-items:center;gap:12px">
+                <div class="window-dots">
+                    <div class="dot red"></div>
+                    <div class="dot yellow"></div>
+                    <div class="dot green"></div>
+                </div>
+                <div class="frame-title">/opt/booking/terminal — MULTI-UNIT</div>
+            </div>
+            <div class="status-pill">
+                <div class="unit-status-dot dot-occupied" style="width:8px;height:8px"></div>SESSION ACTIVE
+            </div>
         </div>
 
-        <div id="unitsGrid" class="units-grid"></div>
-      </div>
-    </div>
+        <div class="frame-body">
+            <!-- LEFT: Units -->
+            <div class="pane">
+                <div class="pane-header">
+                    <div class="pane-title">Units 101–157 / Status Grid</div>
+                    <div class="status-pill">
+                        <div class="unit-status-dot dot-occupied" style="width:8px;height:8px"></div>LIVE
+                    </div>
+                </div>
+                <div class="pane-body">
+                    <div class="units-toolbar">
+                        <div class="legend">
+                            <div class="legend-item">
+                                <div class="legend-swatch swatch-vacant"></div>Vacant
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-swatch swatch-occupied"></div>Occupied
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-swatch swatch-maint"></div>Maint
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-swatch swatch-qa"></div>QA
+                            </div>
+                        </div>
+                        <div style="flex:1"></div>
+                        <div id="dbStatus" style="font-size:12px;color:var(--muted)">IndexedDB: <span
+                                style="color:var(--accent)">ACTIVE</span></div>
+                    </div>
 
-    <!-- RIGHT: Guest form + list -->
-    <div class="pane">
-      <div class="pane-header">
-        <div class="pane-title">Guest Console / Onboard & Search</div>
-        <div class="status-pill"><div class="unit-status-dot dot-occupied" style="width:8px;height:8px"></div>CONSOLE</div>
-      </div>
-
-      <div class="pane-body">
-        <div class="subpane">
-          <div class="subpane-title">Guest onboarding</div>
-          <form id="guestForm">
-            <div class="form-grid">
-              <div>
-                <label for="guestName">Guest name</label>
-                <input id="guestName" placeholder="Ada Lovelace" required />
-              </div>
-              <div>
-                <label for="unitSelect">Unit</label>
-                <select id="unitSelect" required></select>
-              </div>
-              <div>
-                <label for="startDate">Start date</label>
-                <input id="startDate" type="date" required />
-              </div>
-              <div>
-                <label for="endDate">End date</label>
-                <input id="endDate" type="date" required />
-              </div>
-              <div>
-                <label for="stayType">Stay type</label>
-                <select id="stayType"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select>
-              </div>
-              <div>
-                <label for="statusSelect">Status</label>
-                <select id="statusSelect"><option value="occupied" selected>Occupied</option><option value="vacant">Vacant</option><option value="maint">Maint</option><option value="qa">QA</option></select>
-              </div>
-              <div style="grid-column:1 / -1">
-                <label for="notes">Notes</label>
-                <textarea id="notes" placeholder="Optional notes"></textarea>
-              </div>
+                    <div id="unitsGrid" class="units-grid"></div>
+                </div>
             </div>
 
-            <div class="btn-row">
-              <button class="btn-primary" type="submit">Save / Update</button>
-              <button type="button" id="clearFormBtn" class="btn-ghost">Clear</button>
-              <button type="button" id="archiveBtn" class="btn-ghost">Archive Selected</button>
-              <button type="button" id="clearSystemBtn" class="btn-danger">Clear system</button>
+            <!-- RIGHT: Guest form + list -->
+            <div class="pane">
+                <div class="pane-header">
+                    <div class="pane-title">Guest Console / Onboard & Search</div>
+                    <div class="status-pill">
+                        <div class="unit-status-dot dot-occupied" style="width:8px;height:8px"></div>CONSOLE
+                    </div>
+                </div>
+
+                <div class="pane-body">
+                    <div class="subpane">
+                        <div class="subpane-title">Guest onboarding</div>
+                        <form id="guestForm">
+                            <div class="form-grid">
+                                <div>
+                                    <label for="guestName">Guest name</label>
+                                    <input id="guestName" placeholder="Ada Lovelace" required />
+                                </div>
+                                <div>
+                                    <label for="unitSelect">Unit</label>
+                                    <select id="unitSelect" required></select>
+                                </div>
+                                <div>
+                                    <label for="startDate">Start date</label>
+                                    <input id="startDate" type="date" required />
+                                </div>
+                                <div>
+                                    <label for="endDate">End date</label>
+                                    <input id="endDate" type="date" required />
+                                </div>
+                                <div>
+                                    <label for="stayType">Stay type</label>
+                                    <select id="stayType">
+                                        <option value="daily">Daily</option>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="monthly">Monthly</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="statusSelect">Status</label>
+                                    <select id="statusSelect">
+                                        <option value="occupied" selected>Occupied</option>
+                                        <option value="vacant">Vacant</option>
+                                        <option value="maint">Maint</option>
+                                        <option value="qa">QA</option>
+                                    </select>
+                                </div>
+                                <div style="grid-column:1 / -1">
+                                    <label for="notes">Notes</label>
+                                    <textarea id="notes" placeholder="Optional notes"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="btn-row">
+                                <button class="btn-primary" type="submit">Save / Update</button>
+                                <button type="button" id="clearFormBtn" class="btn-ghost">Clear</button>
+                                <button type="button" id="archiveBtn" class="btn-ghost">Archive Selected</button>
+                                <button type="button" id="clearSystemBtn" class="btn-danger">Clear system</button>
+                            </div>
+                            <div style="margin-top:8px;font-size:12px;color:var(--muted)">Tip: click a unit tile to
+                                focus it in the form. Search always queries current + history.</div>
+                        </form>
+                    </div>
+
+                    <div class="subpane">
+                        <div class="subpane-title">Guests (current + history)</div>
+                        <div class="search-row">
+                            <div class="search-input-wrap">
+                                <input id="searchInput" class="search-input"
+                                    placeholder="search guest / unit / notes (live)" />
+                            </div>
+                            <button id="clearSearchBtn" class="btn-ghost">✕</button>
+                            <button id="restoreBtn" class="btn-ghost">Restore</button>
+                        </div>
+
+                        <div class="guests-list" id="guestsList">
+                            <div class="guest-row guest-row-header">
+                                <div>Unit</div>
+                                <div>Guest</div>
+                                <div>Dates</div>
+                                <div>Status</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div style="margin-top:8px;font-size:12px;color:var(--muted)">Tip: click a unit tile to focus it in the form. Search always queries current + history.</div>
-          </form>
         </div>
 
-        <div class="subpane">
-          <div class="subpane-title">Guests (current + history)</div>
-          <div class="search-row">
-            <div class="search-input-wrap">
-              <input id="searchInput" class="search-input" placeholder="search guest / unit / notes (live)" />
-            </div>
-            <button id="clearSearchBtn" class="btn-ghost">✕</button>
-            <button id="restoreBtn" class="btn-ghost">Restore</button>
-          </div>
-
-          <div class="guests-list" id="guestsList">
-            <div class="guest-row guest-row-header"><div>Unit</div><div>Guest</div><div>Dates</div><div>Status</div></div>
-          </div>
+        <div class="terminal-footer">
+            <div class="log-line" id="footerLog">› ready</div>
+            <div style="color:var(--muted)">hotkeys: click unit → focus · search → live</div>
         </div>
-      </div>
     </div>
-  </div>
 
-  <div class="terminal-footer">
-    <div class="log-line" id="footerLog">› ready</div>
-    <div style="color:var(--muted)">hotkeys: click unit → focus · search → live</div>
-  </div>
-</div>
+    <script>
+        /* Single-file booking console
+           - Units 101..157
+           - IndexedDB stores: units, guests (current), history (archived)
+           - Expiration check moves ended bookings to history
+           - Search ALWAYS queries both current guests and history and highlights matches
+        */
 
-<script>
-/* Single-file booking console
-   - Units 101..157
-   - IndexedDB stores: units, guests (current), history (archived)
-   - Expiration check moves ended bookings to history
-   - Search ALWAYS queries both current guests and history and highlights matches
-*/
+        const DB_NAME = "terminalBookingDB";
+        const DB_VERSION = 3;
+        const STORE_UNITS = "units";
+        const STORE_GUESTS = "guests";
+        const STORE_HISTORY = "history";
 
-const DB_NAME = "terminalBookingDB";
-const DB_VERSION = 3;
-const STORE_UNITS = "units";
-const STORE_GUESTS = "guests";
-const STORE_HISTORY = "history";
+        let db = null;
+        let units = [];
+        let guests = [];   // current
+        let history = [];  // archived
 
-let db = null;
-let units = [];
-let guests = [];   // current
-let history = [];  // archived
+        let activeUnitId = null;
+        let expirationHandle = null;
+        const EXPIRATION_INTERVAL = 60 * 1000; // 60s
 
-let activeUnitId = null;
-let expirationHandle = null;
-const EXPIRATION_INTERVAL = 60 * 1000; // 60s
+        /* ---------- IndexedDB helpers ---------- */
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+                req.onupgradeneeded = (e) => {
+                    const d = e.target.result;
+                    if (!d.objectStoreNames.contains(STORE_UNITS)) d.createObjectStore(STORE_UNITS, { keyPath: "id" });
+                    if (!d.objectStoreNames.contains(STORE_GUESTS)) d.createObjectStore(STORE_GUESTS, { keyPath: "id", autoIncrement: true });
+                    if (!d.objectStoreNames.contains(STORE_HISTORY)) d.createObjectStore(STORE_HISTORY, { keyPath: "id", autoIncrement: true });
+                };
+                req.onsuccess = () => { db = req.result; updateDbBadge(true); resolve(db); };
+                req.onerror = () => { updateDbBadge(false); reject(req.error); };
+                req.onblocked = () => { updateDbBadge(false); console.warn("open blocked"); };
+            });
+        }
+        function tx(store, mode = "readonly") {
+            if (!db) throw new Error("DB not open");
+            return db.transaction(store, mode).objectStore(store);
+        }
+        function saveArray(storeName, arr) {
+            return new Promise((resolve, reject) => {
+                try {
+                    const store = tx(storeName, "readwrite");
+                    const clearReq = store.clear();
+                    clearReq.onsuccess = () => {
+                        let pending = arr.length;
+                        if (!pending) return resolve();
+                        arr.forEach(item => {
+                            const r = store.put(item);
+                            r.onsuccess = () => { if (!--pending) resolve(); };
+                            r.onerror = () => reject(r.error);
+                        });
+                    };
+                    clearReq.onerror = () => reject(clearReq.error);
+                } catch (err) { reject(err); }
+            });
+        }
+        function loadAll(storeName) {
+            return new Promise((resolve, reject) => {
+                try {
+                    const store = tx(storeName, "readonly");
+                    const req = store.getAll();
+                    req.onsuccess = () => resolve(req.result || []);
+                    req.onerror = () => reject(req.error);
+                } catch (err) { resolve([]); }
+            });
+        }
+        async function persistAll() {
+            if (!db) return;
+            await saveArray(STORE_UNITS, units);
+            await saveArray(STORE_GUESTS, guests);
+            await saveArray(STORE_HISTORY, history);
+        }
 
-/* ---------- IndexedDB helpers ---------- */
-function openDB(){
-  return new Promise((resolve,reject)=>{
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = (e)=>{
-      const d = e.target.result;
-      if(!d.objectStoreNames.contains(STORE_UNITS)) d.createObjectStore(STORE_UNITS, { keyPath: "id" });
-      if(!d.objectStoreNames.contains(STORE_GUESTS)) d.createObjectStore(STORE_GUESTS, { keyPath: "id", autoIncrement: true });
-      if(!d.objectStoreNames.contains(STORE_HISTORY)) d.createObjectStore(STORE_HISTORY, { keyPath: "id", autoIncrement: true });
-    };
-    req.onsuccess = ()=>{ db = req.result; updateDbBadge(true); resolve(db); };
-    req.onerror = ()=>{ updateDbBadge(false); reject(req.error); };
-    req.onblocked = ()=>{ updateDbBadge(false); console.warn("open blocked"); };
-  });
-}
-function tx(store, mode="readonly"){
-  if(!db) throw new Error("DB not open");
-  return db.transaction(store, mode).objectStore(store);
-}
-function saveArray(storeName, arr){
-  return new Promise((resolve,reject)=>{
-    try{
-      const store = tx(storeName, "readwrite");
-      const clearReq = store.clear();
-      clearReq.onsuccess = ()=>{
-        let pending = arr.length;
-        if(!pending) return resolve();
-        arr.forEach(item=>{
-          const r = store.put(item);
-          r.onsuccess = ()=>{ if(!--pending) resolve(); };
-          r.onerror = ()=> reject(r.error);
-        });
-      };
-      clearReq.onerror = ()=> reject(clearReq.error);
-    }catch(err){ reject(err); }
-  });
-}
-function loadAll(storeName){
-  return new Promise((resolve,reject)=>{
-    try{
-      const store = tx(storeName, "readonly");
-      const req = store.getAll();
-      req.onsuccess = ()=> resolve(req.result || []);
-      req.onerror = ()=> reject(req.error);
-    }catch(err){ resolve([]); }
-  });
-}
-async function persistAll(){
-  if(!db) return;
-  await saveArray(STORE_UNITS, units);
-  await saveArray(STORE_GUESTS, guests);
-  await saveArray(STORE_HISTORY, history);
-}
+        /* ---------- Model helpers ---------- */
+        function initUnits() {
+            const arr = [];
+            for (let id = 101; id <= 157; id++) arr.push({ id, status: "vacant", guestName: "", stayType: "" });
+            return arr;
+        }
+        function setUnitStatus(id, status, guestName = "", stayType = "") {
+            const u = units.find(x => x.id === id);
+            if (!u) return;
+            u.status = status;
+            u.guestName = guestName || "";
+            u.stayType = stayType || "";
+        }
+        function upsertGuestObj(g) {
+            const idx = guests.findIndex(x => x.unitId === g.unitId);
+            if (idx >= 0) {
+                g.id = guests[idx].id;
+                guests[idx] = g;
+            } else {
+                g.id = Date.now() + Math.random();
+                guests.push(g);
+            }
+        }
 
-/* ---------- Model helpers ---------- */
-function initUnits(){
-  const arr = [];
-  for(let id=101; id<=157; id++) arr.push({ id, status:"vacant", guestName:"", stayType:"" });
-  return arr;
-}
-function setUnitStatus(id, status, guestName="", stayType=""){
-  const u = units.find(x=>x.id===id);
-  if(!u) return;
-  u.status = status;
-  u.guestName = guestName || "";
-  u.stayType = stayType || "";
-}
-function upsertGuestObj(g){
-  const idx = guests.findIndex(x=>x.unitId === g.unitId);
-  if(idx >= 0){
-    g.id = guests[idx].id;
-    guests[idx] = g;
-  } else {
-    g.id = Date.now() + Math.random();
-    guests.push(g);
-  }
-}
+        /* ---------- Expiration: move ended bookings to history ---------- */
+        async function checkExpirations() {
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            let changed = false;
+            for (let i = guests.length - 1; i >= 0; i--) {
+                const g = guests[i];
+                if (!g || !g.endDate) continue;
+                const parsed = Date.parse(g.endDate);
+                if (isNaN(parsed)) continue;
+                const end = new Date(parsed);
+                if (end < today) {
+                    // move to history
+                    g.archivedAt = new Date().toISOString();
+                    g.archivedReason = "expired";
+                    history.push(g);
+                    guests.splice(i, 1);
+                    const u = units.find(x => x.id === g.unitId);
+                    if (u) { u.status = "vacant"; u.guestName = ""; u.stayType = ""; }
+                    log(`auto-archived unit #${g.unitId} (${g.name})`);
+                    changed = true;
+                }
+            }
+            if (changed) {
+                try { await persistAll(); } catch (e) { console.error("persist failed", e); }
+                renderUnitsGrid(); renderGuestsList();
+            }
+        }
+        function startExpirationChecks() {
+            if (expirationHandle) clearInterval(expirationHandle);
+            checkExpirations().catch(() => { });
+            expirationHandle = setInterval(() => checkExpirations().catch(() => { }), EXPIRATION_INTERVAL);
+        }
 
-/* ---------- Expiration: move ended bookings to history ---------- */
-async function checkExpirations(){
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  let changed = false;
-  for(let i = guests.length - 1; i >= 0; i--){
-    const g = guests[i];
-    if(!g || !g.endDate) continue;
-    const parsed = Date.parse(g.endDate);
-    if(isNaN(parsed)) continue;
-    const end = new Date(parsed);
-    if(end < today){
-      // move to history
-      g.archivedAt = new Date().toISOString();
-      g.archivedReason = "expired";
-      history.push(g);
-      guests.splice(i,1);
-      const u = units.find(x=>x.id === g.unitId);
-      if(u){ u.status = "vacant"; u.guestName = ""; u.stayType = ""; }
-      log(`auto-archived unit #${g.unitId} (${g.name})`);
-      changed = true;
-    }
-  }
-  if(changed){
-    try{ await persistAll(); }catch(e){ console.error("persist failed", e); }
-    renderUnitsGrid(); renderGuestsList();
-  }
-}
-function startExpirationChecks(){
-  if(expirationHandle) clearInterval(expirationHandle);
-  checkExpirations().catch(()=>{});
-  expirationHandle = setInterval(()=>checkExpirations().catch(()=>{}), EXPIRATION_INTERVAL);
-}
+        /* ---------- UI references ---------- */
+        const unitsGridEl = document.getElementById("unitsGrid");
+        const unitSelectEl = document.getElementById("unitSelect");
+        const guestFormEl = document.getElementById("guestForm");
+        const guestNameEl = document.getElementById("guestName");
+        const startDateEl = document.getElementById("startDate");
+        const endDateEl = document.getElementById("endDate");
+        const stayTypeEl = document.getElementById("stayType");
+        const statusSelectEl = document.getElementById("statusSelect");
+        const notesEl = document.getElementById("notes");
+        const guestsListEl = document.getElementById("guestsList");
+        const searchInputEl = document.getElementById("searchInput");
+        const clearSearchBtn = document.getElementById("clearSearchBtn");
+        const clearFormBtn = document.getElementById("clearFormBtn");
+        const archiveBtn = document.getElementById("archiveBtn");
+        const restoreBtn = document.getElementById("restoreBtn");
+        const clearSystemBtn = document.getElementById("clearSystemBtn");
+        const logLineEl = document.getElementById("logLine");
+        const footerLog = document.getElementById("footerLog");
+        const dbStatusEl = document.getElementById("dbStatus");
 
-/* ---------- UI references ---------- */
-const unitsGridEl = document.getElementById("unitsGrid");
-const unitSelectEl = document.getElementById("unitSelect");
-const guestFormEl = document.getElementById("guestForm");
-const guestNameEl = document.getElementById("guestName");
-const startDateEl = document.getElementById("startDate");
-const endDateEl = document.getElementById("endDate");
-const stayTypeEl = document.getElementById("stayType");
-const statusSelectEl = document.getElementById("statusSelect");
-const notesEl = document.getElementById("notes");
-const guestsListEl = document.getElementById("guestsList");
-const searchInputEl = document.getElementById("searchInput");
-const clearSearchBtn = document.getElementById("clearSearchBtn");
-const clearFormBtn = document.getElementById("clearFormBtn");
-const archiveBtn = document.getElementById("archiveBtn");
-const restoreBtn = document.getElementById("restoreBtn");
-const clearSystemBtn = document.getElementById("clearSystemBtn");
-const logLineEl = document.getElementById("logLine");
-const footerLog = document.getElementById("footerLog");
-const dbStatusEl = document.getElementById("dbStatus");
+        /* ---------- Rendering ---------- */
+        function escapeHTML(s) { return String(s || "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
-/* ---------- Rendering ---------- */
-function escapeHTML(s){ return String(s||"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
-
-function renderUnitsGrid(){
-  unitsGridEl.innerHTML = "";
-  units.forEach(u=>{
-    const card = document.createElement("div");
-    card.className = "unit-card";
-    card.dataset.unitId = u.id;
-    if(u.id === activeUnitId) card.classList.add("active");
-    const statusClass = {vacant:"status-vacant",occupied:"status-occupied",maint:"status-maint",qa:"status-qa"}[u.status] || "status-vacant";
-    const dotClass = {vacant:"dot-vacant",occupied:"dot-occupied",maint:"dot-maint",qa:"dot-qa"}[u.status] || "dot-vacant";
-    card.innerHTML = `
+        function renderUnitsGrid() {
+            unitsGridEl.innerHTML = "";
+            units.forEach(u => {
+                const card = document.createElement("div");
+                card.className = "unit-card";
+                card.dataset.unitId = u.id;
+                if (u.id === activeUnitId) card.classList.add("active");
+                const statusClass = { vacant: "status-vacant", occupied: "status-occupied", maint: "status-maint", qa: "status-qa" }[u.status] || "status-vacant";
+                const dotClass = { vacant: "dot-vacant", occupied: "dot-occupied", maint: "dot-maint", qa: "dot-qa" }[u.status] || "dot-vacant";
+                card.innerHTML = `
       <div class="unit-number">#${u.id}</div>
       <div class="unit-guest">${u.guestName ? "👤 " + escapeHTML(u.guestName) : "—"}</div>
       <div class="unit-status">
@@ -372,306 +834,307 @@ function renderUnitsGrid(){
         </span>
       </div>
     `;
-    card.addEventListener("click", ()=>{
-      activeUnitId = u.id;
-      syncFormWithUnit(u);
-      renderUnitsGrid();
-      pulse(card);
-      log(`unit #${u.id} focused`);
-    });
-    unitsGridEl.appendChild(card);
-  });
-}
+                card.addEventListener("click", () => {
+                    activeUnitId = u.id;
+                    syncFormWithUnit(u);
+                    renderUnitsGrid();
+                    pulse(card);
+                    log(`unit #${u.id} focused`);
+                });
+                unitsGridEl.appendChild(card);
+            });
+        }
 
-function renderUnitSelect(){
-  unitSelectEl.innerHTML = "";
-  units.forEach(u=>{
-    const opt = document.createElement("option");
-    opt.value = u.id;
-    opt.textContent = `#${u.id}`;
-    unitSelectEl.appendChild(opt);
-  });
-  if(activeUnitId) unitSelectEl.value = activeUnitId;
-}
+        function renderUnitSelect() {
+            unitSelectEl.innerHTML = "";
+            units.forEach(u => {
+                const opt = document.createElement("option");
+                opt.value = u.id;
+                opt.textContent = `#${u.id}`;
+                unitSelectEl.appendChild(opt);
+            });
+            if (activeUnitId) unitSelectEl.value = activeUnitId;
+        }
 
-function pulse(el){
-  el.classList.add("active");
-  setTimeout(()=>{ el.classList.remove("active"); if(el.dataset.unitId == activeUnitId) el.classList.add("active"); }, 260);
-}
+        function pulse(el) {
+            el.classList.add("active");
+            setTimeout(() => { el.classList.remove("active"); if (el.dataset.unitId == activeUnitId) el.classList.add("active"); }, 260);
+        }
 
-/* Search ALWAYS queries both current guests and history and shows combined results.
-   Results are ordered: current matches first, then history matches.
-   Each history row shows an archived badge and archivedReason.
-*/
-function renderGuestsList(){
-  const header = guestsListEl.querySelector(".guest-row-header");
-  guestsListEl.innerHTML = "";
-  guestsListEl.appendChild(header);
+        /* Search ALWAYS queries both current guests and history and shows combined results.
+           Results are ordered: current matches first, then history matches.
+           Each history row shows an archived badge and archivedReason.
+        */
+        function renderGuestsList() {
+            const header = guestsListEl.querySelector(".guest-row-header");
+            guestsListEl.innerHTML = "";
+            guestsListEl.appendChild(header);
 
-  const q = (searchInputEl.value || "").trim().toLowerCase();
+            const q = (searchInputEl.value || "").trim().toLowerCase();
 
-  // helper to test match
-  function matches(item){
-    if(!q) return true;
-    const fields = [
-      "#" + (item.unitId || ""),
-      item.name || "",
-      item.notes || "",
-      (item.startDate || "") + " " + (item.endDate || ""),
-      (item.status || "") + " " + (item.stayType || "")
-    ];
-    return fields.join(" ").toLowerCase().includes(q);
-  }
+            // helper to test match
+            function matches(item) {
+                if (!q) return true;
+                const fields = [
+                    "#" + (item.unitId || ""),
+                    item.name || "",
+                    item.notes || "",
+                    (item.startDate || "") + " " + (item.endDate || ""),
+                    (item.status || "") + " " + (item.stayType || "")
+                ];
+                return fields.join(" ").toLowerCase().includes(q);
+            }
 
-  // current matches
-  const currentMatches = guests.filter(matches);
-  // history matches
-  const historyMatches = history.filter(matches);
+            // current matches
+            const currentMatches = guests.filter(matches);
+            // history matches
+            const historyMatches = history.filter(matches);
 
-  // render current first
-  currentMatches.forEach(g=>{
-    const row = document.createElement("div");
-    row.className = "guest-row";
-    const unitStr = "#" + g.unitId;
-    const nameStr = g.name || "";
-    const datesStr = `${g.startDate || "?"} → ${g.endDate || "?"}`;
-    const statusStr = (g.status || "occupied").toUpperCase() + " / " + (g.stayType || "daily").toUpperCase();
-    row.innerHTML = `
-      <div class="guest-unit">${highlight(unitStr,q)}</div>
-      <div class="guest-name">${highlight(nameStr,q)}</div>
-      <div class="guest-dates">${highlight(datesStr,q)}</div>
-      <div class="guest-status">${highlight(statusStr,q)}</div>
+            // render current first
+            currentMatches.forEach(g => {
+                const row = document.createElement("div");
+                row.className = "guest-row";
+                const unitStr = "#" + g.unitId;
+                const nameStr = g.name || "";
+                const datesStr = `${g.startDate || "?"} → ${g.endDate || "?"}`;
+                const statusStr = (g.status || "occupied").toUpperCase() + " / " + (g.stayType || "daily").toUpperCase();
+                row.innerHTML = `
+      <div class="guest-unit">${highlight(unitStr, q)}</div>
+      <div class="guest-name">${highlight(nameStr, q)}</div>
+      <div class="guest-dates">${highlight(datesStr, q)}</div>
+      <div class="guest-status">${highlight(statusStr, q)}</div>
     `;
-    row.addEventListener("click", ()=>{
-      activeUnitId = g.unitId;
-      syncFormWithGuest(g);
-      renderUnitsGrid();
-      const card = unitsGridEl.querySelector('[data-unit-id="' + g.unitId + '"]');
-      if(card) pulse(card);
-      log(`guest ${g.name} focused on unit #${g.unitId}`);
-    });
-    guestsListEl.appendChild(row);
-  });
+                row.addEventListener("click", () => {
+                    activeUnitId = g.unitId;
+                    syncFormWithGuest(g);
+                    renderUnitsGrid();
+                    const card = unitsGridEl.querySelector('[data-unit-id="' + g.unitId + '"]');
+                    if (card) pulse(card);
+                    log(`guest ${g.name} focused on unit #${g.unitId}`);
+                });
+                guestsListEl.appendChild(row);
+            });
 
-  // then history matches, visually labeled
-  historyMatches.forEach(h=>{
-    const row = document.createElement("div");
-    row.className = "guest-row";
-    const unitStr = h.unitId ? "#" + h.unitId : "—";
-    const nameStr = h.name || "";
-    const datesStr = `${h.startDate || "?"} → ${h.endDate || "?"}`;
-    const statusStr = (h.status || "occupied").toUpperCase() + " / " + (h.stayType || "daily").toUpperCase();
-    row.innerHTML = `
-      <div class="guest-unit">${highlight(unitStr,q)} ${h.archivedAt ? `<span class="archived-badge">HIST</span>` : ""}</div>
-      <div class="guest-name">${highlight(nameStr,q)}</div>
-      <div class="guest-dates">${highlight(datesStr,q)}</div>
-      <div class="guest-status">${highlight(statusStr,q)}</div>
+            // then history matches, visually labeled
+            historyMatches.forEach(h => {
+                const row = document.createElement("div");
+                row.className = "guest-row";
+                const unitStr = h.unitId ? "#" + h.unitId : "—";
+                const nameStr = h.name || "";
+                const datesStr = `${h.startDate || "?"} → ${h.endDate || "?"}`;
+                const statusStr = (h.status || "occupied").toUpperCase() + " / " + (h.stayType || "daily").toUpperCase();
+                row.innerHTML = `
+      <div class="guest-unit">${highlight(unitStr, q)} ${h.archivedAt ? `<span class="archived-badge">HIST</span>` : ""}</div>
+      <div class="guest-name">${highlight(nameStr, q)}</div>
+      <div class="guest-dates">${highlight(datesStr, q)}</div>
+      <div class="guest-status">${highlight(statusStr, q)}</div>
     `;
-    row.addEventListener("click", ()=>{
-      // populate form with history for review (no auto-assign)
-      syncFormWithHistory(h);
-      log(`history record ${h.name} selected (unit ${h.unitId||"—"})`);
-    });
-    guestsListEl.appendChild(row);
-  });
+                row.addEventListener("click", () => {
+                    // populate form with history for review (no auto-assign)
+                    syncFormWithHistory(h);
+                    log(`history record ${h.name} selected (unit ${h.unitId || "—"})`);
+                });
+                guestsListEl.appendChild(row);
+            });
 
-  // if no matches at all, show hint
-  if(currentMatches.length === 0 && historyMatches.length === 0){
-    const empty = document.createElement("div");
-    empty.style.padding = "12px";
-    empty.style.color = "var(--muted)";
-    empty.textContent = "No matches in current or history.";
-    guestsListEl.appendChild(empty);
-  }
-}
+            // if no matches at all, show hint
+            if (currentMatches.length === 0 && historyMatches.length === 0) {
+                const empty = document.createElement("div");
+                empty.style.padding = "12px";
+                empty.style.color = "var(--muted)";
+                empty.textContent = "No matches in current or history.";
+                guestsListEl.appendChild(empty);
+            }
+        }
 
-function highlight(text, q){
-  if(!q) return escapeHTML(text);
-  const lower = text.toLowerCase();
-  const idx = lower.indexOf(q);
-  if(idx === -1) return escapeHTML(text);
-  const before = escapeHTML(text.slice(0,idx));
-  const match = escapeHTML(text.slice(idx, idx + q.length));
-  const after = escapeHTML(text.slice(idx + q.length));
-  return `${before}<span class="highlight">${match}</span>${after}`;
-}
+        function highlight(text, q) {
+            if (!q) return escapeHTML(text);
+            const lower = text.toLowerCase();
+            const idx = lower.indexOf(q);
+            if (idx === -1) return escapeHTML(text);
+            const before = escapeHTML(text.slice(0, idx));
+            const match = escapeHTML(text.slice(idx, idx + q.length));
+            const after = escapeHTML(text.slice(idx + q.length));
+            return `${before}<span class="highlight">${match}</span>${after}`;
+        }
 
-/* ---------- Form sync ---------- */
-function syncFormWithUnit(u){
-  unitSelectEl.value = u.id;
-  const g = guests.find(x=>x.unitId === u.id);
-  if(g){
-    guestNameEl.value = g.name || "";
-    startDateEl.value = g.startDate || "";
-    endDateEl.value = g.endDate || "";
-    stayTypeEl.value = g.stayType || "daily";
-    statusSelectEl.value = g.status || "occupied";
-    notesEl.value = g.notes || "";
-  } else {
-    guestFormEl.reset();
-    unitSelectEl.value = u.id;
-    stayTypeEl.value = "daily";
-    statusSelectEl.value = "occupied";
-  }
-  guestNameEl.focus();
-}
-function syncFormWithGuest(g){
-  unitSelectEl.value = g.unitId;
-  guestNameEl.value = g.name || "";
-  startDateEl.value = g.startDate || "";
-  endDateEl.value = g.endDate || "";
-  stayTypeEl.value = g.stayType || "daily";
-  statusSelectEl.value = g.status || "occupied";
-  notesEl.value = g.notes || "";
-  guestNameEl.focus();
-}
-function syncFormWithHistory(h){
-  guestFormEl.reset();
-  unitSelectEl.value = h.unitId || "";
-  guestNameEl.value = h.name || "";
-  startDateEl.value = h.startDate || "";
-  endDateEl.value = h.endDate || "";
-  stayTypeEl.value = h.stayType || "daily";
-  statusSelectEl.value = h.status || "vacant";
-  notesEl.value = (h.notes || "") + (h.archivedReason ? ` [archived:${h.archivedReason}]` : "");
-}
+        /* ---------- Form sync ---------- */
+        function syncFormWithUnit(u) {
+            unitSelectEl.value = u.id;
+            const g = guests.find(x => x.unitId === u.id);
+            if (g) {
+                guestNameEl.value = g.name || "";
+                startDateEl.value = g.startDate || "";
+                endDateEl.value = g.endDate || "";
+                stayTypeEl.value = g.stayType || "daily";
+                statusSelectEl.value = g.status || "occupied";
+                notesEl.value = g.notes || "";
+            } else {
+                guestFormEl.reset();
+                unitSelectEl.value = u.id;
+                stayTypeEl.value = "daily";
+                statusSelectEl.value = "occupied";
+            }
+            guestNameEl.focus();
+        }
+        function syncFormWithGuest(g) {
+            unitSelectEl.value = g.unitId;
+            guestNameEl.value = g.name || "";
+            startDateEl.value = g.startDate || "";
+            endDateEl.value = g.endDate || "";
+            stayTypeEl.value = g.stayType || "daily";
+            statusSelectEl.value = g.status || "occupied";
+            notesEl.value = g.notes || "";
+            guestNameEl.focus();
+        }
+        function syncFormWithHistory(h) {
+            guestFormEl.reset();
+            unitSelectEl.value = h.unitId || "";
+            guestNameEl.value = h.name || "";
+            startDateEl.value = h.startDate || "";
+            endDateEl.value = h.endDate || "";
+            stayTypeEl.value = h.stayType || "daily";
+            statusSelectEl.value = h.status || "vacant";
+            notesEl.value = (h.notes || "") + (h.archivedReason ? ` [archived:${h.archivedReason}]` : "");
+        }
 
-/* ---------- Logging ---------- */
-function log(msg){
-  const ts = new Date().toLocaleTimeString();
-  logLineEl.innerHTML = `› ${ts} — <span>${escapeHTML(msg)}</span>`;
-  footerLog.textContent = `› ${ts} — ${msg}`;
-}
+        /* ---------- Logging ---------- */
+        function log(msg) {
+            const ts = new Date().toLocaleTimeString();
+            logLineEl.innerHTML = `› ${ts} — <span>${escapeHTML(msg)}</span>`;
+            footerLog.textContent = `› ${ts} — ${msg}`;
+        }
 
-/* ---------- Events ---------- */
-guestFormEl.addEventListener("submit", async (e)=>{
-  e.preventDefault();
-  const unitId = parseInt(unitSelectEl.value,10);
-  const name = guestNameEl.value.trim();
-  const startDate = startDateEl.value;
-  const endDate = endDateEl.value;
-  const stayType = stayTypeEl.value;
-  const status = statusSelectEl.value;
-  const notes = notesEl.value.trim();
-  if(!unitId || !name || !startDate || !endDate) return alert("Please fill required fields.");
-  const guestObj = { unitId, name, startDate, endDate, stayType, status, notes };
-  upsertGuestObj(guestObj);
-  setUnitStatus(unitId, status, name, stayType);
-  try{ await persistAll(); }catch(e){ console.error(e); }
-  activeUnitId = unitId;
-  renderUnitsGrid(); renderGuestsList();
-  const card = unitsGridEl.querySelector('[data-unit-id="' + unitId + '"]');
-  if(card) pulse(card);
-  log(`saved ${name} → unit #${unitId}`);
-});
+        /* ---------- Events ---------- */
+        guestFormEl.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const unitId = parseInt(unitSelectEl.value, 10);
+            const name = guestNameEl.value.trim();
+            const startDate = startDateEl.value;
+            const endDate = endDateEl.value;
+            const stayType = stayTypeEl.value;
+            const status = statusSelectEl.value;
+            const notes = notesEl.value.trim();
+            if (!unitId || !name || !startDate || !endDate) return alert("Please fill required fields.");
+            const guestObj = { unitId, name, startDate, endDate, stayType, status, notes };
+            upsertGuestObj(guestObj);
+            setUnitStatus(unitId, status, name, stayType);
+            try { await persistAll(); } catch (e) { console.error(e); }
+            activeUnitId = unitId;
+            renderUnitsGrid(); renderGuestsList();
+            const card = unitsGridEl.querySelector('[data-unit-id="' + unitId + '"]');
+            if (card) pulse(card);
+            log(`saved ${name} → unit #${unitId}`);
+        });
 
-unitSelectEl.addEventListener("change", ()=>{
-  const id = parseInt(unitSelectEl.value,10);
-  const u = units.find(x=>x.id===id);
-  if(u){ activeUnitId = id; syncFormWithUnit(u); renderUnitsGrid(); const card = unitsGridEl.querySelector('[data-unit-id="' + id + '"]'); if(card) pulse(card); log(`unit #${id} selected`); }
-});
+        unitSelectEl.addEventListener("change", () => {
+            const id = parseInt(unitSelectEl.value, 10);
+            const u = units.find(x => x.id === id);
+            if (u) { activeUnitId = id; syncFormWithUnit(u); renderUnitsGrid(); const card = unitsGridEl.querySelector('[data-unit-id="' + id + '"]'); if (card) pulse(card); log(`unit #${id} selected`); }
+        });
 
-statusSelectEl.addEventListener("change", async ()=>{
-  const id = parseInt(unitSelectEl.value,10);
-  if(!id) return;
-  const u = units.find(x=>x.id===id);
-  if(!u) return;
-  u.status = statusSelectEl.value;
-  try{ await saveArray(STORE_UNITS, units); }catch(e){ console.error(e); }
-  renderUnitsGrid();
-  log(`unit #${id} status set to ${u.status}`);
-});
+        statusSelectEl.addEventListener("change", async () => {
+            const id = parseInt(unitSelectEl.value, 10);
+            if (!id) return;
+            const u = units.find(x => x.id === id);
+            if (!u) return;
+            u.status = statusSelectEl.value;
+            try { await saveArray(STORE_UNITS, units); } catch (e) { console.error(e); }
+            renderUnitsGrid();
+            log(`unit #${id} status set to ${u.status}`);
+        });
 
-searchInputEl.addEventListener("input", ()=>{ renderGuestsList(); });
+        searchInputEl.addEventListener("input", () => { renderGuestsList(); });
 
-clearSearchBtn.addEventListener("click", ()=>{ searchInputEl.value = ""; renderGuestsList(); searchInputEl.focus(); log("search cleared"); });
+        clearSearchBtn.addEventListener("click", () => { searchInputEl.value = ""; renderGuestsList(); searchInputEl.focus(); log("search cleared"); });
 
-clearFormBtn.addEventListener("click", ()=>{ guestFormEl.reset(); if(activeUnitId) unitSelectEl.value = activeUnitId; stayTypeEl.value = "daily"; statusSelectEl.value = "occupied"; log("form cleared"); });
+        clearFormBtn.addEventListener("click", () => { guestFormEl.reset(); if (activeUnitId) unitSelectEl.value = activeUnitId; stayTypeEl.value = "daily"; statusSelectEl.value = "occupied"; log("form cleared"); });
 
-archiveBtn.addEventListener("click", async ()=>{
-  const unitId = parseInt(unitSelectEl.value,10);
-  if(!unitId) return alert("Select a unit to archive its guest.");
-  const idx = guests.findIndex(g=>g.unitId === unitId);
-  if(idx === -1) return alert("No current guest on that unit.");
-  const g = guests[idx];
-  g.archivedAt = new Date().toISOString();
-  g.archivedReason = "manual";
-  history.push(g);
-  guests.splice(idx,1);
-  const u = units.find(x=>x.id === unitId);
-  if(u){ u.status = "vacant"; u.guestName = ""; u.stayType = ""; }
-  try{ await persistAll(); }catch(e){ console.error(e); }
-  renderUnitsGrid(); renderGuestsList(); log(`archived guest from unit #${unitId}`);
-});
+        archiveBtn.addEventListener("click", async () => {
+            const unitId = parseInt(unitSelectEl.value, 10);
+            if (!unitId) return alert("Select a unit to archive its guest.");
+            const idx = guests.findIndex(g => g.unitId === unitId);
+            if (idx === -1) return alert("No current guest on that unit.");
+            const g = guests[idx];
+            g.archivedAt = new Date().toISOString();
+            g.archivedReason = "manual";
+            history.push(g);
+            guests.splice(idx, 1);
+            const u = units.find(x => x.id === unitId);
+            if (u) { u.status = "vacant"; u.guestName = ""; u.stayType = ""; }
+            try { await persistAll(); } catch (e) { console.error(e); }
+            renderUnitsGrid(); renderGuestsList(); log(`archived guest from unit #${unitId}`);
+        });
 
-restoreBtn.addEventListener("click", async ()=>{
-  // restore first matching history item by search or first history if no query
-  const q = (searchInputEl.value || "").trim().toLowerCase();
-  const candidate = q ? history.find(h => {
-    const fields = [ "#" + (h.unitId||""), h.name||"", h.notes||"" ].join(" ").toLowerCase();
-    return fields.includes(q);
-  }) : history[0];
-  if(!candidate) return alert("No matching history record found to restore.");
-  const u = units.find(x=>x.id === candidate.unitId);
-  if(!u) return alert("Unit not found.");
-  if(u.status !== "vacant") return alert(`Unit #${u.id} is not vacant.`);
-  // restore
-  const histIdx = history.findIndex(h=>h.id === candidate.id);
-  if(histIdx >= 0) history.splice(histIdx,1);
-  const restored = { unitId: candidate.unitId, name: candidate.name, startDate: candidate.startDate, endDate: candidate.endDate, stayType: candidate.stayType, status: "occupied", notes: (candidate.notes||"") + " (restored)" };
-  upsertGuestObj(restored);
-  setUnitStatus(restored.unitId, "occupied", restored.name, restored.stayType);
-  try{ await persistAll(); }catch(e){ console.error(e); }
-  renderUnitsGrid(); renderGuestsList(); log(`restored ${restored.name} → unit #${restored.unitId}`);
-});
+        restoreBtn.addEventListener("click", async () => {
+            // restore first matching history item by search or first history if no query
+            const q = (searchInputEl.value || "").trim().toLowerCase();
+            const candidate = q ? history.find(h => {
+                const fields = ["#" + (h.unitId || ""), h.name || "", h.notes || ""].join(" ").toLowerCase();
+                return fields.includes(q);
+            }) : history[0];
+            if (!candidate) return alert("No matching history record found to restore.");
+            const u = units.find(x => x.id === candidate.unitId);
+            if (!u) return alert("Unit not found.");
+            if (u.status !== "vacant") return alert(`Unit #${u.id} is not vacant.`);
+            // restore
+            const histIdx = history.findIndex(h => h.id === candidate.id);
+            if (histIdx >= 0) history.splice(histIdx, 1);
+            const restored = { unitId: candidate.unitId, name: candidate.name, startDate: candidate.startDate, endDate: candidate.endDate, stayType: candidate.stayType, status: "occupied", notes: (candidate.notes || "") + " (restored)" };
+            upsertGuestObj(restored);
+            setUnitStatus(restored.unitId, "occupied", restored.name, restored.stayType);
+            try { await persistAll(); } catch (e) { console.error(e); }
+            renderUnitsGrid(); renderGuestsList(); log(`restored ${restored.name} → unit #${restored.unitId}`);
+        });
 
-clearSystemBtn.addEventListener("click", async ()=>{
-  if(!confirm("Clear all data (units, guests, history) from IndexedDB?")) return;
-  try{
-    if(db) db.close();
-    const del = indexedDB.deleteDatabase(DB_NAME);
-    await new Promise((res,rej)=>{
-      let done=false;
-      del.onsuccess = ()=>{ done=true; db=null; updateDbBadge(false); res(); };
-      del.onerror = ()=>{ done=true; rej(del.error); };
-      del.onblocked = ()=>{ done=true; rej(new Error("blocked")); };
-      setTimeout(()=>{ if(!done){ db=null; updateDbBadge(false); res(); } },2000);
-    });
-    units = initUnits(); guests = []; history = [];
-    await openDB();
-    await persistAll();
-    renderUnitSelect(); renderUnitsGrid(); renderGuestsList();
-    guestFormEl.reset();
-    log("system cleared and reset");
-  }catch(e){ console.error(e); alert("Clear failed: " + (e && e.message)); }
-});
+        clearSystemBtn.addEventListener("click", async () => {
+            if (!confirm("Clear all data (units, guests, history) from IndexedDB?")) return;
+            try {
+                if (db) db.close();
+                const del = indexedDB.deleteDatabase(DB_NAME);
+                await new Promise((res, rej) => {
+                    let done = false;
+                    del.onsuccess = () => { done = true; db = null; updateDbBadge(false); res(); };
+                    del.onerror = () => { done = true; rej(del.error); };
+                    del.onblocked = () => { done = true; rej(new Error("blocked")); };
+                    setTimeout(() => { if (!done) { db = null; updateDbBadge(false); res(); } }, 2000);
+                });
+                units = initUnits(); guests = []; history = [];
+                await openDB();
+                await persistAll();
+                renderUnitSelect(); renderUnitsGrid(); renderGuestsList();
+                guestFormEl.reset();
+                log("system cleared and reset");
+            } catch (e) { console.error(e); alert("Clear failed: " + (e && e.message)); }
+        });
 
-/* ---------- DB badge ---------- */
-function updateDbBadge(active){
-  dbStatusEl.innerHTML = `IndexedDB: <span style="color:${active? 'var(--accent)':'#ff6b6b'}">${active? 'ACTIVE':'INACTIVE'}</span>`;
-}
+        /* ---------- DB badge ---------- */
+        function updateDbBadge(active) {
+            dbStatusEl.innerHTML = `IndexedDB: <span style="color:${active ? 'var(--accent)' : '#ff6b6b'}">${active ? 'ACTIVE' : 'INACTIVE'}</span>`;
+        }
 
-/* ---------- Boot ---------- */
-(async function boot(){
-  try{ await openDB(); }catch(e){ console.warn("open failed", e); }
-  try{
-    const storedUnits = db ? await loadAll(STORE_UNITS) : [];
-    const storedGuests = db ? await loadAll(STORE_GUESTS) : [];
-    const storedHistory = db ? await loadAll(STORE_HISTORY) : [];
-    units = (storedUnits && storedUnits.length) ? storedUnits : initUnits();
-    guests = storedGuests || [];
-    history = storedHistory || [];
-    // persist defaults if needed
-    if(!storedUnits || !storedUnits.length){
-      try{ await saveArray(STORE_UNITS, units); }catch(e){}
-    }
-  }catch(e){ console.warn("load failed", e); units = initUnits(); guests = []; history = []; }
-  activeUnitId = units[0]?.id || 101;
-  renderUnitSelect(); renderUnitsGrid(); renderGuestsList();
-  startExpirationChecks();
-  guestFormEl.reset();
-  log("loaded");
-})();
-</script>
+        /* ---------- Boot ---------- */
+        (async function boot() {
+            try { await openDB(); } catch (e) { console.warn("open failed", e); }
+            try {
+                const storedUnits = db ? await loadAll(STORE_UNITS) : [];
+                const storedGuests = db ? await loadAll(STORE_GUESTS) : [];
+                const storedHistory = db ? await loadAll(STORE_HISTORY) : [];
+                units = (storedUnits && storedUnits.length) ? storedUnits : initUnits();
+                guests = storedGuests || [];
+                history = storedHistory || [];
+                // persist defaults if needed
+                if (!storedUnits || !storedUnits.length) {
+                    try { await saveArray(STORE_UNITS, units); } catch (e) { }
+                }
+            } catch (e) { console.warn("load failed", e); units = initUnits(); guests = []; history = []; }
+            activeUnitId = units[0]?.id || 101;
+            renderUnitSelect(); renderUnitsGrid(); renderGuestsList();
+            startExpirationChecks();
+            guestFormEl.reset();
+            log("loaded");
+        })();
+    </script>
 </body>
+
 </html>
