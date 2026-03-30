@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Predictive Logistics Agent – Supply Chain Forecasting & Risk Intelligence</title>
+
+    <!-- Bootswatch Cosmo Theme -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/cosmo/bootstrap.min.css" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <style>
+        body {
+            padding-top: 3.5rem;
+        }
+
+        pre {
+            background: #1e1e1e;
+            color: #f5f5f5;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .section-title {
+            border-left: 4px solid #2780e3;
+            padding-left: 0.75rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .badge-pill {
+            border-radius: 10rem;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Predictive Logistics Agent</a>
+        </div>
+    </nav>
+
+    <main class="container mb-5">
+
+        <!-- Header -->
+        <section class="mt-4">
+            <h1 class="mb-2">Predictive Supply Chain Intelligence Agent</h1>
+            <p class="lead">
+                A forecasting‑driven AI agent that predicts late deliveries, capacity shortages, and operational risks
+                across the supply chain—then recommends proactive actions before disruptions occur.
+            </p>
+            <p>
+                This agent complements the real‑time assignment agent by looking ahead, scoring risk, and generating
+                actionable interventions that stabilize network performance.
+            </p>
+        </section>
+
+        <!-- 1. Purpose -->
+        <section>
+            <h2 class="section-title">1. Purpose of the predictive agent</h2>
+            <p>
+                The agent analyzes historical patterns, real‑time telemetry, and contextual data to forecast:
+            </p>
+
+            <ul>
+                <li>Late deliveries and ETA deviations</li>
+                <li>Lane‑level capacity shortages</li>
+                <li>At‑risk loads due to weather, dwell, or congestion</li>
+                <li>Carrier performance degradation</li>
+                <li>Facility bottlenecks and dwell anomalies</li>
+            </ul>
+
+            <p>
+                Instead of reacting to problems, the agent identifies them hours—or days—before they materialize.
+            </p>
+        </section>
+
+        <!-- 2. Input Data -->
+        <section>
+            <h2 class="section-title">2. Data sources and feature model</h2>
+            <p>
+                The agent consumes a blend of historical and real‑time data to build a high‑resolution picture of each
+                load’s risk profile.
+            </p>
+
+            <h5>2.1 Example feature snapshot</h5>
+            <pre><code>{
+  "loadId": "LOAD-2045",
+  "lane": "PHX-LAX",
+  "carrierId": "CARR-12",
+  "plannedPickup": "2026-03-27T08:00:00Z",
+  "plannedDelivery": "2026-03-27T16:00:00Z",
+  "currentLocation": { "lat": 33.72, "lng": -114.50 },
+  "distanceRemainingKm": 420,
+  "avgSpeedLastHourKph": 72,
+  "facilityDwellMinutes": 45,
+  "weatherRisk": 0.3,
+  "historicalLaneOnTimeRate": 0.82,
+  "carrierOnTimeRate": 0.76
+}</code></pre>
+
+            <p>
+                These features feed into ETA models, late‑risk classifiers, and capacity forecasts.
+            </p>
+        </section>
+
+        <!-- 3. Predictive Tasks -->
+        <section>
+            <h2 class="section-title">3. Predictive tasks and outputs</h2>
+
+            <h5>3.1 ETA prediction</h5>
+            <p>
+                Regression or sequence models estimate arrival time and compute an on‑time probability.
+            </p>
+
+            <h5>3.2 Late‑risk classification</h5>
+            <p>
+                A classifier outputs a risk score from 0 to 1, mapped to:
+            </p>
+
+            <ul>
+                <li><span class="badge bg-success badge-pill">LOW</span> (0.0–0.3)</li>
+                <li><span class="badge bg-warning text-dark badge-pill">MEDIUM</span> (0.3–0.7)</li>
+                <li><span class="badge bg-danger badge-pill">HIGH</span> (0.7–1.0)</li>
+            </ul>
+
+            <h5>3.3 Capacity forecasting</h5>
+            <p>
+                Time‑series models predict lane‑level demand vs capacity for the next 7–30 days.
+            </p>
+        </section>
+
+        <!-- 4. Agent Behavior -->
+        <section>
+            <h2 class="section-title">4. Agent behavior and scoring loop</h2>
+            <p>
+                The agent runs continuously, scoring active loads and upcoming shipments, then generating
+                recommendations when risk crosses thresholds.
+            </p>
+
+            <pre><code>function predictiveAgentTick(state, models, now) {
+  const activeLoads = getActiveAndUpcomingLoads(state, now);
+
+  activeLoads.forEach((load) =&gt; {
+    const features = buildFeaturesForLoad(load, state, now);
+    const eta = models.eta.predict(features);
+    const lateRisk = models.lateRisk.predict(features);
+
+    const prediction = {
+      loadId: load.loadId,
+      predictedEta: eta,
+      lateRiskScore: lateRisk,
+      generatedAt: now.toISOString()
+    };
+
+    state.predictions.loads[load.loadId] = prediction;
+
+    const rec = deriveRecommendationFromPrediction(load, prediction);
+    if (rec) emitRecommendation(rec);
+  });
+}</code></pre>
+        </section>
+
+        <!-- 5. Recommendations -->
+        <section>
+            <h2 class="section-title">5. Turning predictions into actions</h2>
+            <p>
+                The agent converts risk scores into operational recommendations that dispatchers and planners can act
+                on immediately.
+            </p>
+
+            <h5>5.1 Example recommendation logic</h5>
+            <pre><code>function deriveRecommendationFromPrediction(load, prediction) {
+  const risk = prediction.lateRiskScore;
+
+  if (risk &lt; 0.3) return null;
+
+  if (risk &gt;= 0.7) {
+    return {
+      type: "ESCALATE_AT_RISK_LOAD",
+      severity: "HIGH",
+      loadId: load.loadId,
+      message: "High risk of late delivery. Consider re-powering or expediting.",
+      suggestedActions: ["REPOWER", "EXPEDITE", "NOTIFY_CUSTOMER"]
+    };
+  }
+
+  return {
+    type: "MONITOR_AT_RISK_LOAD",
+    severity: "MEDIUM",
+    loadId: load.loadId,
+    message: "Medium risk of late delivery. Increase monitoring and notify dispatcher.",
+    suggestedActions: ["INCREASE_MONITORING", "OPTIONAL_NOTIFY_CUSTOMER"]
+  };
+}</code></pre>
+        </section>
+
+        <!-- 6. Real-World Use Case -->
+        <section>
+            <h2 class="section-title">6. Real‑world supply chain scenario</h2>
+            <p>
+                A retailer’s Phoenix DC struggles with late inbound freight from Los Angeles and Las Vegas, causing
+                stockouts and overtime. The predictive agent stabilizes the network by forecasting risk and recommending
+                interventions.
+            </p>
+
+            <h5>6.1 Day‑before forecasting</h5>
+            <p>
+                The agent identifies six inbound loads with elevated late‑risk scores for the next day. It recommends:
+            </p>
+
+            <ul>
+                <li>Pre‑booking backup capacity</li>
+                <li>Pulling departure times forward</li>
+                <li>Flagging high‑risk loads for monitoring</li>
+            </ul>
+
+            <h5>6.2 Same‑day in‑transit monitoring</h5>
+            <p>
+                When a storm slows traffic on I‑10, the agent detects rising risk and recommends:
+            </p>
+
+            <ul>
+                <li>Re‑powering LOAD‑5012 using the nearest idle truck</li>
+                <li>Notifying the DC of updated ETA</li>
+                <li>Triggering the real‑time assignment agent to evaluate re‑power feasibility</li>
+            </ul>
+
+            <h5>6.3 Capacity forecasting</h5>
+            <p>
+                Weekly forecasts show a surge in LAX → PHX demand next Monday. The agent recommends:
+            </p>
+
+            <ul>
+                <li>Adding three spot loads</li>
+                <li>Negotiating temporary surge capacity</li>
+                <li>Adjusting DC labor planning</li>
+            </ul>
+        </section>
+
+        <!-- 7. Summary -->
+        <section class="mt-4">
+            <h2 class="section-title">7. Summary</h2>
+            <p>
+                The predictive logistics agent provides forward‑looking intelligence that strengthens supply chain
+                resilience. By forecasting delays, capacity shortages, and operational risks, it enables proactive
+                decision‑making and pairs seamlessly with real‑time assignment automation.
+            </p>
+            <p>
+                This page forms the third component of your AI agent ecosystem, completing the triad of maintenance,
+                real‑time logistics, and predictive intelligence.
+            </p>
+        </section>
+
+    </main>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
