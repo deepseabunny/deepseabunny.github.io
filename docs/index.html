@@ -5,22 +5,9 @@
     <meta charset="UTF-8" />
     <title>Portfolio: Deep Sea</title>
     <style>
-        /* Matrix canvas sits behind everything */
-        #matrix-canvas {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            width: 100%;
-            height: 100%;
-            display: block;
-            background: #000;
-            /* base black */
-        }
-
         body {
             margin: 0;
-            background: transparent;
-            /* let canvas show through */
+            background: #000;
             color: #00ff99;
             font-family: "Fira Code", monospace;
         }
@@ -31,10 +18,7 @@
             max-width: 960px;
             margin: 20px auto;
             border: 1px solid #00ff99;
-            background: rgba(2, 2, 2, 0.88);
-            position: relative;
-            z-index: 1;
-            /* above canvas */
+            background: #020202;
         }
 
         .title-bar {
@@ -114,9 +98,6 @@
 </head>
 
 <body>
-    <!-- Matrix background canvas -->
-    <canvas id="matrix-canvas" aria-hidden="true"></canvas>
-
     <div class="terminal">
 
         <!-- Title Bar -->
@@ -186,7 +167,7 @@
         <div class="block-title">The Standalone Lahri/Cart</div>
         <div class="block">
             Explore the following:
-            - Business, operations details
+            - Business, details on operations
 
         </div>
 
@@ -364,7 +345,7 @@
             </button>
         </div>
 
-        <div class="doc-links">
+         <div class="doc-links">
             <button class="link-btn" onclick="window.open('./aiAgent_cacheRetrievalAG_useCase', '_blank')">
                 CAG/IoT
             </button>
@@ -384,89 +365,6 @@
         </div>
 
     </div>
-
-    <script>
-        (function () {
-            const canvas = document.getElementById('matrix-canvas');
-            const ctx = canvas.getContext('2d');
-
-            // Config
-            let fontSize = 16;
-            let columns = [];
-            let symbols = "アカサタナハマヤラワイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-            symbols = symbols.split('');
-            const lineOpacity = 0.05; // trail fade strength
-            const hue = 140; // green-ish hue (can be adjusted)
-            const brightChance = 0.02; // chance a drop head is bright
-
-            function resize() {
-                const dpr = window.devicePixelRatio || 1;
-                canvas.width = Math.floor(window.innerWidth * dpr);
-                canvas.height = Math.floor(window.innerHeight * dpr);
-                canvas.style.width = window.innerWidth + 'px';
-                canvas.style.height = window.innerHeight + 'px';
-                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-                fontSize = Math.max(12, Math.min(20, Math.floor(window.innerWidth / 80)));
-                ctx.font = fontSize + 'px monospace';
-                columns = new Array(Math.floor(window.innerWidth / fontSize)).fill(0).map(() => ({
-                    y: Math.random() * -1000,
-                    speed: (1 + Math.random() * 3),
-                    pause: 0
-                }));
-            }
-
-            function draw() {
-                // translucent fill for trailing effect
-                ctx.fillStyle = `rgba(0,0,0,${lineOpacity})`;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                columns.forEach((col, i) => {
-                    if (col.pause > 0) {
-                        col.pause--;
-                        return;
-                    }
-                    const x = i * fontSize;
-                    // decide if head is bright
-                    const isBright = Math.random() < brightChance;
-                    // draw head (brighter)
-                    const char = symbols[Math.floor(Math.random() * symbols.length)];
-                    ctx.fillStyle = isBright ? `hsl(${hue} 100% 75%)` : `hsl(${hue} 100% 45%)`;
-                    ctx.fillText(char, x, col.y);
-
-                    // draw a secondary faint tail character slightly above to create depth
-                    if (!isBright) {
-                        ctx.fillStyle = `hsl(${hue} 100% 30%)`;
-                        const tailChar = symbols[Math.floor(Math.random() * symbols.length)];
-                        ctx.fillText(tailChar, x, col.y - fontSize);
-                    }
-
-                    col.y += col.speed * fontSize * 0.12;
-                    // reset occasionally
-                    if (col.y > window.innerHeight + Math.random() * 1000) {
-                        col.y = Math.random() * -1000;
-                        col.speed = (1 + Math.random() * 3);
-                        col.pause = Math.floor(Math.random() * 20);
-                    }
-                });
-
-                requestAnimationFrame(draw);
-            }
-
-            // reduce animation on hidden tab to save CPU
-            let running = true;
-            document.addEventListener('visibilitychange', () => {
-                running = !document.hidden;
-                if (running) requestAnimationFrame(draw);
-            });
-
-            window.addEventListener('resize', resize);
-            resize();
-            // clear once
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            requestAnimationFrame(draw);
-        })();
-    </script>
 </body>
 
 </html>
