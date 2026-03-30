@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Portfolio: Deep Sea</title>
+    <style>
+        /* Matrix canvas sits behind everything */
+        #matrix-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            background: #000;
+            /* base black */
+        }
+
+        body {
+            margin: 0;
+            background: transparent;
+            /* let canvas show through */
+            color: #00ff99;
+            font-family: "Fira Code", monospace;
+        }
+
+        .terminal {
+            box-sizing: border-box;
+            padding: 16px 20px;
+            max-width: 960px;
+            margin: 20px auto;
+            border: 1px solid #00ff99;
+            background: rgba(2, 2, 2, 0.88);
+            position: relative;
+            z-index: 1;
+            /* above canvas */
+        }
+
+        .title-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .title-bar .dots span {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .dot-red {
+            background: #ff5f57;
+        }
+
+        .dot-yellow {
+            background: #febc2e;
+        }
+
+        .dot-green {
+            background: #28c840;
+        }
+
+        .path {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 12px;
+        }
+
+        .doc-links {
+            display: flex;
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .link-btn {
+            background: transparent;
+            border: 1px solid #00ff99;
+            color: #00ff99;
+            padding: 6px 14px;
+            font-family: "Fira Code", monospace;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .link-btn:hover {
+            background: #00ff99;
+            color: #000;
+        }
+
+        .block-title {
+            margin: 16px 0 4px;
+            font-weight: bold;
+        }
+
+        .block {
+            border-left: 2px solid #00ff99;
+            padding-left: 10px;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 11px;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Matrix background canvas -->
+    <canvas id="matrix-canvas" aria-hidden="true"></canvas>
+
+    <div class="terminal">
+
+        <!-- Title Bar -->
+        <div class="title-bar">
+            <div class="dots">
+                <span class="dot-red"></span>
+                <span class="dot-yellow"></span>
+                <span class="dot-green"></span>
+            </div>
+            <div>Index Portfolio</div>
+            <div>v1.0</div>
+        </div>
+
+        <!-- File Path -->
+        <div class="path">/sys/docs/index.html</div>
+
+        <!-- Content Block -->
+        <div class="block-title">The West: Registration, Payments, Historical Records</div>
+        <div class="block">
+            Explore the following:
+            - Business, operations details
+            - ReadMe, details, definitions, system design
+            - Data.Spec, ui design display for data documents
+            - Registration, UI/mock API for guest onboarding
+            - Registration, using AAMVA standards for autofill
+
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="doc-links">
+            <button class="link-btn" onclick="window.open('./_ml_the_west_scope.html', '_blank')">
+                Business
+            </button>
+            <button class="link-btn" onclick="window.open('./_ml_read.html', '_blank')">
+                ReadMe
+            </button>
+            <button class="link-btn" onclick="window.open('./_data_spec.html', '_blank')">
+                Data.Spec
+            </button>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="doc-links">
+            <button class="link-btn" onclick="window.open('./ml_registration.html', '_blank')">
+                Registration.UX.01
+            </button>
+            <button class="link-btn" onclick="window.open('./_ml_mobile_register_fmt.html', '_blank')">
+                Registration.UX.02
+            </button>
+            <button class="link-btn" onclick="window.open('./_ml_mobile_first_design.html', '_blank')">
+                Registration.UX.03
+            </button>
+        </div>
+        <!-- Navigation Buttons -->
+        <div class="doc-links">
+            <button class="link-btn" onclick="window.open('./aamva_guest_reg', '_blank')">
+                Registration.AAMVA
+            </button>
+            <button class="link-btn" onclick="window.open('./guest_registry13', '_blank')">
+                Registration.UX.13
+            </button>
+
+        </div>
+        <br>
+
+        <!-- Content Block -->
+        <div class="block-title">The Standalone Lahri/Cart</div>
+        <div class="block">
+            Explore the following:
+            - Business, details on operations
+
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="doc-links">
+            <button class="link-btn" onclick="window.open('./byte-syze-lahri.html', '_blank')">
+                Business
+            </button>
+        </div>
+        <br>
+
+        <!-- Content Block -->
+        <div class="block-title">Experimental AAMVA Parsing for Guest Records</div>
+        <div class="block">
+            Explore the following:
+            - Business, expolaration into monetization
+            - Data.spec, expolaration into protoyype data
+            - AAMVA, explorer parses and gets raw input data
+            - Data.Sim, exploration on pdf417.magstrip testing
+            - Data.Cap, magstrip raw capture, metatag, notes, indexDB
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="doc-links">
+            <button class="link-btn" onclick="window.open('./aamva_id_bus.html', '_blank')">
+                Business
+            </button>
+            <button class="link-btn" onclick="window.open('./aamva_id_tech.html', '_blank')">
+                Data.Spec
+            </button>
+            <button class="link-btn" onclick="window.open('./aamva_id_trak.html', '_blank')">
+                AAMVA
+            </button>
+            <button class="link-btn" onclick="window.open('./aamva_prot.html', '_blank')">
+                Data.Sim
+            </button>
+            <button class="link-btn" onclick="window.open('./aamva_mag_cap.html', '_blank')">
+                Data.Cap
+            </button>
+
+        </div>
+        <br>
+
+        <!-- Content Block -->
+        <div class="block-title">Warehouse Picker Simulation</div>
+        <div class="block">
+            Explore the following:
+            - Warehouse.sim, simulating path for retrieving items.
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="doc-links">
+            <button class="link-btn" onclick="window.open('./wh_pic', '_blank')">
+                Warehouse.sim
+            </button>
+        </div>
+        <br>
+
+        <!-- Content Block -->
+        <div class="block-title">T1mer - Have you clocked in yet...</div>
+        <div class="block">
+            Explore the following:
+            - T1mer, a clock-in . clock-out experiment
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="doc-links">
+            <button class="link-btn" onclick="window.open('./t1mer.html', '_blank')">
+                T1mer
+            </button>
+        </div>
+        <br>
+
+        <!-- Content Block -->
+        <div class="block-title">Barcode Tool - Generator...</div>
+        <div class="block">
+            Explore the following:
+            - User Guide, Generate barcode using url
+            - PDF417, generates sample barcode of type
+            - QR ...
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="doc-links">
+            <button class="link-btn" onclick="window.open('./barcode-user.html', '_blank')">
+                User Guide
+            </button>
+            <button class="link-btn" onclick="window.open('./barcode-gen.html?val=ABC123&barcode=pdf417', '_blank')">
+                PDF417
+            </button>
+            <button class="link-btn" onclick="window.open('./barcode-gen.html?val=ABC123&barcode=qr', '_blank')">
+                QR
+            </button>
+        </div>
+        <br>
+
+        <!-- Content Block -->
+        <div class="block-title">Chron Simulator</div>
+        <div class="block">
+            Explore the following:
+            - Chron : Running tasks on time needs a good timer and in past we used CHRON...
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="doc-links">
+            <button class="link-btn" onclick="window.open('./chron-timer', '_blank')">
+                Chron
+            </button>
+        </div>
+        <br>
+        <!-- Content Block -->
+        <div class="block-title">Chat AI </div>
+        <div class="block">
+            Explore the following:
+            - Chat.sim, front end mock. for chat
+        </div>
+        <!-- Navigation Buttons -->
+        <div class="doc-links">
+            <button class="link-btn" onclick="window.open('./chat-sim.html', '_blank')">
+                Chat.sim
+            </button>
+        </div>
+        <br>
+
+        <!-- Content Block -->
+        <div class="block-title">ARINC Data Loader - Mock UI</div>
+        <div class="block">
+            Explore the following:
+            - ARINC, aircraft data loading simulation and qa steps mock functioning UI
+        </div>
+        <!-- Navigation Buttons -->
+        <div class="doc-links">
+            <button class="link-btn" onclick="window.open('./arinc_dataLoader', '_blank')">
+                ARINC
+            </button>
+        </div>
+        <br>
+
+        <!-- Content Block -->
+        <div class="block-title">Artificial Intelligence: Agents</div>
+        <div class="block">
+            Artificial Intelligence: Agents, Exploration and decision making
+            - ReadMe, Start Here for AI Agent(s) Overview
+            - Study 01, AI metaphor chemistry
+            - Remediation, resolve room maintainence
+            - Real Time Stream Processing, logistics
+            - Predictive Analysis, Risk maps in supply chain
+            - Retrival Augmented IoT, Agricultural goal
+            - Cache Retrival Augmented IoT, Agricultural goal
+            - Cross-Coordination, multi-agents to solve RTS load cap
+            - Data-Labeling Agent, RTS processor and labeling
+        </div>
+        <!-- Navigation Buttons -->
+        <div class="doc-links">
+            <button class="link-btn" onclick="window.open('./aiAgents_readMe', '_blank')">
+                ReadMe
+            </button>
+            <button class="link-btn" onclick="window.open('./ai_learning_chem', '_blank')">
+                Study 01
+            </button>
+            <button class="link-btn" onclick="window.open('./aiAgent_remediation_useCase', '_blank')">
+                Remediation
+            </button>
+        </div>
+
+        <div class="doc-links">
+            <button class="link-btn" onclick="window.open('./aiAgent_realTimeStreamProcessing_useCase', '_blank')">
+                Real Time Stream Processing
+            </button>
+            <button class="link-btn" onclick="window.open('./aiAgent_predictiveAnalysis_useCase', '_blank')">
+                Predictive Analysis
+            </button>
+            <button class="link-btn" onclick="window.open('./aiAgent_retrievalAG_useCase', '_blank')">
+                RAG/IoT
+            </button>
+        </div>
+
+        <div class="doc-links">
+            <button class="link-btn" onclick="window.open('./aiAgent_cacheRetrievalAG_useCase', '_blank')">
+                CAG/IoT
+            </button>
+            <button class="link-btn" onclick="window.open('./aiAgent_cross_coordination', '_blank')">
+                Cross-Coordination
+            </button>
+            <button class="link-btn" onclick="window.open('./aiAgent_coordination_dataLabel', '_blank')">
+                Data-Labeling Agent
+            </button>
+        </div>
+        <br>
+
+        <!-- Footer -->
+        <div class="footer">
+            > cat index.html
+            > end of file
+        </div>
+
+    </div>
+
+    <script>
+        (function () {
+            const canvas = document.getElementById('matrix-canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Config
+            let fontSize = 16;
+            let columns = [];
+            let symbols = "アカサタナハマヤラワイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            symbols = symbols.split('');
+            const lineOpacity = 0.05; // trail fade strength
+            const hue = 140; // green-ish hue (can be adjusted)
+            const brightChance = 0.02; // chance a drop head is bright
+
+            function resize() {
+                const dpr = window.devicePixelRatio || 1;
+                canvas.width = Math.floor(window.innerWidth * dpr);
+                canvas.height = Math.floor(window.innerHeight * dpr);
+                canvas.style.width = window.innerWidth + 'px';
+                canvas.style.height = window.innerHeight + 'px';
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                fontSize = Math.max(12, Math.min(20, Math.floor(window.innerWidth / 80)));
+                ctx.font = fontSize + 'px monospace';
+                columns = new Array(Math.floor(window.innerWidth / fontSize)).fill(0).map(() => ({
+                    y: Math.random() * -1000,
+                    speed: (1 + Math.random() * 3),
+                    pause: 0
+                }));
+            }
+
+            function draw() {
+                // translucent fill for trailing effect
+                ctx.fillStyle = `rgba(0,0,0,${lineOpacity})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                columns.forEach((col, i) => {
+                    if (col.pause > 0) {
+                        col.pause--;
+                        return;
+                    }
+                    const x = i * fontSize;
+                    // decide if head is bright
+                    const isBright = Math.random() < brightChance;
+                    // draw head (brighter)
+                    const char = symbols[Math.floor(Math.random() * symbols.length)];
+                    ctx.fillStyle = isBright ? `hsl(${hue} 100% 75%)` : `hsl(${hue} 100% 45%)`;
+                    ctx.fillText(char, x, col.y);
+
+                    // draw a secondary faint tail character slightly above to create depth
+                    if (!isBright) {
+                        ctx.fillStyle = `hsl(${hue} 100% 30%)`;
+                        const tailChar = symbols[Math.floor(Math.random() * symbols.length)];
+                        ctx.fillText(tailChar, x, col.y - fontSize);
+                    }
+
+                    col.y += col.speed * fontSize * 0.12;
+                    // reset occasionally
+                    if (col.y > window.innerHeight + Math.random() * 1000) {
+                        col.y = Math.random() * -1000;
+                        col.speed = (1 + Math.random() * 3);
+                        col.pause = Math.floor(Math.random() * 20);
+                    }
+                });
+
+                requestAnimationFrame(draw);
+            }
+
+            // reduce animation on hidden tab to save CPU
+            let running = true;
+            document.addEventListener('visibilitychange', () => {
+                running = !document.hidden;
+                if (running) requestAnimationFrame(draw);
+            });
+
+            window.addEventListener('resize', resize);
+            resize();
+            // clear once
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            requestAnimationFrame(draw);
+        })();
+    </script>
+</body>
+
+</html>
