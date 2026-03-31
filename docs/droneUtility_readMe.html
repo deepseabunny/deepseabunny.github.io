@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Drone Delivery Simulator — Compact README (Terminal Theme)</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+        :root {
+            --bg: #0b0f10;
+            --panel: #071012;
+            --text: #9be29b;
+            --muted: #5b7a5b;
+            --accent: #6ff06f;
+            --accent-dim: rgba(111, 240, 111, 0.12);
+            --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace;
+            --card-radius: 6px;
+        }
+
+        /* Page */
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            background: linear-gradient(180deg, var(--bg) 0%, #04100a 100%);
+            font-family: var(--mono);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .wrap {
+            max-width: 980px;
+            margin: 22px auto;
+            padding: 18px;
+        }
+
+        /* Terminal container */
+        .term {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
+            border-radius: 10px;
+            border: 1px solid rgba(155, 226, 155, 0.06);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+            padding: 14px;
+            min-height: 480px;
+        }
+
+        /* Title bar */
+        .titlebar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .dots {
+            display: flex;
+            gap: 6px
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%
+        }
+
+        .dot.red {
+            background: #ff5f56;
+            box-shadow: 0 0 10px rgba(255, 95, 86, 0.18)
+        }
+
+        .dot.yellow {
+            background: #ffbd2e;
+            box-shadow: 0 0 8px rgba(255, 189, 46, 0.12)
+        }
+
+        .dot.green {
+            background: #27c93f;
+            box-shadow: 0 0 8px rgba(39, 201, 63, 0.12)
+        }
+
+        h1 {
+            font-size: 15px;
+            margin: 0;
+            color: var(--accent);
+            letter-spacing: 0.6px
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 12px
+        }
+
+        /* Cards rendered as terminal sections (monospaced) */
+        .card {
+            background: transparent;
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin: 8px 0;
+            border-left: 3px solid rgba(155, 226, 155, 0.03)
+        }
+
+        h2 {
+            font-size: 13px;
+            margin: 6px 0;
+            color: var(--accent)
+        }
+
+        p {
+            margin: 6px 0;
+            color: var(--text);
+            font-size: 13px
+        }
+
+        ul {
+            margin: 6px 0 8px 18px;
+            color: var(--text);
+            font-size: 13px
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-top: 6px;
+            color: var(--text)
+        }
+
+        th,
+        td {
+            padding: 6px 8px;
+            border-bottom: 1px dashed rgba(155, 226, 155, 0.04);
+            text-align: left
+        }
+
+        th {
+            font-weight: 700;
+            color: var(--accent-dim)
+        }
+
+        code {
+            font-family: var(--mono);
+            background: rgba(111, 240, 111, 0.04);
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--accent)
+        }
+
+        pre {
+            font-family: var(--mono);
+            background: rgba(111, 240, 111, 0.02);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            overflow: auto;
+            border: 1px dashed rgba(155, 226, 155, 0.03)
+        }
+
+        .pill {
+            background: transparent;
+            border: 1px solid rgba(155, 226, 155, 0.06);
+            padding: 6px 10px;
+            border-radius: 999px;
+            color: var(--muted);
+            font-size: 12px
+        }
+
+        .row-compact {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center
+        }
+
+        /* Terminal aesthetics */
+        .line-num {
+            display: inline-block;
+            width: 34px;
+            color: #2f5f2f;
+            margin-right: 8px;
+            text-align: right;
+            opacity: 0.6
+        }
+
+        .kbd {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(155, 226, 155, 0.06);
+            padding: 3px 6px;
+            border-radius: 4px;
+            color: var(--accent);
+            font-size: 12px
+        }
+
+        /* Optional blinking cursor in header */
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 16px;
+            background: var(--accent);
+            margin-left: 8px;
+            border-radius: 2px;
+            vertical-align: middle;
+            animation: blink 1s steps(2, start) infinite
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0
+            }
+        }
+
+        /* Responsive */
+        @media (max-width:640px) {
+            .wrap {
+                padding: 8px
+            }
+
+            .term {
+                padding: 10px
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <div class="term" role="region" aria-label="Drone Delivery Simulator README - terminal">
+            <div class="titlebar">
+                <div class="dots" aria-hidden="true">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                </div>
+                <h1>drone-delivery-sim — compact README</h1>
+                <span class="cursor" aria-hidden="true"></span>
+            </div>
+
+            <div class="card">
+                <p class="muted">Compact summary for the current simplified terminal-style simulator (fixed fleet,
+                    simplified controls, reset clears log).</p>
+            </div>
+
+            <div class="card">
+                <h2>Summary</h2>
+                <ul>
+                    <li><strong>Fleet:</strong> fixed-size (default 10 drones).</li>
+                    <li><strong>Deliveries:</strong> initial batch default 100; queue shown shortest-first.</li>
+                    <li><strong>Charging:</strong> asynchronous background charging; paused while a charging drone
+                        delivers and resumed after if needed.</li>
+                    <li><strong>Matching:</strong> greedy, non-blocking; deliveries sorted by ascending energy cost;
+                        best idle drone chosen per delivery.</li>
+                    <li><strong>UI:</strong> terminal log, Start/Pause/Step/Reset, Clear Deliveries, Safety Reserve
+                        slider, diagnostics (Show Idle / Show Blockers).</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h2>Controls (compact)</h2>
+                <table role="table" aria-label="controls">
+                    <tr>
+                        <th>Control</th>
+                        <th>Action</th>
+                    </tr>
+                    <tr>
+                        <td class="line-num">[01]</td>
+                        <td><span class="kbd">Start</span> — Run assignment, charging, battery monitor loops</td>
+                    </tr>
+                    <tr>
+                        <td class="line-num">[02]</td>
+                        <td><span class="kbd">Pause</span> — Toggle pause/resume</td>
+                    </tr>
+                    <tr>
+                        <td class="line-num">[03]</td>
+                        <td><span class="kbd">Step</span> — Single synchronous assignment+charge step (when stopped)
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="line-num">[04]</td>
+                        <td><span class="kbd">Reset</span> — Reset to defaults (10 drones, 100 deliveries) and clear log
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="line-num">[05]</td>
+                        <td><span class="kbd">Clear Deliveries</span> — Remove all pending deliveries</td>
+                    </tr>
+                    <tr>
+                        <td class="line-num">[06]</td>
+                        <td><span class="kbd">Speed</span> — 1x / 2x / 4x</td>
+                    </tr>
+                    <tr>
+                        <td class="line-num">[07]</td>
+                        <td><span class="kbd">Safety Reserve</span> — Slider: battery margin required after assignment
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="card">
+                <h2>Data model & key params</h2>
+                <table>
+                    <tr>
+                        <th>Entity</th>
+                        <th>Fields</th>
+                    </tr>
+                    <tr>
+                        <td>Drone</td>
+                        <td><strong>id</strong>; <strong>battery</strong>% ; <strong>task</strong> (idle|delivering);
+                            <strong>charging</strong>; <strong>pausedCharging</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Delivery</td>
+                        <td><strong>id</strong>; <strong>distance</strong>; <strong>energyCost</strong> = distance ×
+                            ENERGY_PER_DISTANCE</td>
+                    </tr>
+                    <tr>
+                        <td>Globals</td>
+                        <td><code>ENERGY_PER_DISTANCE=0.8</code>; <code>SAFETY_RESERVE=20</code>% (default);
+                            <code>CHARGE_RATE=2</code>%/tick</td>
+                    </tr>
+                </table>
+                <p class="muted">Assignment deducts energy atomically when a delivery is assigned to avoid races.</p>
+            </div>
+
+            <div class="card">
+                <h2>Why drones go idle</h2>
+                <ul>
+                    <li><strong>Cost mismatch:</strong> long deliveries require more energy than available drones (given
+                        reserve).</li>
+                    <li><strong>High reserve:</strong> conservative <code>SAFETY_RESERVE</code> blocks assignments.</li>
+                    <li><strong>Greedy matching:</strong> not globally optimal; some drones may not match remaining
+                        deliveries.</li>
+                    <li><strong>Pause/resume:</strong> charging paused during delivery and resumed only when
+                        appropriate, so drones can appear idle.</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h2>Quick tuning</h2>
+                <pre><code>const ENERGY_PER_DISTANCE = 0.8;
+const SAFETY_RESERVE = 20; // lower → more throughput
+const CHARGE_RATE = 2;     // higher → faster recharge
+const DELIVERY_TIME_MS = 500;</code></pre>
+                <p class="muted">Use <strong>Show Blockers</strong> to list deliveries with no candidate drones and
+                    <strong>Show Idle</strong> to inspect idle drones.</p>
+            </div>
+
+            <div class="card row-compact" aria-hidden="true">
+                <div class="pill">terminal theme — compact README</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
