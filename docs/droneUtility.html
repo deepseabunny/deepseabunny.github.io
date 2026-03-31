@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Drone Delivery Simulator — Terminal UI (Simplified Controls)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --panel:#071018;
+      --muted:#7b8a93;
+      --accent:#39ff14;
+      --accent-dim:#2aa12a;
+      --glass: rgba(255,255,255,0.03);
+      --radius:8px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace;
+    }
+
+    html,body{height:100%; margin:0; font-family:var(--mono); background:linear-gradient(180deg,#02060a 0%, #071018 100%); color:var(--accent); -webkit-font-smoothing:antialiased;}
+    .app {
+      max-width:1200px;
+      margin:18px auto;
+      padding:18px;
+      display:grid;
+      grid-template-columns: 1fr 420px;
+      gap:18px;
+      align-items:start;
+    }
+
+    .terminal {
+      background:linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0.25));
+      border-radius:var(--radius);
+      padding:14px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+      min-height:560px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      border:1px solid rgba(255,255,255,0.03);
+    }
+
+    .term-header {
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+    .term-dots { display:flex; gap:6px; }
+    .dot { width:12px; height:12px; border-radius:50%; background:#ff5f56; box-shadow:0 0 8px rgba(255,95,86,0.12) }
+    .dot.yellow { background:#ffbd2e; }
+    .dot.green { background:#27c93f; }
+
+    .term-title { margin-left:auto; color:var(--muted); font-size:13px; }
+
+    .screen {
+      background:linear-gradient(180deg, rgba(2,10,6,0.6), rgba(2,10,6,0.35));
+      border-radius:6px;
+      padding:12px;
+      height:420px;
+      overflow:auto;
+      border:1px solid rgba(255,255,255,0.02);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+      color:var(--accent);
+      font-size:13px;
+      line-height:1.45;
+    }
+
+    .screen .line { white-space:pre-wrap; word-break:break-word; margin:0 0 6px 0; }
+    .screen .meta { color:var(--muted); font-size:12px; margin-bottom:6px; }
+
+    .sidebar {
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .panel {
+      background:var(--panel);
+      border-radius:var(--radius);
+      padding:12px;
+      border:1px solid rgba(255,255,255,0.03);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+    }
+
+    .panel h3 { margin:0 0 8px 0; color:var(--muted); font-size:13px; }
+    .list { max-height:220px; overflow:auto; font-size:13px; color:var(--accent); }
+    .drone-row, .delivery-row {
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      padding:6px 8px;
+      border-radius:6px;
+      margin-bottom:6px;
+      background:linear-gradient(90deg, rgba(255,255,255,0.01), transparent);
+      border:1px solid rgba(255,255,255,0.01);
+    }
+    .drone-id { color:#bfeebf; font-weight:700; width:70px; }
+    .drone-meta { color:var(--muted); flex:1; display:flex; gap:8px; align-items:center; }
+    .bar {
+      height:8px;
+      background:rgba(255,255,255,0.04);
+      border-radius:6px;
+      overflow:hidden;
+      width:120px;
+    }
+    .bar-fill {
+      height:100%;
+      background:linear-gradient(90deg,var(--accent-dim),var(--accent));
+      width:0%;
+    }
+
+    .controls { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+    .btn {
+      background:transparent;
+      border:1px solid rgba(255,255,255,0.06);
+      color:var(--accent);
+      padding:8px 10px;
+      border-radius:6px;
+      cursor:pointer;
+      font-family:var(--mono);
+      font-size:13px;
+    }
+    .btn.primary { background:linear-gradient(90deg,#0b6b1f,#39ff14); color:#001100; border: none; box-shadow:0 6px 18px rgba(57,255,20,0.06); }
+    .btn.warn { background:linear-gradient(90deg,#ff8a00,#ffbd2e); color:#1a0b00; border:none; }
+    .small { font-size:12px; color:var(--muted); }
+
+    .footer {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-top:8px;
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .status-pill {
+      padding:6px 8px;
+      border-radius:999px;
+      background:rgba(255,255,255,0.02);
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    /* responsive */
+    @media (max-width:980px){
+      .app { grid-template-columns: 1fr; padding:12px; }
+      .sidebar { order:2; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" role="application" aria-label="Drone Delivery Terminal UI">
+    <!-- Terminal / Log -->
+    <div class="terminal" id="terminal">
+      <div class="term-header">
+        <div class="term-dots" aria-hidden="true">
+          <div class="dot"></div><div class="dot yellow"></div><div class="dot green"></div>
+        </div>
+        <div class="term-title">drone-sim ⸱ terminal</div>
+      </div>
+
+      <div class="screen" id="screen" aria-live="polite" role="log">
+        <div class="meta">Booting async drone delivery simulator — simplified controls</div>
+      </div>
+
+      <div class="controls" aria-hidden="false">
+        <button class="btn primary" id="startBtn">Start</button>
+        <button class="btn" id="pauseBtn">Pause</button>
+        <button class="btn" id="stepBtn">Step</button>
+        <button class="btn" id="resetBtn">Reset</button>
+
+        <div style="flex:1"></div>
+
+        <div class="small">Speed:</div>
+        <select id="speed" class="btn" title="Simulation speed">
+          <option value="1">1x</option>
+          <option value="2">2x</option>
+          <option value="4">4x</option>
+        </select>
+
+        <div style="width:8px"></div>
+
+        <div class="status-pill" id="statDeliveries">Deliveries: 0</div>
+      </div>
+
+      <div class="footer">
+        <div class="small">Energy model: <strong>0.8% per distance unit</strong></div>
+        <div class="small" id="statEnergy">Best / Used: 0 / 0</div>
+      </div>
+    </div>
+
+    <!-- Sidebar: drones + deliveries (simplified controls) -->
+    <div class="sidebar">
+      <div class="panel" aria-label="Fleet">
+        <h3>Fleet</h3>
+        <div class="list" id="droneList" role="list" aria-label="Drones list"></div>
+        <div class="small" style="margin-top:8px;">Fleet size is fixed in this simplified UI to avoid confusion.</div>
+      </div>
+
+      <div class="panel" aria-label="Deliveries">
+        <h3>Deliveries</h3>
+        <div class="small" style="margin-bottom:8px;">Queue (shortest first)</div>
+        <div class="list" id="deliveryList" role="list" aria-label="Deliveries list"></div>
+
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="btn" id="clearDeliveries">Clear</button>
+        </div>
+
+        <div style="margin-top:10px;">
+          <div class="small">Safety reserve: <span id="reserveVal">20</span>%</div>
+          <input id="reserve" type="range" min="0" max="40" value="20" style="width:100%; margin-top:6px;">
+        </div>
+      </div>
+
+      <div class="panel" aria-label="Diagnostics">
+        <h3>Diagnostics</h3>
+        <div class="small" style="margin-bottom:8px;">Quick checks to understand idle drones and blockers.</div>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="btn" id="showIdle">Show Idle</button>
+          <button class="btn" id="showBlocked">Show Blockers</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  /* ============================
+     Simplified Terminal UI Async Simulator
+     - "Add 10" removed per request
+     - Reset clears the log
+     - Fleet size fixed in UI
+     ============================ */
+
+  // Config
+  const ENERGY_PER_DISTANCE = 0.8;
+  let SAFETY_RESERVE = 20;
+  const CHARGE_RATE = 2; // percent per charge tick
+  const BASE_CHARGE_TICK_MS = 300;
+  const BASE_ASSIGN_TICK_MS = 200;
+  const DELIVERY_TIME_MS = 500;
+  const BATTERY_CHARGE_THRESHOLD = 25;
+
+  // State
+  let drones = [];
+  let deliveries = [];
+  let deliveryCounter = 1;
+  let actualEnergyUsed = 0;
+  let bestCaseEnergy = 0;
+
+  // Simulation control
+  let running = false;
+  let paused = false;
+  let speedMultiplier = 1;
+
+  // DOM
+  const screen = document.getElementById('screen');
+  const droneListEl = document.getElementById('droneList');
+  const deliveryListEl = document.getElementById('deliveryList');
+  const statDeliveries = document.getElementById('statDeliveries');
+  const statEnergy = document.getElementById('statEnergy');
+  const reserveVal = document.getElementById('reserveVal');
+
+  // Utilities
+  function now() { return new Date().toLocaleTimeString(); }
+  function termLog(msg, type='info') {
+    const line = document.createElement('div');
+    line.className = 'line';
+    const prefix = type === 'warn' ? '[WARN]' : type === 'err' ? '[ERR]' : '[INFO]';
+    line.textContent = `${now()} ${prefix} ${msg}`;
+    screen.appendChild(line);
+    screen.scrollTop = screen.scrollHeight;
+  }
+
+  function clearLog() {
+    screen.innerHTML = '';
+  }
+
+  function render() {
+    // drones
+    droneListEl.innerHTML = '';
+    drones.forEach(d => {
+      const row = document.createElement('div');
+      row.className = 'drone-row';
+      const id = document.createElement('div');
+      id.className = 'drone-id';
+      id.textContent = `D${d.id}`;
+
+      const meta = document.createElement('div');
+      meta.className = 'drone-meta';
+      const batteryText = document.createElement('div');
+      batteryText.textContent = `${d.battery.toFixed(0)}%`;
+      batteryText.style.width = '48px';
+      batteryText.style.color = d.battery < 25 ? '#ff8a8a' : '#bfeebf';
+
+      const bar = document.createElement('div');
+      bar.className = 'bar';
+      const fill = document.createElement('div');
+      fill.className = 'bar-fill';
+      fill.style.width = `${Math.max(0, Math.min(100, d.battery))}%`;
+      bar.appendChild(fill);
+
+      const state = document.createElement('div');
+      state.style.minWidth = '90px';
+      state.textContent = `${d.task}${d.charging ? ' • charging' : ''}${d.pausedCharging ? ' (paused)' : ''}`;
+      state.style.color = d.task === 'delivering' ? '#9adf9a' : (d.charging ? '#9adf9a' : '#7b8a93');
+
+      meta.appendChild(batteryText);
+      meta.appendChild(bar);
+      meta.appendChild(state);
+
+      row.appendChild(id);
+      row.appendChild(meta);
+      droneListEl.appendChild(row);
+    });
+
+    // deliveries (show shortest first)
+    const sorted = deliveries.slice().sort((a,b) => (a.distance - b.distance));
+    deliveryListEl.innerHTML = '';
+    sorted.slice(0, 40).forEach(d => {
+      const row = document.createElement('div');
+      row.className = 'delivery-row';
+      const left = document.createElement('div');
+      left.textContent = `#${d.id} • ${d.distance}u`;
+      left.style.color = '#bfeebf';
+      const right = document.createElement('div');
+      right.textContent = `${(d.distance * ENERGY_PER_DISTANCE).toFixed(1)}%`;
+      right.style.color = '#7b8a93';
+      row.appendChild(left);
+      row.appendChild(right);
+      deliveryListEl.appendChild(row);
+    });
+
+    statDeliveries.textContent = `Deliveries: ${deliveries.length}`;
+    statEnergy.textContent = `Best / Used: ${bestCaseEnergy.toFixed(1)} / ${actualEnergyUsed.toFixed(1)}`;
+    reserveVal.textContent = SAFETY_RESERVE;
+  }
+
+  // Initialize default fleet and deliveries
+  function resetState() {
+    // stop simulation
+    running = false;
+    paused = false;
+
+    drones = [];
+    deliveries = [];
+    deliveryCounter = 1;
+    actualEnergyUsed = 0;
+    bestCaseEnergy = 0;
+    // create 10 drones (fixed in UI)
+    for (let i=1;i<=10;i++){
+      drones.push({
+        id: i,
+        battery: Math.floor(Math.random()*50)+50,
+        task: 'idle',
+        charging: false,
+        pausedCharging: false
+      });
+    }
+    // create 100 deliveries
+    for (let i=0;i<100;i++){
+      const distance = Math.floor(Math.random()*40)+10;
+      deliveries.push({ id: deliveryCounter++, distance });
+    }
+    bestCaseEnergy = deliveries.reduce((s,d)=>s + d.distance * ENERGY_PER_DISTANCE, 0);
+
+    // clear log on reset
+    clearLog();
+    termLog('State reset: 10 drones, 100 deliveries');
+    render();
+  }
+
+  // Async loops (respect speedMultiplier)
+  async function chargingLoop() {
+    const tick = Math.max(50, BASE_CHARGE_TICK_MS / speedMultiplier);
+    while (running && !paused) {
+      drones.forEach(d => {
+        if (d.charging && !d.pausedCharging) {
+          d.battery = Math.min(100, d.battery + CHARGE_RATE);
+          if (d.battery >= 100) {
+            d.battery = 100;
+            d.charging = false;
+            termLog(`Drone ${d.id} finished charging`);
+          }
+        }
+      });
+      render();
+      await sleep(tick);
+    }
+  }
+
+  async function assignmentLoop() {
+    const tick = Math.max(20, BASE_ASSIGN_TICK_MS / speedMultiplier);
+    while (running && !paused) {
+      if (deliveries.length > 0) {
+        const deliveriesWithCost = deliveries.map(d => ({ ...d, energyCost: d.distance * ENERGY_PER_DISTANCE }))
+                                            .sort((a,b) => a.energyCost - b.energyCost);
+
+        const assignedDroneIds = new Set();
+
+        for (const del of deliveriesWithCost) {
+          const candidates = drones
+            .filter(d => d.task === 'idle' && !assignedDroneIds.has(d.id))
+            .filter(d => d.battery > del.energyCost + SAFETY_RESERVE)
+            .sort((a,b) => b.battery - a.battery);
+
+          if (candidates.length === 0) continue;
+
+          const chosen = candidates[0];
+          assignedDroneIds.add(chosen.id);
+
+          const idx = deliveries.findIndex(x => x.id === del.id);
+          if (idx !== -1) deliveries.splice(idx,1);
+
+          if (chosen.charging) {
+            chosen.pausedCharging = true;
+            termLog(`Drone ${chosen.id} paused charging to take delivery ${del.id}`);
+          }
+
+          assignDelivery(chosen, del, del.energyCost);
+        }
+      }
+      render();
+      await sleep(tick);
+    }
+  }
+
+  async function batteryMonitor() {
+    const tick = Math.max(50, 400 / speedMultiplier);
+    while (running && !paused) {
+      drones.forEach(d => {
+        if (d.battery < BATTERY_CHARGE_THRESHOLD && !d.charging && d.task === 'idle' && !d.pausedCharging) {
+          d.charging = true;
+          termLog(`Drone ${d.id} started charging (battery ${d.battery.toFixed(0)}%)`);
+        }
+      });
+      await sleep(tick);
+    }
+  }
+
+  // Delivery execution
+  async function assignDelivery(drone, delivery, energyCost) {
+    drone.task = 'delivering';
+    drone.battery = Math.max(0, drone.battery - energyCost);
+    actualEnergyUsed += energyCost;
+    termLog(`Drone ${drone.id} started delivery ${delivery.id} (cost ${energyCost.toFixed(1)}%)`);
+    render();
+
+    await sleep(Math.max(50, DELIVERY_TIME_MS / speedMultiplier));
+
+    drone.task = 'idle';
+    termLog(`Drone ${drone.id} completed delivery ${delivery.id}`);
+
+    if (drone.pausedCharging) {
+      drone.pausedCharging = false;
+      if (drone.battery < BATTERY_CHARGE_THRESHOLD) {
+        drone.charging = true;
+        termLog(`Drone ${drone.id} resumed charging after delivery`);
+      } else {
+        termLog(`Drone ${drone.id} has ${drone.battery.toFixed(0)}% — not resuming charge`);
+      }
+    }
+    render();
+  }
+
+  // Helpers
+  function sleep(ms){ return new Promise(res => setTimeout(res, ms)); }
+
+  // Control functions
+  function startSim() {
+    if (running) return;
+    running = true;
+    paused = false;
+    termLog('Simulation started');
+    chargingLoop();
+    assignmentLoop();
+    batteryMonitor();
+  }
+
+  function pauseSim() {
+    if (!running) return;
+    paused = !paused;
+    termLog(paused ? 'Simulation paused' : 'Simulation resumed');
+    if (!paused) {
+      chargingLoop();
+      assignmentLoop();
+      batteryMonitor();
+    }
+  }
+
+  function stopSim() {
+    running = false;
+    paused = false;
+    termLog('Simulation stopped');
+  }
+
+  function stepSim() {
+    // single synchronous step for debugging
+    drones.forEach(d => {
+      if (d.charging && !d.pausedCharging) {
+        d.battery = Math.min(100, d.battery + CHARGE_RATE);
+        if (d.battery >= 100) {
+          d.battery = 100;
+          d.charging = false;
+          termLog(`Drone ${d.id} finished charging`);
+        }
+      }
+    });
+
+    if (deliveries.length > 0) {
+      const deliveriesWithCost = deliveries.map(d => ({ ...d, energyCost: d.distance * ENERGY_PER_DISTANCE }))
+                                          .sort((a,b) => a.energyCost - b.energyCost);
+      const assignedDroneIds = new Set();
+      for (const del of deliveriesWithCost) {
+        const candidates = drones
+          .filter(d => d.task === 'idle' && !assignedDroneIds.has(d.id))
+          .filter(d => d.battery > del.energyCost + SAFETY_RESERVE)
+          .sort((a,b) => b.battery - a.battery);
+        if (candidates.length === 0) continue;
+        const chosen = candidates[0];
+        assignedDroneIds.add(chosen.id);
+        const idx = deliveries.findIndex(x => x.id === del.id);
+        if (idx !== -1) deliveries.splice(idx,1);
+        if (chosen.charging) {
+          chosen.pausedCharging = true;
+          termLog(`Drone ${chosen.id} paused charging to take delivery ${del.id}`);
+        }
+        chosen.task = 'delivering';
+        chosen.battery = Math.max(0, chosen.battery - del.energyCost);
+        actualEnergyUsed += del.energyCost;
+        termLog(`(step) Drone ${chosen.id} started delivery ${del.id} (cost ${del.energyCost.toFixed(1)}%)`);
+        chosen.task = 'idle';
+        termLog(`(step) Drone ${chosen.id} completed delivery ${del.id}`);
+        if (chosen.pausedCharging) {
+          chosen.pausedCharging = false;
+          if (chosen.battery < BATTERY_CHARGE_THRESHOLD) {
+            chosen.charging = true;
+            termLog(`Drone ${chosen.id} resumed charging after delivery`);
+          } else {
+            termLog(`Drone ${chosen.id} has ${chosen.battery.toFixed(0)}% — not resuming charge`);
+          }
+        }
+      }
+    }
+    render();
+  }
+
+  // UI bindings (simplified)
+  document.getElementById('startBtn').addEventListener('click', () => { if (!running) startSim(); });
+  document.getElementById('pauseBtn').addEventListener('click', () => { if (running) pauseSim(); });
+  document.getElementById('resetBtn').addEventListener('click', () => { stopSim(); resetState(); });
+  document.getElementById('stepBtn').addEventListener('click', () => { if (!running) stepSim(); else termLog('Step only available when stopped', 'warn'); });
+
+  document.getElementById('clearDeliveries').addEventListener('click', () => {
+    deliveries = [];
+    bestCaseEnergy = 0;
+    termLog('Cleared deliveries');
+    render();
+  });
+
+  document.getElementById('reserve').addEventListener('input', (e) => {
+    SAFETY_RESERVE = Number(e.target.value);
+    reserveVal.textContent = SAFETY_RESERVE;
+  });
+
+  document.getElementById('showIdle').addEventListener('click', () => {
+    const idle = drones.filter(d => d.task === 'idle').map(d => `D${d.id} ${d.battery.toFixed(0)}%${d.charging ? ' (charging)' : ''}`).join(', ');
+    termLog(`Idle drones: ${idle || 'none'}`);
+  });
+
+  document.getElementById('showBlocked').addEventListener('click', () => {
+    const deliveriesWithCost = deliveries.map(d => ({ ...d, energyCost: d.distance * ENERGY_PER_DISTANCE }))
+                                        .sort((a,b) => a.energyCost - b.energyCost);
+    const blocked = [];
+    for (const del of deliveriesWithCost.slice(0,30)) {
+      const candidates = drones.filter(d => d.task === 'idle' && d.battery > del.energyCost + SAFETY_RESERVE);
+      if (candidates.length === 0) blocked.push(`#${del.id}:${del.distance}u(${del.energyCost.toFixed(1)}%)`);
+    }
+    termLog(`Blocked deliveries (no candidate): ${blocked.slice(0,20).join(', ') || 'none'}`);
+  });
+
+  document.getElementById('speed').addEventListener('change', (e) => {
+    speedMultiplier = Number(e.target.value);
+    termLog(`Speed set to ${speedMultiplier}x`);
+  });
+
+  // initial state
+  resetState();
+  render();
+
+  // keyboard shortcuts
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 's') { if (!running) startSim(); }
+    if (e.key === 'p') { if (running) pauseSim(); }
+    if (e.key === 'r') { stopSim(); resetState(); }
+    if (e.key === ' ') { e.preventDefault(); if (!running) stepSim(); }
+  });
+
+  // expose for debugging
+  window._sim = {
+    getState: () => ({ drones, deliveries, actualEnergyUsed, bestCaseEnergy }),
+    start: startSim,
+    stop: stopSim,
+    step: stepSim
+  };
+  </script>
+</body>
+</html>
