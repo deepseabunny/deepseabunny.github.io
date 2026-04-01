@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Live Frame Animator — README</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+        :root {
+            --bg: #071026;
+            --card: #0f1724;
+            --muted: #9ca3af;
+            --accent: #6fd3ff;
+            --accent2: #ffb347;
+            --fg: #e6eef6;
+            --glass: rgba(255, 255, 255, 0.02);
+            --max-width: 980px;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            background: linear-gradient(180deg, #05061a 0%, #071026 60%);
+            color: var(--fg);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            padding: 28px;
+        }
+
+        .wrap {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            display: grid;
+            gap: 18px
+        }
+
+        header {
+            display: flex;
+            align-items: baseline;
+            gap: 12px
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.4rem
+        }
+
+        p.lead {
+            margin: 6px 0 0 0;
+            color: var(--muted)
+        }
+
+        .card {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
+            border: 1px solid rgba(148, 163, 184, 0.06);
+            border-radius: 12px;
+            padding: 16px
+        }
+
+        h2 {
+            margin: 0 0 8px 0;
+            color: var(--accent2)
+        }
+
+        h3 {
+            margin: 12px 0 6px 0;
+            color: var(--accent)
+        }
+
+        ul {
+            margin: 8px 0 12px 18px
+        }
+
+        code,
+        pre {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 4px 6px;
+            border-radius: 6px
+        }
+
+        pre.code {
+            padding: 12px;
+            overflow: auto
+        }
+
+        .kbd {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            color: var(--muted)
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px
+        }
+
+        @media (max-width:760px) {
+            .grid {
+                grid-template-columns: 1fr
+            }
+        }
+
+        .note {
+            font-size: 0.92rem;
+            color: var(--muted);
+            background: rgba(255, 255, 255, 0.01);
+            padding: 10px;
+            border-radius: 8px
+        }
+
+        .footer {
+            font-size: 0.9rem;
+            color: var(--muted);
+            margin-top: 6px
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <header>
+            <h1>Live Frame Animator</h1>
+            <p class="lead">README — how to use, configure, and extend the single‑page animator that plays image frames
+                as a live animation.</p>
+        </header>
+
+        <section class="card" id="overview">
+            <h2>Overview</h2>
+            <p>This single‑page animator accepts image frames (PNG, JPG, GIF) via file input or drag‑and‑drop, preloads
+                them into memory, and plays them back in a canvas with live controls. It supports <strong>FPS</strong>
+                control, <strong>loop modes</strong> (loop, once, ping‑pong), <strong>reverse</strong>,
+                <strong>scrubbing</strong>, thumbnail reordering, and simple fit modes (contain, cover, stretch).</p>
+            <p class="note">All processing happens locally in the browser. No files are uploaded to any server.</p>
+        </section>
+
+        <section class="card" id="features">
+            <h2>Features</h2>
+            <ul>
+                <li><strong>Drag and drop</strong> or click to add multiple frames.</li>
+                <li><strong>Play / Pause</strong> controls and frame stepping.</li>
+                <li><strong>FPS slider</strong> for real‑time speed control.</li>
+                <li><strong>Loop modes</strong>: Loop, Once, Ping‑Pong.</li>
+                <li><strong>Fit modes</strong>: Contain, Cover, Stretch.</li>
+                <li><strong>Thumbnail strip</strong> with drag‑to‑reorder frames.</li>
+                <li><strong>Keyboard shortcuts</strong> for quick control.</li>
+                <li><strong>Local preview</strong> and exportable master frames (use browser screenshot or external
+                    recorder).</li>
+            </ul>
+        </section>
+
+        <section class="card" id="usage">
+            <h2>Usage</h2>
+
+            <h3>Open the file</h3>
+            <p>Save the animator HTML file to your machine and open it in a modern browser (Chrome, Edge, Firefox,
+                Safari). No server required.</p>
+
+            <h3>Add frames</h3>
+            <ul>
+                <li>Click the drop zone or drag image files onto it.</li>
+                <li>Supported types: <code>image/png</code>, <code>image/jpeg</code>, <code>image/gif</code>.</li>
+                <li>Frames are loaded in the order selected; use thumbnails to reorder.</li>
+            </ul>
+
+            <h3>Playback</h3>
+            <ul>
+                <li>Click <strong>Play</strong> to start. Click <strong>Pause</strong> to stop.</li>
+                <li>Use the <strong>FPS</strong> slider to change playback speed; the displayed FPS updates live.</li>
+                <li>Choose loop behavior from the Loop menu.</li>
+                <li>Use the Scrub slider to jump to any frame; scrubbing pauses playback.</li>
+            </ul>
+
+            <h3>Keyboard Shortcuts</h3>
+            <p><span class="kbd">Space</span> play/pause • <span class="kbd">←</span> step back • <span
+                    class="kbd">→</span> step forward</p>
+        </section>
+
+        <section class="card" id="controls">
+            <h2>Controls Reference</h2>
+            <div class="grid">
+                <div>
+                    <h3>Play Controls</h3>
+                    <ul>
+                        <li><strong>Play</strong> — start animation loop.</li>
+                        <li><strong>Pause</strong> — stop playback but keep current frame.</li>
+                        <li><strong>Step Back / Step Forward</strong> — move one frame at a time.</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>Playback Settings</h3>
+                    <ul>
+                        <li><strong>FPS</strong> — frames per second (1–60).</li>
+                        <li><strong>Loop Mode</strong> — Loop, Once, Ping‑Pong.</li>
+                        <li><strong>Fit Mode</strong> — Contain (letterbox), Cover (crop), Stretch (fill).</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h3>Thumbnail Actions</h3>
+            <ul>
+                <li>Click a thumbnail to jump to that frame.</li>
+                <li>Drag a thumbnail onto another to reorder frames.</li>
+                <li><strong>Clear</strong> removes all frames from the session.</li>
+                <li><strong>Shuffle</strong> randomizes frame order for quick tests.</li>
+            </ul>
+        </section>
+
+        <section class="card" id="tips">
+            <h2>Performance Tips and Best Practices</h2>
+            <ul>
+                <li><strong>Image size</strong> — keep frames reasonably sized. 1080p frames are fine for modern
+                    machines; very large images increase memory and slow down previews.</li>
+                <li><strong>Frame count</strong> — browsers can handle hundreds of small frames, but memory grows with
+                    count and resolution. For long animations, consider batching or using compressed review copies.</li>
+                <li><strong>Use devicePixelRatio</strong> — the animator scales canvas to device pixel ratio for
+                    sharpness; if performance is slow, reduce canvas resolution in the code.</li>
+                <li><strong>Preload strategy</strong> — the animator preloads images into memory. If you need streaming,
+                    adapt the loader to fetch and discard frames dynamically.</li>
+                <li><strong>Export</strong> — to create a shareable video, record the canvas with a screen recorder or
+                    use MediaRecorder in the browser (advanced integration required).</li>
+            </ul>
+        </section>
+
+        <section class="card" id="troubleshooting">
+            <h2>Troubleshooting</h2>
+            <h3>Frames not loading</h3>
+            <p>Check file types and ensure the browser has permission to read local files. If a file fails to load, it
+                will be skipped and a message appears in the load progress area.</p>
+
+            <h3>Playback stutters</h3>
+            <ul>
+                <li>Lower the FPS or reduce canvas resolution.</li>
+                <li>Close other heavy browser tabs or applications.</li>
+                <li>Use a machine with a dedicated GPU for smoother playback.</li>
+            </ul>
+
+            <h3>Drag reorder not working</h3>
+            <p>Ensure you drag the thumbnail directly onto another thumbnail and release. On some touch devices drag
+                events behave differently; use the thumbnail click to select frames instead.</p>
+        </section>
+
+        <section class="card" id="extend">
+            <h2>Extending the Animator</h2>
+            <h3>Suggested enhancements</h3>
+            <ul>
+                <li><strong>MediaRecorder export</strong> — add a button to record the canvas to WebM/MP4 using
+                    MediaRecorder.</li>
+                <li><strong>Frame caching</strong> — implement LRU caching for very large frame sets to limit memory
+                    usage.</li>
+                <li><strong>Sequence import</strong> — support importing numbered sequences and auto‑sorting by
+                    filename.</li>
+                <li><strong>Layer blending</strong> — add opacity and blend modes to composite multiple frame layers for
+                    effects.</li>
+                <li><strong>JSON manifest</strong> — accept a manifest file describing frame order, durations, and
+                    metadata for reproducible playback.</li>
+            </ul>
+
+            <h3>Developer notes</h3>
+            <p class="note">The animator is intentionally simple and self‑contained. All logic lives in the page script
+                and uses the Canvas 2D API. For production pipelines, consider moving heavy training or rendering tasks
+                to a backend service and using this tool for local review and director previews.</p>
+        </section>
+
+        <footer class="card">
+            <h2>License and Attribution</h2>
+            <p class="muted">This README and the animator are provided as a permissive example. Use, modify, and
+                integrate into your workflow. Attribution appreciated but not required.</p>
+            <div class="footer">Prepared for local use. If you want, copy this README into the animator project folder
+                as <code>README.html</code>.</div>
+        </footer>
+    </div>
+</body>
+
+</html>
