@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>The Walled Garden – Pilot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        :root {
+            --bg: #05060a;
+            --fg: #f5f5f7;
+            --accent: #ffb347;
+            --accent2: #6fd3ff;
+            --muted: #9ca3af;
+            --card: #0b0d14;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+                "Segoe UI", sans-serif;
+            background: radial-gradient(circle at top, #151827 0, #05060a 55%, #000 100%);
+            color: var(--fg);
+            line-height: 1.6;
+        }
+
+        main {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 32px 16px 64px;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4 {
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 0.25rem;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            margin-top: 2.5rem;
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            color: var(--accent2);
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.35rem;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+
+        h4 {
+            font-size: 1rem;
+            margin-top: 1rem;
+            margin-bottom: 0.25rem;
+            color: var(--fg);
+        }
+
+        p {
+            margin: 0.25rem 0 0.75rem;
+            color: var(--fg);
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .tagline {
+            font-size: 1rem;
+            color: var(--muted);
+            margin-bottom: 1.5rem;
+        }
+
+        .pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        .pill {
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 0.8rem;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            color: var(--muted);
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(10px);
+        }
+
+        .card {
+            background: radial-gradient(circle at top left, #151827 0, #05060a 55%);
+            border-radius: 16px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            padding: 16px 18px 14px;
+            margin: 1rem 0 1.5rem;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        @media (max-width: 800px) {
+            .two-col {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+
+        .label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .scene-time {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .scene-block {
+            border-left: 2px solid rgba(148, 163, 184, 0.5);
+            padding-left: 12px;
+            margin: 0.75rem 0 1.25rem;
+        }
+
+        .scene-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--accent2);
+            margin-bottom: 0.15rem;
+        }
+
+        .scene-title {
+            font-weight: 600;
+            margin-bottom: 0.15rem;
+        }
+
+        .scene-meta {
+            font-size: 0.8rem;
+            color: var(--muted);
+            margin-bottom: 0.35rem;
+        }
+
+        .scene-sub {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--muted);
+            margin-top: 0.35rem;
+            margin-bottom: 0.1rem;
+        }
+
+        .quote {
+            font-style: italic;
+            color: var(--muted);
+            border-left: 2px solid rgba(148, 163, 184, 0.5);
+            padding-left: 10px;
+            margin: 0.25rem 0 0.75rem;
+        }
+
+        .image-wrap {
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            background: radial-gradient(circle at top, #020617 0, #000 60%);
+            margin: 0.5rem 0 1rem;
+        }
+
+        .image-caption {
+            font-size: 0.8rem;
+            color: var(--muted);
+            padding: 6px 10px 8px;
+            border-top: 1px solid rgba(148, 163, 184, 0.25);
+            background: radial-gradient(circle at top, #020617 0, #020617 100%);
+        }
+
+        svg {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .section-divider {
+            height: 1px;
+            margin: 2.25rem 0 1.75rem;
+            background: linear-gradient(to right,
+                    transparent,
+                    rgba(148, 163, 184, 0.7),
+                    transparent);
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+        <header>
+            <h1>THE WALLED GARDEN</h1>
+            <div class="tagline">30‑minute pilot • mythic sci‑fi drama • projected as a Gaussian‑splat universe</div>
+            <div class="pill-row">
+                <div class="pill">Main Character: Steve</div>
+                <div class="pill">Presence: Grim</div>
+                <div class="pill">Theme: From fenced to unfenced</div>
+                <div class="pill">Visual: Point‑cloud / Gaussian splat</div>
+            </div>
+
+            <div class="card two-col">
+                <div>
+                    <div class="label">Logline</div>
+                    <p>
+                        When Steve, a quiet maintenance worker in a vast botanical conservatory, begins seeing
+                        shimmering splat‑world overlays of parallel Earths, he encounters Grim — a heat‑bearing,
+                        mountain‑standing presence that exists across realities. As the walls of Steve’s inner
+                        “walled garden” begin to dissolve, he must decide whether to step beyond the boundaries
+                        of the life he thought he knew.
+                    </p>
+                </div>
+                <div>
+                    <div class="label">Tone &amp; Format</div>
+                    <p class="muted">
+                        Intimate, mythic, and visual. The pilot plays like a single unfolding vision:
+                        Gaussian‑splat particles forming and dissolving environments, with Steve as the only
+                        grounded human anchor. Grim is a recurring silhouette — hot inside, cold outside —
+                        always framed against impossible peaks.
+                    </p>
+                </div>
+            </div>
+
+            <div class="image-wrap">
+                <!-- Hero "Gaussian splat" walled garden -->
+                <svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <radialGradient id="bgGrad" cx="50%" cy="0%" r="100%">
+                            <stop offset="0%" stop-color="#1f2937" />
+                            <stop offset="45%" stop-color="#020617" />
+                            <stop offset="100%" stop-color="#000000" />
+                        </radialGradient>
+                        <radialGradient id="gardenGlow" cx="50%" cy="60%" r="55%">
+                            <stop offset="0%" stop-color="#4ade80" stop-opacity="0.9" />
+                            <stop offset="40%" stop-color="#22c55e" stop-opacity="0.35" />
+                            <stop offset="100%" stop-color="#22c55e" stop-opacity="0" />
+                        </radialGradient>
+                        <radialGradient id="wallGlow" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="#e5e7eb" stop-opacity="0.9" />
+                            <stop offset="40%" stop-color="#9ca3af" stop-opacity="0.4" />
+                            <stop offset="100%" stop-color="#6b7280" stop-opacity="0" />
+                        </radialGradient>
+                        <radialGradient id="skyGlow" cx="50%" cy="0%" r="60%">
+                            <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.9" />
+                            <stop offset="40%" stop-color="#0ea5e9" stop-opacity="0.3" />
+                            <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0" />
+                        </radialGradient>
+                    </defs>
+
+                    <rect width="900" height="420" fill="url(#bgGrad)" />
+
+                    <!-- Sky splats -->
+                    <circle cx="150" cy="60" r="80" fill="url(#skyGlow)" opacity="0.7" />
+                    <circle cx="420" cy="40" r="110" fill="url(#skyGlow)" opacity="0.5" />
+                    <circle cx="720" cy="70" r="90" fill="url(#skyGlow)" opacity="0.6" />
+
+                    <!-- Garden core -->
+                    <circle cx="450" cy="260" r="170" fill="url(#gardenGlow)" opacity="0.9" />
+                    <circle cx="380" cy="280" r="120" fill="url(#gardenGlow)" opacity="0.6" />
+                    <circle cx="520" cy="280" r="120" fill="url(#gardenGlow)" opacity="0.6" />
+
+                    <!-- Walled perimeter as splats -->
+                    <circle cx="260" cy="210" r="40" fill="url(#wallGlow)" opacity="0.9" />
+                    <circle cx="640" cy="210" r="40" fill="url(#wallGlow)" opacity="0.9" />
+                    <circle cx="260" cy="340" r="40" fill="url(#wallGlow)" opacity="0.9" />
+                    <circle cx="640" cy="340" r="40" fill="url(#wallGlow)" opacity="0.9" />
+                    <circle cx="450" cy="180" r="35" fill="url(#wallGlow)" opacity="0.85" />
+                    <circle cx="450" cy="370" r="35" fill="url(#wallGlow)" opacity="0.85" />
+
+                    <!-- Particle noise -->
+                    <g fill="#e5e7eb" opacity="0.55">
+                        <!-- random-ish dots -->
+                        <circle cx="210" cy="190" r="2" />
+                        <circle cx="230" cy="220" r="2" />
+                        <circle cx="260" cy="250" r="2" />
+                        <circle cx="280" cy="230" r="2" />
+                        <circle cx="310" cy="210" r="2" />
+                        <circle cx="600" cy="190" r="2" />
+                        <circle cx="620" cy="220" r="2" />
+                        <circle cx="650" cy="250" r="2" />
+                        <circle cx="670" cy="230" r="2" />
+                        <circle cx="690" cy="210" r="2" />
+                        <circle cx="450" cy="150" r="2" />
+                        <circle cx="430" cy="165" r="2" />
+                        <circle cx="470" cy="165" r="2" />
+                        <circle cx="450" cy="395" r="2" />
+                        <circle cx="430" cy="380" r="2" />
+                        <circle cx="470" cy="380" r="2" />
+                    </g>
+
+                    <!-- Steve silhouette -->
+                    <g transform="translate(430, 250)">
+                        <ellipse cx="0" cy="40" rx="10" ry="26" fill="#020617" opacity="0.7" />
+                        <circle cx="0" cy="0" r="10" fill="#e5e7eb" />
+                        <rect x="-6" y="10" width="12" height="26" rx="5" fill="#e5e7eb" />
+                    </g>
+                </svg>
+                <div class="image-caption">
+                    Concept frame: Steve inside the walled garden, rendered as a Gaussian‑splat point‑cloud.
+                </div>
+            </div>
+        </header>
+
+        <div class="section-divider"></div>
+
+        <section>
+            <h2>Main characters</h2>
+
+            <div class="card two-col">
+                <div>
+                    <h3>Steve</h3>
+                    <p>
+                        34, quiet, observant, and slightly out of phase with his own life. He works maintenance
+                        at a sprawling botanical conservatory — a literal walled garden. He feels the space is
+                        beautiful but too curated, too bounded. His arc in the pilot: from enclosed to aware to
+                        destabilized to awakened.
+                    </p>
+                </div>
+                <div>
+                    <h3>Grim</h3>
+                    <p>
+                        A recurring presence that exists across parallel Earths. Not a villain, not a savior —
+                        more like a principle in human silhouette. Hot inside, cold outside. He appears as a
+                        point‑cloud figure standing on impossible peaks, always slightly distant, always watching.
+                        His function in the pilot is to mirror Steve’s unfenced potential.
+                    </p>
+                </div>
+            </div>
+
+            <div class="image-wrap">
+                <!-- Grim on Maya peaks -->
+                <svg viewBox="0 0 900 360" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <radialGradient id="peakSky" cx="50%" cy="0%" r="80%">
+                            <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.9" />
+                            <stop offset="40%" stop-color="#1d4ed8" stop-opacity="0.6" />
+                            <stop offset="100%" stop-color="#020617" stop-opacity="1" />
+                        </radialGradient>
+                        <linearGradient id="mountainGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#e5e7eb" stop-opacity="0.9" />
+                            <stop offset="40%" stop-color="#9ca3af" stop-opacity="0.8" />
+                            <stop offset="100%" stop-color="#020617" stop-opacity="1" />
+                        </linearGradient>
+                        <radialGradient id="grimCore" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="#f97316" stop-opacity="1" />
+                            <stop offset="40%" stop-color="#ea580c" stop-opacity="0.7" />
+                            <stop offset="100%" stop-color="#7c2d12" stop-opacity="0" />
+                        </radialGradient>
+                    </defs>
+
+                    <rect width="900" height="360" fill="url(#peakSky)" />
+
+                    <!-- Mountains as splats -->
+                    <g opacity="0.9">
+                        <circle cx="200" cy="260" r="160" fill="url(#mountainGrad)" />
+                        <circle cx="450" cy="240" r="190" fill="url(#mountainGrad)" />
+                        <circle cx="720" cy="260" r="160" fill="url(#mountainGrad)" />
+                    </g>
+
+                    <!-- Particle ridge -->
+                    <g fill="#e5e7eb" opacity="0.7">
+                        <circle cx="260" cy="210" r="3" />
+                        <circle cx="310" cy="205" r="3" />
+                        <circle cx="360" cy="200" r="3" />
+                        <circle cx="410" cy="198" r="3" />
+                        <circle cx="460" cy="196" r="3" />
+                        <circle cx="510" cy="198" r="3" />
+                        <circle cx="560" cy="202" r="3" />
+                        <circle cx="610" cy="208" r="3" />
+                    </g>
+
+                    <!-- Grim silhouette on ridge -->
+                    <g transform="translate(450, 180)">
+                        <!-- heat core -->
+                        <circle cx="0" cy="40" r="26" fill="url(#grimCore)" opacity="0.9" />
+                        <!-- body -->
+                        <rect x="-9" y="20" width="18" height="60" rx="9" fill="#020617" />
+                        <!-- head -->
+                        <circle cx="0" cy="0" r="12" fill="#e5e7eb" />
+                    </g>
+                </svg>
+                <div class="image-caption">
+                    Concept frame: Grim on the Maya‑like peaks — hot core, cold posture, rendered as layered splats.
+                </div>
+            </div>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <section>
+            <h2>Episode structure – 30 minutes</h2>
+
+            <h3>Act I – The Cracks (0:00–10:00)</h3>
+
+            <div class="scene-block">
+                <div class="scene-label">Scene 1</div>
+                <div class="scene-title">Opening shot – The Walled Garden</div>
+                <div class="scene-time">0:00–2:00</div>
+                <div class="scene-meta">Location: Botanical conservatory • Mood: Quiet, bounded, slightly unreal</div>
+                <div class="scene-sub">Visual</div>
+                <p>
+                    Gaussian‑splat particles coalesce into a vast indoor garden at dawn. Paths, trees, glass
+                    ceilings — all formed from drifting points that slowly settle into apparent solidity.
+                </p>
+                <div class="scene-sub">Action</div>
+                <p>
+                    Steve moves through the garden, watering plants, checking irrigation lines. He’s competent
+                    but distant, moving like someone who has walked these paths too many times. As he pauses to
+                    look up at the glass ceiling, a faint heat shimmer flickers in the corner of his vision —
+                    a tiny patch of the world briefly dissolving into raw splats.
+                </p>
+                <div class="scene-sub">Emotion</div>
+                <p>A man sensing the edges of his enclosure without yet naming them.</p>
+            </div>
+
+            <div class="scene-block">
+                <div class="scene-label">Scene 2</div>
+                <div class="scene-title">First Bleed‑Through</div>
+                <div class="scene-time">2:00–6:00</div>
+                <div class="scene-meta">Location: Far corner of the conservatory • Mood: Uncanny, hushed</div>
+                <div class="scene-sub">Visual</div>
+                <p>
+                    A section of the conservatory wall dissolves into a point‑cloud mountain ridge. Particles
+                    swirl like embers, forming a distant peak line. The rest of the garden remains intact,
+                    making the anomaly feel like a hole punched into reality.
+                </p>
+                <div class="scene-sub">Action</div>
+                <p>
+                    Steve approaches, mesmerized. On the ridge stands a silhouette — Grim. He is motionless,
+                    facing Steve, his outline made of dense, slow‑moving splats. The sense of heat is implied
+                    by a subtle orange core glow, but his posture is perfectly still, almost cold.
+                </p>
+                <p class="quote">STEVE (softly): “What are you?”</p>
+                <p>
+                    Before anything answers, the ridge collapses back into the normal wall. The garden is whole
+                    again. Steve is left alone, breathing hard, unsure if he imagined it.
+                </p>
+            </div>
+
+            <div class="scene-block">
+                <div class="scene-label">Scene 3</div>
+                <div class="scene-title">The Fracture</div>
+                <div class="scene-time">6:00–10:00</div>
+                <div class="scene-meta">Location: Throughout the conservatory • Mood: Reality loosening</div>
+                <div class="scene-sub">Action</div>
+                <p>
+                    Steve tries to resume his routine, but the world keeps glitching. Leaves briefly become
+                    clusters of particles. Pathways ripple and re‑resolve. The sprinkler mist hangs in the air
+                    as a shimmering point‑cloud before snapping back to normal water.
+                </p>
+                <div class="scene-sub">Theme</div>
+                <p>The fence is cracking; the walled garden is no longer stable.</p>
+            </div>
+
+            <h3>Act II – The Parallel Earths (10:00–20:00)</h3>
+
+            <div class="scene-block">
+                <div class="scene-label">Scene 4</div>
+                <div class="scene-title">Earth‑Prime Overlap</div>
+                <div class="scene-time">10:00–13:00</div>
+                <div class="scene-meta">Mood: Cold clarity, shadowed</div>
+                <div class="scene-sub">Visual</div>
+                <p>
+                    The conservatory dims. A colder, shadowed version of the garden overlays Steve’s world.
+                    Colors desaturate; particles move slower. Grim appears again, this time half‑hidden in
+                    shadow, standing just beyond a splat‑formed archway.
+                </p>
+                <div class="scene-sub">Action</div>
+                <p>
+                    Steve steps toward him. Each step he takes, Grim takes one back, always maintaining the
+                    same distance. No words. Just the sense that this is the “pause before transformation”
+                    version of reality.
+                </p>
+            </div>
+
+            <div class="scene-block">
+                <div class="scene-label">Scene 5</div>
+                <div class="scene-title">Earth‑Heatline</div>
+                <div class="scene-time">13:00–16:00</div>
+                <div class="scene-meta">Mood: Intense, pressurized, warm</div>
+                <div class="scene-sub">Visual</div>
+                <p>
+                    The world erupts into warm, molten splats — reds, ambers, and golds. The garden geometry
+                    melts into flowing point‑clouds. Grim stands closer now, his core glow brighter, radiating
+                    a sense of internal heat.
+                </p>
+                <div class="scene-sub">Action</div>
+                <p>
+                    Steve feels a matching warmth in his chest, like something waking up. His breathing
+                    deepens; his hands tremble slightly.
+                </p>
+                <p class="quote">GRIM (first line, low): “Not yet.”</p>
+                <p>
+                    The world collapses back to the base garden. Steve is left with the echo of the heat and
+                    the words.
+                </p>
+            </div>
+
+            <div class="scene-block">
+                <div class="scene-label">Scene 6</div>
+                <div class="scene-title">Earth‑MayaPeak</div>
+                <div class="scene-time">16:00–20:00</div>
+                <div class="scene-meta">Mood: Vast, thin air, summit‑like</div>
+                <div class="scene-sub">Visual</div>
+                <p>
+                    The conservatory dissolves completely. Steve now stands in a breathtaking point‑cloud
+                    mountain range — Maya‑like peaks rendered as layered splats. The air feels thin; the sky is
+                    a deep gradient of blues and indigos.
+                </p>
+                <div class="scene-sub">Action</div>
+                <p>
+                    Grim stands on a nearby ridge, hot core, cold posture. Steve begins to climb toward him.
+                    Each step he takes, the memory of the garden behind him fades into scattered particles.
+                </p>
+                <div class="scene-sub">Meaning</div>
+                <p>This is the summit version of reality — the yin‑yang balance of heat and stillness.</p>
+            </div>
+
+            <h3>Act III – The Unfencing (20:00–30:00)</h3>
+
+            <div class="scene-block">
+                <div class="scene-label">Scene 7</div>
+                <div class="scene-title">The Wall Revealed</div>
+                <div class="scene-time">20:00–24:00</div>
+                <div class="scene-meta">Mood: Revelation, quiet shock</div>
+                <div class="scene-sub">Visual</div>
+                <p>
+                    Steve turns back. Below the peaks, he sees the walled garden as a suspended splat‑model —
+                    a beautiful, bounded structure floating in the void. The walls are made of dense, pale
+                    particles, glowing softly.
+                </p>
+                <div class="scene-sub">Action</div>
+                <p>
+                    He descends a few steps and reaches out to touch the wall. It ripples like water, the
+                    particles briefly loosening and then re‑forming.
+                </p>
+                <p class="quote">GRIM (off‑screen): “You built it.”</p>
+                <p>
+                    Steve realizes the enclosure wasn’t only external; it was also an internal architecture he
+                    accepted and maintained.
+                </p>
+            </div>
+
+            <div class="scene-block">
+                <div class="scene-label">Scene 8</div>
+                <div class="scene-title">The Choice</div>
+                <div class="scene-time">24:00–28:00</div>
+                <div class="scene-meta">Mood: Threshold, suspended</div>
+                <div class="scene-sub">Visual</div>
+                <p>
+                    All four realities overlap in drifting geometry: the original garden, Earth‑Prime’s cold
+                    shadow, Earth‑Heatline’s molten warmth, and the MayaPeak summit. They phase in and out as
+                    translucent splat‑layers around Steve.
+                </p>
+                <div class="scene-sub">Action</div>
+                <p>
+                    Steve stands at the intersection, breathing hard, eyes moving between each version. Grim
+                    appears on the ridge above, clearly visible now.
+                </p>
+                <p class="quote">GRIM: “Step.”</p>
+                <p>Not a command — an invitation.</p>
+            </div>
+
+            <div class="scene-block">
+                <div class="scene-label">Scene 9</div>
+                <div class="scene-title">The Step</div>
+                <div class="scene-time">28:00–30:00</div>
+                <div class="scene-meta">Mood: Awakening, open‑ended</div>
+                <div class="scene-sub">Visual</div>
+                <p>
+                    Steve steps forward, out of alignment with the walled garden. The walls dissolve into
+                    drifting particles that scatter into the void. The remaining geometry resolves into a vast,
+                    open splat‑universe — peaks, valleys, and empty sky.
+                </p>
+                <div class="scene-sub">Final image</div>
+                <p>
+                    Steve stands beside Grim on the ridge. Two silhouettes against the particle sky — one
+                    ancient and balanced, one newly unfenced and still forming.
+                </p>
+                <p class="quote">Cut to black.</p>
+            </div>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <section>
+            <h2>Core message of the pilot</h2>
+            <div class="card">
+                <p>
+                    This pilot isn’t about escaping a prison; it’s about recognizing the walls you outgrew and
+                    stepping into the open terrain of your parallel selves. Steve’s journey from the walled
+                    garden to the ridge beside Grim is the movement from fenced to unfenced — from curated
+                    safety to vast, paradoxical possibility — rendered entirely as a Gaussian‑splat film in
+                    your mind’s projector.
+                </p>
+            </div>
+        </section>
+    </main>
+</body>
+
+</html>
