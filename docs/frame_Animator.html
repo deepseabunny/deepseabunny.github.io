@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Live Frame Animator</title>
+<style>
+  :root{
+    --bg:#0b1020; --panel:#0f1724; --muted:#9aa4b2; --accent:#6fd3ff; --accent2:#ffb347; --card:#0b1220;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+    background:linear-gradient(180deg,#05061a 0%, #071026 60%); color:#e6eef6;
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    padding:20px;
+  }
+  .wrap{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 360px;gap:18px}
+  @media (max-width:980px){ .wrap{grid-template-columns:1fr} }
+  header{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+  h1{font-size:1.2rem;margin:0}
+  .canvas-card{
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border:1px solid rgba(150,160,180,0.06); border-radius:12px; padding:12px;
+    display:flex; flex-direction:column; gap:10px; min-height:520px;
+  }
+  canvas{background:#000;border-radius:8px; width:100%; height:520px; display:block; object-fit:contain}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .btn{background:var(--panel);border:1px solid rgba(150,160,180,0.06);color:var(--accent);padding:8px 10px;border-radius:8px;cursor:pointer}
+  .btn.secondary{color:var(--muted);background:transparent}
+  .panel{background:var(--panel);border-radius:10px;padding:10px;border:1px solid rgba(150,160,180,0.04)}
+  .sidebar{display:flex;flex-direction:column;gap:12px}
+  .dropzone{border:2px dashed rgba(150,160,180,0.06);padding:12px;border-radius:8px;text-align:center;color:var(--muted);cursor:pointer}
+  .thumbs{display:flex;flex-wrap:wrap;gap:8px;max-height:260px;overflow:auto;padding:6px}
+  .thumb{width:72px;height:56px;border-radius:6px;overflow:hidden;border:1px solid rgba(150,160,180,0.06);cursor:pointer;position:relative}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .thumb .idx{position:absolute;left:6px;bottom:4px;background:rgba(0,0,0,0.45);padding:2px 6px;border-radius:6px;font-size:11px;color:#fff}
+  label{font-size:0.85rem;color:var(--muted);display:block;margin-bottom:6px}
+  input[type=range]{width:100%}
+  .row{display:flex;gap:8px;align-items:center}
+  .small{font-size:0.85rem;color:var(--muted)}
+  .status{font-size:0.85rem;color:var(--muted);margin-top:6px}
+  .footer{margin-top:8px;font-size:0.82rem;color:var(--muted)}
+  .kbd{background:rgba(255,255,255,0.03);padding:4px 6px;border-radius:6px;border:1px solid rgba(255,255,255,0.02);font-size:0.82rem}
+</style>
+</head>
+<body>
+  <header>
+    <h1>Live Frame Animator</h1>
+    <div class="small">Upload frames → preview animation live. Use FPS, loop, reverse, and scrub controls.</div>
+  </header>
+
+  <div class="wrap">
+    <section class="canvas-card" aria-label="Animator canvas">
+      <canvas id="stage" width="1280" height="720"></canvas>
+
+      <div class="controls">
+        <button id="playBtn" class="btn">Play</button>
+        <button id="pauseBtn" class="btn secondary">Pause</button>
+        <button id="stepBack" class="btn secondary">◀︎</button>
+        <button id="stepFwd" class="btn secondary">▶︎</button>
+
+        <div style="flex:1"></div>
+
+        <div style="width:160px">
+          <label class="small">FPS <span id="fpsVal">12</span></label>
+          <input id="fps" type="range" min="1" max="60" value="12">
+        </div>
+
+        <div style="width:120px">
+          <label class="small">Loop</label>
+          <select id="loopMode" class="panel" style="width:100%;padding:6px;border-radius:6px">
+            <option value="loop">Loop</option>
+            <option value="once">Once</option>
+            <option value="pingpong">Ping‑Pong</option>
+          </select>
+        </div>
+
+        <div style="width:120px">
+          <label class="small">Fit</label>
+          <select id="fitMode" class="panel" style="width:100%;padding:6px;border-radius:6px">
+            <option value="contain">Contain</option>
+            <option value="cover">Cover</option>
+            <option value="stretch">Stretch</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top:8px">
+        <label class="small">Scrub</label>
+        <input id="scrub" type="range" min="0" max="0" value="0">
+        <div class="status" id="status">No frames loaded</div>
+      </div>
+
+      <div class="footer">
+        <span class="kbd">Space</span> play/pause • <span class="kbd">←</span>/<span class="kbd">→</span> step • Drag frames to reorder in thumbnails
+      </div>
+    </section>
+
+    <aside class="sidebar">
+      <div class="panel">
+        <label class="small">Add frames (PNG/JPG/GIF)</label>
+        <div id="dropzone" class="dropzone">Click or drop files here</div>
+        <input id="fileInput" type="file" accept="image/*" multiple style="display:none">
+        <div class="status" id="loadProgress"></div>
+      </div>
+
+      <div class="panel">
+        <label class="small">Thumbnails (click to select frame)</label>
+        <div id="thumbs" class="thumbs" aria-live="polite"></div>
+      </div>
+
+      <div class="panel">
+        <label class="small">Playback Controls</label>
+        <div class="row" style="margin-bottom:8px">
+          <button id="reverse" class="btn secondary">Reverse</button>
+          <button id="clear" class="btn secondary">Clear</button>
+          <button id="shuffle" class="btn secondary">Shuffle</button>
+        </div>
+        <div class="small">Preview settings are local to this page. No files are uploaded anywhere.</div>
+      </div>
+    </aside>
+  </div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('stage');
+  const ctx = canvas.getContext('2d', { alpha: true });
+  const fileInput = document.getElementById('fileInput');
+  const dropzone = document.getElementById('dropzone');
+  const thumbs = document.getElementById('thumbs');
+  const playBtn = document.getElementById('playBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const fpsSlider = document.getElementById('fps');
+  const fpsVal = document.getElementById('fpsVal');
+  const scrub = document.getElementById('scrub');
+  const status = document.getElementById('status');
+  const loopMode = document.getElementById('loopMode');
+  const fitMode = document.getElementById('fitMode');
+  const stepBack = document.getElementById('stepBack');
+  const stepFwd = document.getElementById('stepFwd');
+  const reverseBtn = document.getElementById('reverse');
+  const clearBtn = document.getElementById('clear');
+  const shuffleBtn = document.getElementById('shuffle');
+  const loadProgress = document.getElementById('loadProgress');
+
+  let frames = []; // {img, name, w, h}
+  let playing = false;
+  let current = 0;
+  let fps = parseInt(fpsSlider.value,10);
+  let lastTime = 0;
+  let accum = 0;
+  let direction = 1; // 1 forward, -1 backward
+  let pingpongDir = 1;
+
+  function setStatus(txt){ status.textContent = txt; }
+
+  function fitAndDraw(img){
+    const cw = canvas.width = canvas.clientWidth * devicePixelRatio;
+    const ch = canvas.height = canvas.clientHeight * devicePixelRatio;
+    ctx.clearRect(0,0,cw,ch);
+    // compute draw rect based on fitMode
+    const mode = fitMode.value;
+    const iw = img.width, ih = img.height;
+    let dw = cw, dh = ch, dx = 0, dy = 0;
+    if(mode === 'contain'){
+      const scale = Math.min(cw/iw, ch/ih);
+      dw = iw * scale; dh = ih * scale;
+      dx = (cw - dw)/2; dy = (ch - dh)/2;
+    } else if(mode === 'cover'){
+      const scale = Math.max(cw/iw, ch/ih);
+      dw = iw * scale; dh = ih * scale;
+      dx = (cw - dw)/2; dy = (ch - dh)/2;
+    } else { // stretch
+      dw = cw; dh = ch; dx = 0; dy = 0;
+    }
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(img, 0,0, iw, ih, dx, dy, dw, dh);
+  }
+
+  function renderFrame(index){
+    if(!frames.length) return;
+    index = Math.max(0, Math.min(frames.length-1, index));
+    const f = frames[index];
+    fitAndDraw(f.img);
+    current = index;
+    scrub.max = Math.max(0, frames.length-1);
+    scrub.value = current;
+    // highlight selected thumb
+    Array.from(thumbs.children).forEach((el,i)=> el.classList.toggle('selected', i===current));
+    setStatus(`Frame ${current+1} / ${frames.length} — ${f.name}`);
+  }
+
+  function play(){
+    if(!frames.length) return;
+    playing = true;
+    lastTime = performance.now();
+    requestAnimationFrame(loop);
+  }
+
+  function pause(){
+    playing = false;
+  }
+
+  function loop(now){
+    if(!playing) return;
+    const dt = now - lastTime;
+    lastTime = now;
+    accum += dt;
+    const frameDuration = 1000 / fps;
+    if(accum >= frameDuration){
+      accum -= frameDuration;
+      advanceFrame();
+      renderFrame(current);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  function advanceFrame(){
+    const mode = loopMode.value;
+    if(mode === 'loop'){
+      current = (current + direction + frames.length) % frames.length;
+    } else if(mode === 'once'){
+      let next = current + direction;
+      if(next < 0 || next >= frames.length){ pause(); return; }
+      current = next;
+    } else if(mode === 'pingpong'){
+      let next = current + pingpongDir;
+      if(next >= frames.length){ pingpongDir = -1; next = frames.length-2; }
+      if(next < 0){ pingpongDir = 1; next = 1; }
+      current = next;
+    }
+  }
+
+  // file handling
+  function handleFiles(fileList){
+    const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+    if(!files.length) return;
+    loadProgress.textContent = `Loading ${files.length} frame(s)...`;
+    let loaded = 0;
+    files.forEach((file, idx) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        frames.push({ img, name: file.name, w: img.width, h: img.height });
+        addThumb(frames.length-1);
+        loaded++;
+        loadProgress.textContent = `Loaded ${loaded} / ${files.length}`;
+        if(loaded === files.length){
+          loadProgress.textContent = `All ${files.length} frames loaded.`;
+          renderFrame(0);
+        }
+      };
+      img.onerror = () => {
+        loaded++;
+        loadProgress.textContent = `Loaded ${loaded} / ${files.length} (some failed)`;
+      };
+      img.src = url;
+    });
+  }
+
+  // thumbnails
+  function addThumb(index){
+    const f = frames[index];
+    const el = document.createElement('div');
+    el.className = 'thumb';
+    el.draggable = true;
+    el.dataset.index = index;
+    el.innerHTML = `<img src="${f.img.src}" alt="${f.name}"><div class="idx">${index+1}</div>`;
+    el.addEventListener('click', ()=> { renderFrame(index); });
+    // drag reorder
+    el.addEventListener('dragstart', (e)=> {
+      e.dataTransfer.setData('text/plain', index);
+      el.style.opacity = '0.4';
+    });
+    el.addEventListener('dragend', ()=> el.style.opacity = '');
+    el.addEventListener('dragover', (e)=> e.preventDefault());
+    el.addEventListener('drop', (e)=> {
+      e.preventDefault();
+      const from = parseInt(e.dataTransfer.getData('text/plain'),10);
+      const to = Array.from(thumbs.children).indexOf(el);
+      reorderFrames(from, to);
+    });
+    thumbs.appendChild(el);
+  }
+
+  function rebuildThumbs(){
+    thumbs.innerHTML = '';
+    frames.forEach((f,i)=> addThumb(i));
+  }
+
+  function reorderFrames(from, to){
+    if(from === to) return;
+    const item = frames.splice(from,1)[0];
+    frames.splice(to,0,item);
+    rebuildThumbs();
+    renderFrame(Math.min(to, frames.length-1));
+  }
+
+  // UI events
+  dropzone.addEventListener('click', ()=> fileInput.click());
+  fileInput.addEventListener('change', (e)=> handleFiles(e.target.files));
+  dropzone.addEventListener('dragover', (e)=> { e.preventDefault(); dropzone.style.borderColor = 'rgba(111,211,255,0.6)'; });
+  dropzone.addEventListener('dragleave', ()=> { dropzone.style.borderColor = ''; });
+  dropzone.addEventListener('drop', (e)=> {
+    e.preventDefault(); dropzone.style.borderColor = '';
+    handleFiles(e.dataTransfer.files);
+  });
+
+  playBtn.addEventListener('click', ()=> { play(); });
+  pauseBtn.addEventListener('click', ()=> { pause(); });
+  fpsSlider.addEventListener('input', (e)=> { fps = parseInt(e.target.value,10); fpsVal.textContent = fps; });
+  scrub.addEventListener('input', (e)=> { pause(); renderFrame(parseInt(e.target.value,10)); });
+  loopMode.addEventListener('change', ()=> { /* no-op */ });
+  fitMode.addEventListener('change', ()=> { renderFrame(current); });
+
+  stepBack.addEventListener('click', ()=> { pause(); current = Math.max(0, current-1); renderFrame(current); });
+  stepFwd.addEventListener('click', ()=> { pause(); current = Math.min(frames.length-1, current+1); renderFrame(current); });
+
+  reverseBtn.addEventListener('click', ()=> { direction *= -1; reverseBtn.classList.toggle('active'); });
+  clearBtn.addEventListener('click', ()=> { frames = []; thumbs.innerHTML=''; scrub.max=0; setStatus('No frames loaded'); loadProgress.textContent=''; ctx.clearRect(0,0,canvas.width,canvas.height); });
+  shuffleBtn.addEventListener('click', ()=> {
+    // Fisher-Yates
+    for(let i=frames.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [frames[i], frames[j]] = [frames[j], frames[i]];
+    }
+    rebuildThumbs(); renderFrame(0);
+  });
+
+  // keyboard
+  window.addEventListener('keydown', (e)=> {
+    if(e.code === 'Space'){ e.preventDefault(); playing ? pause() : play(); }
+    if(e.key === 'ArrowLeft'){ pause(); current = Math.max(0, current-1); renderFrame(current); }
+    if(e.key === 'ArrowRight'){ pause(); current = Math.min(frames.length-1, current+1); renderFrame(current); }
+  });
+
+  // responsive canvas redraw on resize
+  let resizeTimer;
+  window.addEventListener('resize', ()=> {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(()=> renderFrame(current), 120);
+  });
+
+  // initial status
+  setStatus('No frames loaded. Click or drop images on the right.');
+})();
+</script>
+</body>
+</html>
