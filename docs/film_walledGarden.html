@@ -813,6 +813,127 @@
             </div>
         </section>
 
+        <!-- ========================= -->
+        <!-- CAPTURE REQUIREMENTS + FRAME ACQUISITION EXTENSION -->
+        <!-- ========================= -->
+
+        <div class="section-divider"></div>
+
+        <section>
+            <h2>Capture Requirements – Camera Count & Setup</h2>
+
+            <div class="card">
+                <h3>How Many Cameras Are Required?</h3>
+                <p>
+                    Gaussian‑splat filmmaking is flexible: you can capture with a single camera or a full
+                    multi‑camera rig depending on the fidelity you want.
+                </p>
+
+                <h4>Single‑Camera Capture (Minimum)</h4>
+                <ul>
+                    <li>1 camera</li>
+                    <li>Walk around the subject or environment</li>
+                    <li>Best for static scenes or environments</li>
+                    <li>Lower cost, slower capture, more manual cleanup</li>
+                </ul>
+
+                <h4>Dual‑Camera Capture (Recommended Minimum for Characters)</h4>
+                <ul>
+                    <li>2 cameras mounted side‑by‑side or offset</li>
+                    <li>Improves depth estimation and reduces occlusion gaps</li>
+                    <li>Ideal for capturing Steve or Grim in motion</li>
+                </ul>
+
+                <h4>Multi‑Camera Array (High‑Fidelity)</h4>
+                <ul>
+                    <li>6–12 cameras arranged in a semicircle or full ring</li>
+                    <li>Captures full volumetric detail in a single moment</li>
+                    <li>Used for premium splat or NeRF character capture</li>
+                    <li>Best for close‑ups, emotional beats, or complex motion</li>
+                </ul>
+
+                <h4>Environment Capture</h4>
+                <p>
+                    For large spaces (gardens, peaks, corridors), a <strong>single roaming camera</strong> or
+                    <strong>two alternating cameras</strong> is sufficient. The key is coverage, not quantity.
+                </p>
+            </div>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <section>
+            <h2>How to Capture a Frame of Data</h2>
+
+            <div class="card">
+                <h3>What a “Frame of Data” Means in Splat Filmmaking</h3>
+                <p>
+                    A frame isn’t just a single video frame — it’s a <strong>bundle of information</strong>:
+                    image pixels, camera pose, depth cues, and metadata. Each frame becomes a data point the
+                    splat model uses to reconstruct the 3D world.
+                </p>
+
+                <h3>Step‑by‑Step Frame Capture Process</h3>
+
+                <h4>1. Position the Camera</h4>
+                <ul>
+                    <li>Keep a consistent distance from the subject</li>
+                    <li>Move smoothly (gimbal recommended)</li>
+                    <li>Avoid sudden rotations or whip‑pans</li>
+                </ul>
+
+                <h4>2. Record High‑Resolution Video</h4>
+                <ul>
+                    <li>4K or 6K preferred</li>
+                    <li>24–30 fps is enough (higher fps not required)</li>
+                    <li>Lock exposure and white balance</li>
+                </ul>
+
+                <h4>3. Maintain Overlap</h4>
+                <p>
+                    Each frame must share visual overlap with the previous one so the AI can track features.
+                    Think of it like painting the scene with your camera.
+                </p>
+
+                <h4>4. Capture Multiple Angles</h4>
+                <ul>
+                    <li>Walk around the subject</li>
+                    <li>Capture high angles, low angles, and side passes</li>
+                    <li>For characters, capture front, sides, and back</li>
+                </ul>
+
+                <h4>5. Extract Frames</h4>
+                <p>
+                    After recording, the AI‑coordinator extracts frames at intervals (e.g., every 3rd or 5th
+                    frame) to create the training dataset.
+                </p>
+
+                <h4>6. Generate Camera Poses</h4>
+                <p>
+                    Tools like COLMAP or Nerfstudio compute the exact position and orientation of the camera
+                    for each frame — this is essential for splat training.
+                </p>
+
+                <h4>7. Feed Into Training Pipeline</h4>
+                <p>
+                    Each frame becomes a point in the optimization process:
+                </p>
+                <ul>
+                    <li>Color</li>
+                    <li>Opacity</li>
+                    <li>Depth</li>
+                    <li>Point position</li>
+                    <li>Anisotropy (shape)</li>
+                </ul>
+
+                <h3>Result</h3>
+                <p>
+                    The system reconstructs the scene as a <strong>dense cloud of Gaussian splats</strong>,
+                    ready for rendering, animation, and cinematic camera paths.
+                </p>
+            </div>
+        </section>
+
     </main>
 </body>
 
