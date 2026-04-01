@@ -2,939 +2,733 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <title>The Walled Garden – Pilot</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <title>The Walled Garden — Pilot and Production Bible</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <style>
         :root {
             --bg: #05060a;
+            --card: #0b0d14;
             --fg: #f5f5f7;
+            --muted: #9ca3af;
             --accent: #ffb347;
             --accent2: #6fd3ff;
-            --muted: #9ca3af;
-            --card: #0b0d14;
+            --glass: rgba(255, 255, 255, 0.03);
         }
 
         * {
-            box-sizing: border-box;
+            box-sizing: border-box
+        }
+
+        html,
+        body {
+            height: 100%
         }
 
         body {
             margin: 0;
-            padding: 0;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
-                "Segoe UI", sans-serif;
-            background: radial-gradient(circle at top, #151827 0, #05060a 55%, #000 100%);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            background: linear-gradient(180deg, #071021 0%, #02040a 60%);
             color: var(--fg);
-            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .wrap {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 24px;
+            max-width: 1200px;
+            margin: 28px auto;
+            padding: 20px;
+        }
+
+        @media (max-width:980px) {
+            .wrap {
+                grid-template-columns: 1fr;
+                padding: 16px
+            }
+
+            nav {
+                order: 2
+            }
+
+            main {
+                order: 1
+            }
+        }
+
+        nav {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
+            border: 1px solid rgba(148, 163, 184, 0.06);
+            border-radius: 12px;
+            padding: 18px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        nav h3 {
+            margin: 0 0 12px 0;
+            color: var(--accent2);
+            font-size: 0.95rem;
+            letter-spacing: 0.06em
+        }
+
+        .nav-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px
+        }
+
+        .nav-list a {
+            display: block;
+            color: var(--muted);
+            text-decoration: none;
+            padding: 8px 10px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+
+        .nav-list a:hover {
+            background: rgba(255, 255, 255, 0.02);
+            color: var(--fg)
         }
 
         main {
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 32px 16px 64px;
+            padding: 0 6px;
         }
 
-        h1,
-        h2,
-        h3,
-        h4 {
-            font-weight: 600;
-            letter-spacing: 0.03em;
+        header.hero {
+            display: flex;
+            gap: 18px;
+            align-items: flex-start;
+            margin-bottom: 18px;
+        }
+
+        .hero-left {
+            flex: 1
+        }
+
+        .hero-right {
+            width: 320px;
+            min-width: 220px
         }
 
         h1 {
-            font-size: 2.2rem;
-            margin-bottom: 0.25rem;
+            margin: 0;
+            font-size: 1.9rem;
+            letter-spacing: 0.01em
         }
 
-        h2 {
-            font-size: 1.4rem;
-            margin-top: 2.5rem;
-            margin-bottom: 0.75rem;
-            text-transform: uppercase;
-            color: var(--accent2);
-        }
-
-        h3 {
-            font-size: 1.1rem;
-            margin-top: 1.5rem;
-            margin-bottom: 0.35rem;
-            text-transform: uppercase;
-            color: var(--accent);
-        }
-
-        h4 {
-            font-size: 1rem;
-            margin-top: 1rem;
-            margin-bottom: 0.25rem;
-            color: var(--fg);
-        }
-
-        p {
-            margin: 0.25rem 0 0.75rem;
-            color: var(--fg);
-        }
-
-        .muted {
+        .tag {
             color: var(--muted);
-            font-size: 0.9rem;
-        }
-
-        .tagline {
-            font-size: 1rem;
-            color: var(--muted);
-            margin-bottom: 1.5rem;
+            margin-top: 6px
         }
 
         .pill-row {
             display: flex;
-            flex-wrap: wrap;
             gap: 8px;
-            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            margin-top: 12px
         }
 
         .pill {
+            background: var(--glass);
+            padding: 6px 10px;
             border-radius: 999px;
-            padding: 4px 10px;
-            font-size: 0.8rem;
-            border: 1px solid rgba(148, 163, 184, 0.4);
             color: var(--muted);
-            background: rgba(15, 23, 42, 0.7);
-            backdrop-filter: blur(10px);
+            font-size: 0.85rem;
+            border: 1px solid rgba(148, 163, 184, 0.04)
         }
 
         .card {
-            background: radial-gradient(circle at top left, #151827 0, #05060a 55%);
-            border-radius: 16px;
-            border: 1px solid rgba(148, 163, 184, 0.35);
-            padding: 16px 18px 14px;
-            margin: 1rem 0 1.5rem;
-            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
+            border: 1px solid rgba(148, 163, 184, 0.06);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 18px 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
         }
 
-        .two-col {
-            display: grid;
-            grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-            gap: 20px;
-            align-items: flex-start;
+        h2 {
+            color: var(--accent2);
+            margin: 0 0 10px 0;
+            font-size: 1.15rem
         }
 
-        @media (max-width: 800px) {
-            .two-col {
-                grid-template-columns: minmax(0, 1fr);
-            }
+        h3 {
+            color: var(--accent);
+            margin: 0 0 8px 0;
+            font-size: 1rem
         }
 
-        .label {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: var(--muted);
-            margin-bottom: 0.25rem;
+        p {
+            margin: 0 0 10px 0;
+            color: var(--fg)
         }
 
-        .scene-time {
-            font-size: 0.85rem;
-            color: var(--muted);
-            margin-bottom: 0.25rem;
+        .muted {
+            color: var(--muted)
         }
 
         .scene-block {
-            border-left: 2px solid rgba(148, 163, 184, 0.5);
+            border-left: 2px solid rgba(148, 163, 184, 0.06);
             padding-left: 12px;
-            margin: 0.75rem 0 1.25rem;
+            margin: 12px 0
         }
 
         .scene-label {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
+            color: var(--muted);
             text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: var(--accent2);
-            margin-bottom: 0.15rem;
+            letter-spacing: 0.08em
         }
 
         .scene-title {
             font-weight: 600;
-            margin-bottom: 0.15rem;
+            margin: 6px 0
         }
 
         .scene-meta {
-            font-size: 0.8rem;
+            font-size: 0.9rem;
             color: var(--muted);
-            margin-bottom: 0.35rem;
-        }
-
-        .scene-sub {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--muted);
-            margin-top: 0.35rem;
-            margin-bottom: 0.1rem;
-        }
-
-        .quote {
-            font-style: italic;
-            color: var(--muted);
-            border-left: 2px solid rgba(148, 163, 184, 0.5);
-            padding-left: 10px;
-            margin: 0.25rem 0 0.75rem;
+            margin-bottom: 8px
         }
 
         .image-wrap {
-            border-radius: 18px;
+            border-radius: 12px;
             overflow: hidden;
-            border: 1px solid rgba(148, 163, 184, 0.4);
-            background: radial-gradient(circle at top, #020617 0, #000 60%);
-            margin: 0.5rem 0 1rem;
+            border: 1px solid rgba(148, 163, 184, 0.04);
+            margin: 12px 0
         }
 
         .image-caption {
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             color: var(--muted);
-            padding: 6px 10px 8px;
-            border-top: 1px solid rgba(148, 163, 184, 0.25);
-            background: radial-gradient(circle at top, #020617 0, #020617 100%);
+            padding: 8px 10px;
+            background: rgba(0, 0, 0, 0.02)
         }
 
-        svg {
-            display: block;
+        table {
             width: 100%;
-            height: auto;
+            border-collapse: collapse;
+            margin-top: 8px
         }
 
-        .section-divider {
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.04);
+            font-size: 0.95rem
+        }
+
+        ul {
+            margin: 8px 0 12px 18px
+        }
+
+        .divider {
             height: 1px;
-            margin: 2.25rem 0 1.75rem;
-            background: linear-gradient(to right,
-                    transparent,
-                    rgba(148, 163, 184, 0.7),
-                    transparent);
+            background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.06), transparent);
+            margin: 18px 0
+        }
+
+        footer {
+            color: var(--muted);
+            font-size: 0.9rem;
+            margin-top: 18px
+        }
+
+        .small {
+            font-size: 0.9rem;
+            color: var(--muted)
+        }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px
+        }
+
+        @media (max-width:980px) {
+            .two-col {
+                grid-template-columns: 1fr
+            }
+        }
+
+        .cta {
+            display: inline-block;
+            background: var(--accent);
+            color: #071021;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none
+        }
+
+        .budget-table td:first-child {
+            width: 220px
         }
     </style>
 </head>
 
 <body>
-    <main>
-        <header>
-            <h1>THE WALLED GARDEN</h1>
-            <div class="tagline">30‑minute pilot • mythic sci‑fi drama • projected as a Gaussian‑splat universe</div>
-            <div class="pill-row">
-                <div class="pill">Main Character: Steve</div>
-                <div class="pill">Presence: Grim</div>
-                <div class="pill">Theme: From fenced to unfenced</div>
-                <div class="pill">Visual: Point‑cloud / Gaussian splat</div>
-            </div>
+    <div class="wrap">
+        <nav aria-label="Navigation">
+            <h3>Project Navigation</h3>
+            <ul class="nav-list">
+                <li><a href="#executive-summary">Executive Summary</a></li>
+                <li><a href="#pilot">Pilot Episode</a></li>
+                <li><a href="#visual-language">Visual Language</a></li>
+                <li><a href="#characters">Characters</a></li>
+                <li><a href="#scene-structure">Scene Structure</a></li>
+                <li><a href="#audience">Target Audience</a></li>
+                <li><a href="#budget">Budget Overview</a></li>
+                <li><a href="#equipment">Capture Equipment</a></li>
+                <li><a href="#ai-pipeline">AI Coordinator Pipeline</a></li>
+                <li><a href="#capture-reqs">Capture Requirements</a></li>
+                <li><a href="#timeline">Production Timeline</a></li>
+                <li><a href="#team">Key Roles</a></li>
+                <li><a href="#distribution">Distribution Strategy</a></li>
+                <li><a href="#summary">Project Summary</a></li>
+            </ul>
+        </nav>
 
-            <div class="card two-col">
-                <div>
-                    <div class="label">Logline</div>
-                    <p>
-                        When Steve, a quiet maintenance worker in a vast botanical conservatory, begins seeing
-                        shimmering splat‑world overlays of parallel Earths, he encounters Grim — a heat‑bearing,
-                        mountain‑standing presence that exists across realities. As the walls of Steve’s inner
-                        “walled garden” begin to dissolve, he must decide whether to step beyond the boundaries
-                        of the life he thought he knew.
-                    </p>
+        <main>
+            <header class="hero">
+                <div class="hero-left">
+                    <h1>THE WALLED GARDEN</h1>
+                    <div class="tag">30 minute pilot • mythic sci‑fi drama • Gaussian splat volumetric visuals</div>
+                    <div class="pill-row">
+                        <div class="pill">Main Character Steve</div>
+                        <div class="pill">Presence Grim</div>
+                        <div class="pill">Theme fenced to unfenced</div>
+                        <div class="pill">Format pilot 30 min</div>
+                    </div>
                 </div>
-                <div>
-                    <div class="label">Tone &amp; Format</div>
-                    <p class="muted">
-                        Intimate, mythic, and visual. The pilot plays like a single unfolding vision:
-                        Gaussian‑splat particles forming and dissolving environments, with Steve as the only
-                        grounded human anchor. Grim is a recurring silhouette — hot inside, cold outside —
-                        always framed against impossible peaks.
-                    </p>
+                <div class="hero-right">
+                    <div class="card small">
+                        <strong>Logline</strong>
+                        <p class="muted">When Steve, a maintenance worker in a vast botanical conservatory, begins
+                            seeing shimmering parallel earth overlays, he encounters Grim — a heat‑bearing presence that
+                            exists across realities. As the walls of Steve’s inner garden dissolve, he must decide
+                            whether to step beyond the life he knows.</p>
+                        <div style="margin-top:10px"><a class="cta" href="#pilot">View Pilot</a></div>
+                    </div>
                 </div>
-            </div>
+            </header>
 
-            <div class="image-wrap">
-                <!-- Hero "Gaussian splat" walled garden -->
-                <svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <radialGradient id="bgGrad" cx="50%" cy="0%" r="100%">
-                            <stop offset="0%" stop-color="#1f2937" />
-                            <stop offset="45%" stop-color="#020617" />
-                            <stop offset="100%" stop-color="#000000" />
-                        </radialGradient>
-                        <radialGradient id="gardenGlow" cx="50%" cy="60%" r="55%">
-                            <stop offset="0%" stop-color="#4ade80" stop-opacity="0.9" />
-                            <stop offset="40%" stop-color="#22c55e" stop-opacity="0.35" />
-                            <stop offset="100%" stop-color="#22c55e" stop-opacity="0" />
-                        </radialGradient>
-                        <radialGradient id="wallGlow" cx="50%" cy="50%" r="50%">
-                            <stop offset="0%" stop-color="#e5e7eb" stop-opacity="0.9" />
-                            <stop offset="40%" stop-color="#9ca3af" stop-opacity="0.4" />
-                            <stop offset="100%" stop-color="#6b7280" stop-opacity="0" />
-                        </radialGradient>
-                        <radialGradient id="skyGlow" cx="50%" cy="0%" r="60%">
-                            <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.9" />
-                            <stop offset="40%" stop-color="#0ea5e9" stop-opacity="0.3" />
-                            <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0" />
-                        </radialGradient>
-                    </defs>
+            <section id="executive-summary" class="card">
+                <h2>Executive Summary</h2>
+                <p><strong>The Walled Garden</strong> is a 30‑minute pilot that combines intimate character drama with a
+                    new visual language: Gaussian splat volumetric imagery. The pilot functions as both a proof of
+                    concept for a serialized mythic sci‑fi and a festival‑ready short. This document unifies the
+                    creative vision, production plan, technical pipeline, budget tiers, and distribution strategy into a
+                    single production bible for internal review and pitching.</p>
+            </section>
 
-                    <rect width="900" height="420" fill="url(#bgGrad)" />
+            <div class="divider"></div>
 
-                    <!-- Sky splats -->
-                    <circle cx="150" cy="60" r="80" fill="url(#skyGlow)" opacity="0.7" />
-                    <circle cx="420" cy="40" r="110" fill="url(#skyGlow)" opacity="0.5" />
-                    <circle cx="720" cy="70" r="90" fill="url(#skyGlow)" opacity="0.6" />
+            <section id="pilot">
+                <h2>Pilot Episode</h2>
 
-                    <!-- Garden core -->
-                    <circle cx="450" cy="260" r="170" fill="url(#gardenGlow)" opacity="0.9" />
-                    <circle cx="380" cy="280" r="120" fill="url(#gardenGlow)" opacity="0.6" />
-                    <circle cx="520" cy="280" r="120" fill="url(#gardenGlow)" opacity="0.6" />
+                <div class="card">
+                    <h3>Tone and Visual Approach</h3>
+                    <p class="muted">Intimate, mythic, and experimental. The pilot is designed to be experienced as a
+                        projected Gaussian splat film: point clouds, volumetric silhouettes, and dissolving geometry
+                        that emphasize mood and internal states over literal realism.</p>
 
-                    <!-- Walled perimeter as splats -->
-                    <circle cx="260" cy="210" r="40" fill="url(#wallGlow)" opacity="0.9" />
-                    <circle cx="640" cy="210" r="40" fill="url(#wallGlow)" opacity="0.9" />
-                    <circle cx="260" cy="340" r="40" fill="url(#wallGlow)" opacity="0.9" />
-                    <circle cx="640" cy="340" r="40" fill="url(#wallGlow)" opacity="0.9" />
-                    <circle cx="450" cy="180" r="35" fill="url(#wallGlow)" opacity="0.85" />
-                    <circle cx="450" cy="370" r="35" fill="url(#wallGlow)" opacity="0.85" />
+                    <h3>Main Character</h3>
+                    <p><strong>Steve</strong> — 34, maintenance worker at a botanical conservatory. Quiet, observant,
+                        carrying a sense of misfit longing. His arc in the pilot: enclosed → aware → destabilized →
+                        awakened.</p>
 
-                    <!-- Particle noise -->
-                    <g fill="#e5e7eb" opacity="0.55">
-                        <!-- random-ish dots -->
-                        <circle cx="210" cy="190" r="2" />
-                        <circle cx="230" cy="220" r="2" />
-                        <circle cx="260" cy="250" r="2" />
-                        <circle cx="280" cy="230" r="2" />
-                        <circle cx="310" cy="210" r="2" />
-                        <circle cx="600" cy="190" r="2" />
-                        <circle cx="620" cy="220" r="2" />
-                        <circle cx="650" cy="250" r="2" />
-                        <circle cx="670" cy="230" r="2" />
-                        <circle cx="690" cy="210" r="2" />
-                        <circle cx="450" cy="150" r="2" />
-                        <circle cx="430" cy="165" r="2" />
-                        <circle cx="470" cy="165" r="2" />
-                        <circle cx="450" cy="395" r="2" />
-                        <circle cx="430" cy="380" r="2" />
-                        <circle cx="470" cy="380" r="2" />
-                    </g>
-
-                    <!-- Steve silhouette -->
-                    <g transform="translate(430, 250)">
-                        <ellipse cx="0" cy="40" rx="10" ry="26" fill="#020617" opacity="0.7" />
-                        <circle cx="0" cy="0" r="10" fill="#e5e7eb" />
-                        <rect x="-6" y="10" width="12" height="26" rx="5" fill="#e5e7eb" />
-                    </g>
-                </svg>
-                <div class="image-caption">
-                    Concept frame: Steve inside the walled garden, rendered as a Gaussian‑splat point‑cloud.
+                    <h3>Presence</h3>
+                    <p><strong>Grim</strong> — a recurring silhouette that exists across parallel earths. Hot inside,
+                        cold outside. A witness and mirror rather than a guide. Appears as layered splats on ridges and
+                        peaks.</p>
                 </div>
-            </div>
-        </header>
 
-        <div class="section-divider"></div>
-
-        <section>
-            <h2>Main characters</h2>
-
-            <div class="card two-col">
-                <div>
-                    <h3>Steve</h3>
-                    <p>
-                        34, quiet, observant, and slightly out of phase with his own life. He works maintenance
-                        at a sprawling botanical conservatory — a literal walled garden. He feels the space is
-                        beautiful but too curated, too bounded. His arc in the pilot: from enclosed to aware to
-                        destabilized to awakened.
-                    </p>
+                <div class="image-wrap">
+                    <!-- Embedded concept SVG: Walled Garden -->
+                    <svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <defs>
+                            <radialGradient id="bgGrad" cx="50%" cy="0%" r="100%">
+                                <stop offset="0%" stop-color="#1f2937" />
+                                <stop offset="45%" stop-color="#020617" />
+                                <stop offset="100%" stop-color="#000000" />
+                            </radialGradient>
+                            <radialGradient id="gardenGlow" cx="50%" cy="60%" r="55%">
+                                <stop offset="0%" stop-color="#4ade80" stop-opacity="0.9" />
+                                <stop offset="40%" stop-color="#22c55e" stop-opacity="0.35" />
+                                <stop offset="100%" stop-color="#22c55e" stop-opacity="0" />
+                            </radialGradient>
+                            <radialGradient id="wallGlow" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#e5e7eb" stop-opacity="0.9" />
+                                <stop offset="40%" stop-color="#9ca3af" stop-opacity="0.4" />
+                                <stop offset="100%" stop-color="#6b7280" stop-opacity="0" />
+                            </radialGradient>
+                        </defs>
+                        <rect width="900" height="420" fill="url(#bgGrad)" />
+                        <circle cx="450" cy="260" r="170" fill="url(#gardenGlow)" opacity="0.9" />
+                        <circle cx="380" cy="280" r="120" fill="url(#gardenGlow)" opacity="0.6" />
+                        <circle cx="520" cy="280" r="120" fill="url(#gardenGlow)" opacity="0.6" />
+                        <g fill="#e5e7eb" opacity="0.55">
+                            <circle cx="210" cy="190" r="2" />
+                            <circle cx="230" cy="220" r="2" />
+                            <circle cx="260" cy="250" r="2" />
+                            <circle cx="600" cy="190" r="2" />
+                            <circle cx="620" cy="220" r="2" />
+                            <circle cx="650" cy="250" r="2" />
+                        </g>
+                        <g transform="translate(430,250)">
+                            <ellipse cx="0" cy="40" rx="10" ry="26" fill="#020617" opacity="0.7" />
+                            <circle cx="0" cy="0" r="10" fill="#e5e7eb" />
+                            <rect x="-6" y="10" width="12" height="26" rx="5" fill="#e5e7eb" />
+                        </g>
+                    </svg>
+                    <div class="image-caption">Concept frame: Steve inside the walled garden rendered as Gaussian splats
+                    </div>
                 </div>
-                <div>
-                    <h3>Grim</h3>
-                    <p>
-                        A recurring presence that exists across parallel Earths. Not a villain, not a savior —
-                        more like a principle in human silhouette. Hot inside, cold outside. He appears as a
-                        point‑cloud figure standing on impossible peaks, always slightly distant, always watching.
-                        His function in the pilot is to mirror Steve’s unfenced potential.
-                    </p>
+
+                <div class="card">
+                    <h3>Episode Structure</h3>
+
+                    <div class="scene-block">
+                        <div class="scene-label">Act I The Cracks</div>
+                        <div class="scene-title">Opening shot The Walled Garden</div>
+                        <div class="scene-meta">0:00–2:00 • Mood quiet, bounded</div>
+                        <p>Steve waters plants in a conservatory rendered as point clouds. A faint heat shimmer flickers
+                            at the edge of his vision.</p>
+                    </div>
+
+                    <div class="scene-block">
+                        <div class="scene-label">Act I The Cracks</div>
+                        <div class="scene-title">First Bleed Through</div>
+                        <div class="scene-meta">2:00–6:00 • Mood uncanny</div>
+                        <p>A section of wall dissolves into a point cloud ridge. Grim appears as a silhouette on the
+                            ridge. The ridge collapses back; Steve is left unsure.</p>
+                    </div>
+
+                    <div class="scene-block">
+                        <div class="scene-label">Act I The Cracks</div>
+                        <div class="scene-title">The Fracture</div>
+                        <div class="scene-meta">6:00–10:00 • Mood loosening</div>
+                        <p>Reality glitches: leaves become particles, paths ripple. The garden is no longer stable.</p>
+                    </div>
+
+                    <div class="scene-block">
+                        <div class="scene-label">Act II The Parallel Earths</div>
+                        <div class="scene-title">Earth Prime Overlap</div>
+                        <div class="scene-meta">10:00–13:00 • Mood cold clarity</div>
+                        <p>A shadowed overlay appears. Grim remains distant. Steve approaches; Grim steps back.</p>
+                    </div>
+
+                    <div class="scene-block">
+                        <div class="scene-label">Act II The Parallel Earths</div>
+                        <div class="scene-title">Earth Heatline</div>
+                        <div class="scene-meta">13:00–16:00 • Mood pressurized</div>
+                        <p>Warm molten splats. Grim’s core glows. He speaks one line: “Not yet.”</p>
+                    </div>
+
+                    <div class="scene-block">
+                        <div class="scene-label">Act II The Parallel Earths</div>
+                        <div class="scene-title">Earth MayaPeak</div>
+                        <div class="scene-meta">16:00–20:00 • Mood summit</div>
+                        <p>The conservatory dissolves into Maya‑like peaks. Steve climbs toward Grim; the garden fades
+                            behind him.</p>
+                    </div>
+
+                    <div class="scene-block">
+                        <div class="scene-label">Act III The Unfencing</div>
+                        <div class="scene-title">The Wall Revealed</div>
+                        <div class="scene-meta">20:00–24:00 • Mood revelation</div>
+                        <p>Steve sees the garden as a suspended splat model. Grim: “You built it.” Steve realizes the
+                            enclosure was internal as well as external.</p>
+                    </div>
+
+                    <div class="scene-block">
+                        <div class="scene-label">Act III The Unfencing</div>
+                        <div class="scene-title">The Choice</div>
+                        <div class="scene-meta">24:00–28:00 • Mood threshold</div>
+                        <p>All four realities overlap. Grim appears on the ridge and says: “Step.”</p>
+                    </div>
+
+                    <div class="scene-block">
+                        <div class="scene-label">Act III The Unfencing</div>
+                        <div class="scene-title">The Step</div>
+                        <div class="scene-meta">28:00–30:00 • Mood awakening</div>
+                        <p>Steve steps out. The walls dissolve into particles. Final image: Steve beside Grim on the
+                            ridge. Cut to black.</p>
+                    </div>
                 </div>
-            </div>
+            </section>
 
-            <div class="image-wrap">
-                <!-- Grim on Maya peaks -->
-                <svg viewBox="0 0 900 360" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <radialGradient id="peakSky" cx="50%" cy="0%" r="80%">
-                            <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.9" />
-                            <stop offset="40%" stop-color="#1d4ed8" stop-opacity="0.6" />
-                            <stop offset="100%" stop-color="#020617" stop-opacity="1" />
-                        </radialGradient>
-                        <linearGradient id="mountainGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" stop-color="#e5e7eb" stop-opacity="0.9" />
-                            <stop offset="40%" stop-color="#9ca3af" stop-opacity="0.8" />
-                            <stop offset="100%" stop-color="#020617" stop-opacity="1" />
-                        </linearGradient>
-                        <radialGradient id="grimCore" cx="50%" cy="50%" r="50%">
-                            <stop offset="0%" stop-color="#f97316" stop-opacity="1" />
-                            <stop offset="40%" stop-color="#ea580c" stop-opacity="0.7" />
-                            <stop offset="100%" stop-color="#7c2d12" stop-opacity="0" />
-                        </radialGradient>
-                    </defs>
+            <div class="divider"></div>
 
-                    <rect width="900" height="360" fill="url(#peakSky)" />
-
-                    <!-- Mountains as splats -->
-                    <g opacity="0.9">
-                        <circle cx="200" cy="260" r="160" fill="url(#mountainGrad)" />
-                        <circle cx="450" cy="240" r="190" fill="url(#mountainGrad)" />
-                        <circle cx="720" cy="260" r="160" fill="url(#mountainGrad)" />
-                    </g>
-
-                    <!-- Particle ridge -->
-                    <g fill="#e5e7eb" opacity="0.7">
-                        <circle cx="260" cy="210" r="3" />
-                        <circle cx="310" cy="205" r="3" />
-                        <circle cx="360" cy="200" r="3" />
-                        <circle cx="410" cy="198" r="3" />
-                        <circle cx="460" cy="196" r="3" />
-                        <circle cx="510" cy="198" r="3" />
-                        <circle cx="560" cy="202" r="3" />
-                        <circle cx="610" cy="208" r="3" />
-                    </g>
-
-                    <!-- Grim silhouette on ridge -->
-                    <g transform="translate(450, 180)">
-                        <!-- heat core -->
-                        <circle cx="0" cy="40" r="26" fill="url(#grimCore)" opacity="0.9" />
-                        <!-- body -->
-                        <rect x="-9" y="20" width="18" height="60" rx="9" fill="#020617" />
-                        <!-- head -->
-                        <circle cx="0" cy="0" r="12" fill="#e5e7eb" />
-                    </g>
-                </svg>
-                <div class="image-caption">
-                    Concept frame: Grim on the Maya‑like peaks — hot core, cold posture, rendered as layered splats.
-                </div>
-            </div>
-        </section>
-
-        <div class="section-divider"></div>
-
-        <section>
-            <h2>Episode structure – 30 minutes</h2>
-
-            <h3>Act I – The Cracks (0:00–10:00)</h3>
-
-            <div class="scene-block">
-                <div class="scene-label">Scene 1</div>
-                <div class="scene-title">Opening shot – The Walled Garden</div>
-                <div class="scene-time">0:00–2:00</div>
-                <div class="scene-meta">Location: Botanical conservatory • Mood: Quiet, bounded, slightly unreal</div>
-                <div class="scene-sub">Visual</div>
-                <p>
-                    Gaussian‑splat particles coalesce into a vast indoor garden at dawn. Paths, trees, glass
-                    ceilings — all formed from drifting points that slowly settle into apparent solidity.
-                </p>
-                <div class="scene-sub">Action</div>
-                <p>
-                    Steve moves through the garden, watering plants, checking irrigation lines. He’s competent
-                    but distant, moving like someone who has walked these paths too many times. As he pauses to
-                    look up at the glass ceiling, a faint heat shimmer flickers in the corner of his vision —
-                    a tiny patch of the world briefly dissolving into raw splats.
-                </p>
-                <div class="scene-sub">Emotion</div>
-                <p>A man sensing the edges of his enclosure without yet naming them.</p>
-            </div>
-
-            <div class="scene-block">
-                <div class="scene-label">Scene 2</div>
-                <div class="scene-title">First Bleed‑Through</div>
-                <div class="scene-time">2:00–6:00</div>
-                <div class="scene-meta">Location: Far corner of the conservatory • Mood: Uncanny, hushed</div>
-                <div class="scene-sub">Visual</div>
-                <p>
-                    A section of the conservatory wall dissolves into a point‑cloud mountain ridge. Particles
-                    swirl like embers, forming a distant peak line. The rest of the garden remains intact,
-                    making the anomaly feel like a hole punched into reality.
-                </p>
-                <div class="scene-sub">Action</div>
-                <p>
-                    Steve approaches, mesmerized. On the ridge stands a silhouette — Grim. He is motionless,
-                    facing Steve, his outline made of dense, slow‑moving splats. The sense of heat is implied
-                    by a subtle orange core glow, but his posture is perfectly still, almost cold.
-                </p>
-                <p class="quote">STEVE (softly): “What are you?”</p>
-                <p>
-                    Before anything answers, the ridge collapses back into the normal wall. The garden is whole
-                    again. Steve is left alone, breathing hard, unsure if he imagined it.
-                </p>
-            </div>
-
-            <div class="scene-block">
-                <div class="scene-label">Scene 3</div>
-                <div class="scene-title">The Fracture</div>
-                <div class="scene-time">6:00–10:00</div>
-                <div class="scene-meta">Location: Throughout the conservatory • Mood: Reality loosening</div>
-                <div class="scene-sub">Action</div>
-                <p>
-                    Steve tries to resume his routine, but the world keeps glitching. Leaves briefly become
-                    clusters of particles. Pathways ripple and re‑resolve. The sprinkler mist hangs in the air
-                    as a shimmering point‑cloud before snapping back to normal water.
-                </p>
-                <div class="scene-sub">Theme</div>
-                <p>The fence is cracking; the walled garden is no longer stable.</p>
-            </div>
-
-            <h3>Act II – The Parallel Earths (10:00–20:00)</h3>
-
-            <div class="scene-block">
-                <div class="scene-label">Scene 4</div>
-                <div class="scene-title">Earth‑Prime Overlap</div>
-                <div class="scene-time">10:00–13:00</div>
-                <div class="scene-meta">Mood: Cold clarity, shadowed</div>
-                <div class="scene-sub">Visual</div>
-                <p>
-                    The conservatory dims. A colder, shadowed version of the garden overlays Steve’s world.
-                    Colors desaturate; particles move slower. Grim appears again, this time half‑hidden in
-                    shadow, standing just beyond a splat‑formed archway.
-                </p>
-                <div class="scene-sub">Action</div>
-                <p>
-                    Steve steps toward him. Each step he takes, Grim takes one back, always maintaining the
-                    same distance. No words. Just the sense that this is the “pause before transformation”
-                    version of reality.
-                </p>
-            </div>
-
-            <div class="scene-block">
-                <div class="scene-label">Scene 5</div>
-                <div class="scene-title">Earth‑Heatline</div>
-                <div class="scene-time">13:00–16:00</div>
-                <div class="scene-meta">Mood: Intense, pressurized, warm</div>
-                <div class="scene-sub">Visual</div>
-                <p>
-                    The world erupts into warm, molten splats — reds, ambers, and golds. The garden geometry
-                    melts into flowing point‑clouds. Grim stands closer now, his core glow brighter, radiating
-                    a sense of internal heat.
-                </p>
-                <div class="scene-sub">Action</div>
-                <p>
-                    Steve feels a matching warmth in his chest, like something waking up. His breathing
-                    deepens; his hands tremble slightly.
-                </p>
-                <p class="quote">GRIM (first line, low): “Not yet.”</p>
-                <p>
-                    The world collapses back to the base garden. Steve is left with the echo of the heat and
-                    the words.
-                </p>
-            </div>
-
-            <div class="scene-block">
-                <div class="scene-label">Scene 6</div>
-                <div class="scene-title">Earth‑MayaPeak</div>
-                <div class="scene-time">16:00–20:00</div>
-                <div class="scene-meta">Mood: Vast, thin air, summit‑like</div>
-                <div class="scene-sub">Visual</div>
-                <p>
-                    The conservatory dissolves completely. Steve now stands in a breathtaking point‑cloud
-                    mountain range — Maya‑like peaks rendered as layered splats. The air feels thin; the sky is
-                    a deep gradient of blues and indigos.
-                </p>
-                <div class="scene-sub">Action</div>
-                <p>
-                    Grim stands on a nearby ridge, hot core, cold posture. Steve begins to climb toward him.
-                    Each step he takes, the memory of the garden behind him fades into scattered particles.
-                </p>
-                <div class="scene-sub">Meaning</div>
-                <p>This is the summit version of reality — the yin‑yang balance of heat and stillness.</p>
-            </div>
-
-            <h3>Act III – The Unfencing (20:00–30:00)</h3>
-
-            <div class="scene-block">
-                <div class="scene-label">Scene 7</div>
-                <div class="scene-title">The Wall Revealed</div>
-                <div class="scene-time">20:00–24:00</div>
-                <div class="scene-meta">Mood: Revelation, quiet shock</div>
-                <div class="scene-sub">Visual</div>
-                <p>
-                    Steve turns back. Below the peaks, he sees the walled garden as a suspended splat‑model —
-                    a beautiful, bounded structure floating in the void. The walls are made of dense, pale
-                    particles, glowing softly.
-                </p>
-                <div class="scene-sub">Action</div>
-                <p>
-                    He descends a few steps and reaches out to touch the wall. It ripples like water, the
-                    particles briefly loosening and then re‑forming.
-                </p>
-                <p class="quote">GRIM (off‑screen): “You built it.”</p>
-                <p>
-                    Steve realizes the enclosure wasn’t only external; it was also an internal architecture he
-                    accepted and maintained.
-                </p>
-            </div>
-
-            <div class="scene-block">
-                <div class="scene-label">Scene 8</div>
-                <div class="scene-title">The Choice</div>
-                <div class="scene-time">24:00–28:00</div>
-                <div class="scene-meta">Mood: Threshold, suspended</div>
-                <div class="scene-sub">Visual</div>
-                <p>
-                    All four realities overlap in drifting geometry: the original garden, Earth‑Prime’s cold
-                    shadow, Earth‑Heatline’s molten warmth, and the MayaPeak summit. They phase in and out as
-                    translucent splat‑layers around Steve.
-                </p>
-                <div class="scene-sub">Action</div>
-                <p>
-                    Steve stands at the intersection, breathing hard, eyes moving between each version. Grim
-                    appears on the ridge above, clearly visible now.
-                </p>
-                <p class="quote">GRIM: “Step.”</p>
-                <p>Not a command — an invitation.</p>
-            </div>
-
-            <div class="scene-block">
-                <div class="scene-label">Scene 9</div>
-                <div class="scene-title">The Step</div>
-                <div class="scene-time">28:00–30:00</div>
-                <div class="scene-meta">Mood: Awakening, open‑ended</div>
-                <div class="scene-sub">Visual</div>
-                <p>
-                    Steve steps forward, out of alignment with the walled garden. The walls dissolve into
-                    drifting particles that scatter into the void. The remaining geometry resolves into a vast,
-                    open splat‑universe — peaks, valleys, and empty sky.
-                </p>
-                <div class="scene-sub">Final image</div>
-                <p>
-                    Steve stands beside Grim on the ridge. Two silhouettes against the particle sky — one
-                    ancient and balanced, one newly unfenced and still forming.
-                </p>
-                <p class="quote">Cut to black.</p>
-            </div>
-        </section>
-
-        <div class="section-divider"></div>
-
-        <section>
-            <h2>Core message of the pilot</h2>
-            <div class="card">
-                <p>
-                    This pilot isn’t about escaping a prison; it’s about recognizing the walls you outgrew and
-                    stepping into the open terrain of your parallel selves. Steve’s journey from the walled
-                    garden to the ridge beside Grim is the movement from fenced to unfenced — from curated
-                    safety to vast, paradoxical possibility — rendered entirely as a Gaussian‑splat film in
-                    your mind’s projector.
-                </p>
-            </div>
-        </section>
-
-        <!-- ========================= -->
-        <!-- BUSINESS + EQUIPMENT + AI PIPELINE EXTENSION -->
-        <!-- ========================= -->
-
-        <div class="section-divider"></div>
-
-        <section>
-            <h2>Business Analysis – Audience & Market Fit</h2>
-
-            <div class="card">
-                <h3>Target Audience Overview</h3>
-                <p>
-                    This pilot sits at the intersection of mythic sci‑fi, experimental volumetric cinema,
-                    and introspective character drama. Its audience spans both art‑tech communities and
-                    elevated genre viewers.
-                </p>
-
-                <h4>Primary Audience Segments</h4>
+            <section id="visual-language" class="card">
+                <h2>Visual Language</h2>
+                <p>The film is designed to be experienced as a volumetric projection. Key visual rules:</p>
                 <ul>
-                    <li><strong>Art‑Tech Enthusiasts:</strong> Gaussian splatting, NeRFs, SIGGRAPH‑adjacent creators.
-                    </li>
-                    <li><strong>Elevated Sci‑Fi Fans:</strong> Viewers who enjoy quiet, cerebral, symbolic sci‑fi.</li>
-                    <li><strong>Indie Film & Festival Circuit:</strong> Sundance, SXSW, Tribeca, TIFF Midnight.</li>
-                    <li><strong>Philosophical Story Seekers:</strong> Audiences drawn to identity, myth, and metaphor.
-                    </li>
-                    <li><strong>Tech‑Forward Streamers:</strong> Platforms seeking visually distinct experimental IP.
-                    </li>
+                    <li>Environments and characters are represented as Gaussian splats and point clouds.</li>
+                    <li>Transitions between parallel earths are achieved by crossfading splat layers and shifting
+                        anisotropy.</li>
+                    <li>Color and temperature signal emotional state: cool desaturation for containment, warm cores for
+                        internal pressure.</li>
+                    <li>Sound design is integral: low frequency pulses for heatline, thin wind textures for peaks, close
+                        intimate Foley for the garden.</li>
+                </ul>
+            </section>
+
+            <section id="characters" class="card">
+                <h2>Characters</h2>
+                <div class="two-col">
+                    <div>
+                        <h3>Steve</h3>
+                        <p>Maintenance worker at the conservatory. Practical, steady, quietly restless. The pilot is his
+                            first step toward an unfenced life.</p>
+                    </div>
+                    <div>
+                        <h3>Grim</h3>
+                        <p>A presence across parallel earths. Not a deity, not a villain. A principle in silhouette: hot
+                            inside, cold outside. Functions as mirror and threshold.</p>
+                    </div>
+                </div>
+            </section>
+
+            <div class="divider"></div>
+
+            <section id="audience" class="card">
+                <h2>Target Audience Analysis</h2>
+                <p>This project targets a cross section of art‑tech communities, elevated sci‑fi viewers, festival
+                    audiences, and tech‑forward streaming platforms.</p>
+
+                <h3>Audience Segments</h3>
+                <ul>
+                    <li><strong>Art Tech Enthusiasts</strong> — creators and viewers interested in NeRFs, Gaussian
+                        splatting, SIGGRAPH work.</li>
+                    <li><strong>Elevated Sci‑Fi Viewers</strong> — fans of introspective, concept‑driven sci‑fi.</li>
+                    <li><strong>Indie Film and Festival Circuit</strong> — programmers and audiences at Sundance, SXSW,
+                        Tribeca.</li>
+                    <li><strong>Philosophical Story Seekers</strong> — viewers drawn to metaphor and identity
+                        narratives.</li>
+                    <li><strong>Tech Forward Streamers</strong> — platforms seeking visually distinct IP to
+                        differentiate catalogs.</li>
                 </ul>
 
-                <h4>Audience Size Estimate</h4>
-                <p>
-                    Estimated total reachable audience: <strong>2–5 million</strong>, depending on distribution.
-                </p>
-            </div>
-        </section>
+                <h3>Audience Size Estimate</h3>
+                <p class="muted">Reachable audience estimate: <strong>2–5 million</strong> depending on distribution and
+                    festival traction.</p>
+            </section>
 
-        <div class="section-divider"></div>
+            <section id="budget" class="card">
+                <h2>Budget Overview</h2>
+                <p>Three practical budget tiers are provided to match production goals and distribution targets.</p>
 
-        <section>
-            <h2>Production Costs – Pilot Budget</h2>
+                <table class="budget-table">
+                    <thead>
+                        <tr>
+                            <th>Tier</th>
+                            <th>Cost Range</th>
+                            <th>Use Case</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Ultra Lean</td>
+                            <td>$15k–$30k</td>
+                            <td>Proof of concept, DIY capture, festival short</td>
+                        </tr>
+                        <tr>
+                            <td>Indie Festival Ready</td>
+                            <td>$40k–$80k</td>
+                            <td>High quality pilot for festivals and niche streaming</td>
+                        </tr>
+                        <tr>
+                            <td>High Polish Streamer Pitch</td>
+                            <td>$100k–$250k</td>
+                            <td>Pitch to major streamers with premium capture and multi‑GPU training</td>
+                        </tr>
+                    </tbody>
+                </table>
 
-            <div class="card">
-                <h3>Cost Tiers</h3>
+                <h3>Primary Cost Drivers</h3>
                 <ul>
-                    <li><strong>Ultra‑Lean:</strong> $15k–$30k</li>
-                    <li><strong>Indie Festival‑Ready:</strong> $40k–$80k</li>
-                    <li><strong>High‑Polish Streamer Pitch:</strong> $100k–$250k</li>
+                    <li>Capture equipment and crew</li>
+                    <li>AI training compute and orchestration</li>
+                    <li>VFX supervision and splat cleanup</li>
+                    <li>Sound design and original score</li>
+                    <li>Post production and festival submission</li>
                 </ul>
+            </section>
 
-                <h4>Cost Drivers</h4>
-                <ul>
-                    <li>Capture equipment</li>
-                    <li>Gaussian splat training compute</li>
-                    <li>Scene orchestration & AI‑coordination</li>
-                    <li>Sound design & score</li>
-                    <li>Post‑processing & mastering</li>
-                </ul>
-            </div>
-        </section>
+            <section id="equipment" class="card">
+                <h2>Capture Equipment Full Stack</h2>
 
-        <div class="section-divider"></div>
-
-        <section>
-            <h2>Capture Equipment – Full Stack</h2>
-
-            <div class="card">
                 <h3>Cameras</h3>
-                <p>High‑resolution, high‑dynamic‑range cameras ideal for splat capture.</p>
                 <ul>
-                    <li><strong>Entry:</strong> Sony A7 IV / Canon R6 II</li>
-                    <li><strong>Mid:</strong> Blackmagic 6K Pro</li>
-                    <li><strong>High:</strong> Sony FX3 / FX6</li>
-                    <li><strong>Premium:</strong> RED Komodo / V‑Raptor</li>
+                    <li>Entry: Sony A7 IV or Canon R6 II — good for photogrammetry</li>
+                    <li>Mid: Blackmagic 6K Pro — RAW capture</li>
+                    <li>High: Sony FX3 / FX6 — industry standard for NeRF capture</li>
+                    <li>Premium: RED Komodo / V‑Raptor — highest fidelity</li>
                 </ul>
 
                 <h3>Lenses</h3>
-                <p>Sharp primes with minimal distortion:</p>
-                <ul>
-                    <li>24mm prime</li>
-                    <li>35mm prime</li>
-                    <li>50mm prime</li>
-                </ul>
+                <p>Sharp primes: 24mm, 35mm, 50mm. Minimal distortion is critical for clean pose estimation.</p>
 
                 <h3>Depth Sensors</h3>
                 <ul>
-                    <li>iPhone Pro LiDAR (baseline)</li>
-                    <li>Intel RealSense D455</li>
-                    <li>Leica BLK360 (premium)</li>
+                    <li>iPhone Pro LiDAR for quick scans</li>
+                    <li>Intel RealSense D455 for affordable depth</li>
+                    <li>Leica BLK360 for premium site scanning</li>
                 </ul>
 
-                <h3>Stabilization</h3>
+                <h3>Stabilization Lighting Audio</h3>
                 <ul>
-                    <li>DJI RS3 gimbal</li>
-                    <li>Manfrotto tripod</li>
-                    <li>Slider (optional)</li>
+                    <li>Gimbal DJI RS3, Manfrotto tripod, optional slider</li>
+                    <li>Aputure 120D/300D, softboxes, LED panels</li>
+                    <li>Sennheiser MKE600, Rode Wireless Pro, Zoom H6</li>
                 </ul>
 
-                <h3>Lighting</h3>
+                <h3>Estimated One Time Equipment Range</h3>
+                <p class="muted">$4k–$36k depending on tier and LiDAR choice.</p>
+            </section>
+
+            <section id="ai-pipeline" class="card">
+                <h2>AI Coordinator Pipeline Training to Render</h2>
+
+                <h3>Pipeline Stages</h3>
+                <ol>
+                    <li><strong>Data Ingestion</strong> — import footage, sync cameras, normalize exposure, extract
+                        frames.</li>
+                    <li><strong>Pre Processing</strong> — camera pose estimation, depth estimation, segmentation.</li>
+                    <li><strong>Training</strong> — optimize point positions, opacity, color, anisotropy; multi‑GPU or
+                        cloud compute.</li>
+                    <li><strong>Scene Orchestration</strong> — align parallel earths, blend transitions, manage camera
+                        paths and lighting.</li>
+                    <li><strong>Rendering</strong> — splat rendering with DOF, motion blur, color grade, export masters.
+                    </li>
+                    <li><strong>Post Processing</strong> — sound design, score, dialogue sync, final mastering.</li>
+                </ol>
+
+                <h3>AI Coordinator Responsibilities</h3>
                 <ul>
-                    <li>Aputure 120D / 300D</li>
-                    <li>Softboxes</li>
-                    <li>Portable LED panels</li>
+                    <li>Automate dataset versioning and re‑training when capture changes</li>
+                    <li>Manage compute allocation and multi‑scene orchestration</li>
+                    <li>Provide director tools for camera path preview and layer blending</li>
+                    <li>Produce deliverables in ProRes and compressed formats for review</li>
                 </ul>
 
-                <h3>Audio</h3>
+                <h3>Hardware Recommendations</h3>
                 <ul>
-                    <li>Sennheiser MKE600 shotgun mic</li>
-                    <li>Rode Wireless Pro lavalier</li>
-                    <li>Zoom H6 recorder</li>
+                    <li>Local: RTX 4090 for single machine experiments</li>
+                    <li>Cloud: multi‑GPU nodes (A6000 or H100) for production training</li>
+                    <li>Storage: fast NVMe scratch and S3 style archival</li>
                 </ul>
-            </div>
-        </section>
 
-        <div class="section-divider"></div>
+                <h3>Per Pilot Compute Cost Estimate</h3>
+                <p class="muted">$2k–$10k depending on complexity and cloud usage.</p>
+            </section>
 
-        <section>
-            <h2>AI‑Coordinator Pipeline – Training to Render</h2>
+            <section id="capture-reqs" class="card">
+                <h2>Capture Requirements Camera Count and Frame Acquisition</h2>
 
-            <div class="card">
-                <h3>Pipeline Overview</h3>
-                <p>
-                    A Gaussian‑splat film is essentially a multi‑stage AI pipeline. The AI‑coordinator
-                    orchestrates data ingestion, training, scene alignment, and rendering.
+                <h3>How Many Cameras</h3>
+                <ul>
+                    <li><strong>Single Camera</strong> — minimum. Walkaround capture for static scenes. Lower cost, more
+                        cleanup.</li>
+                    <li><strong>Dual Camera</strong> — recommended minimum for characters. Reduces occlusion and
+                        improves depth.</li>
+                    <li><strong>Multi Camera Array</strong> — 6–12 cameras for high fidelity volumetric capture in a
+                        single moment. Best for closeups and complex motion.</li>
+                    <li><strong>Environment Capture</strong> — roaming single or two cameras for large spaces; focus on
+                        coverage and overlap.</li>
+                </ul>
+
+                <h3>How to Capture a Frame of Data</h3>
+                <p>A frame of data is a bundle: image pixels, camera pose, depth cues, and metadata. Follow these steps:
                 </p>
+                <ol>
+                    <li><strong>Position the camera</strong> — maintain consistent distance and smooth motion; use a
+                        gimbal.</li>
+                    <li><strong>Record high resolution</strong> — 4K or 6K preferred; lock exposure and white balance.
+                    </li>
+                    <li><strong>Maintain overlap</strong> — ensure each frame shares features with previous frames for
+                        robust tracking.</li>
+                    <li><strong>Capture multiple angles</strong> — front, sides, back for characters; high and low
+                        passes for environments.</li>
+                    <li><strong>Extract frames</strong> — AI coordinator extracts frames at intervals (every 3rd–5th
+                        frame) for training.</li>
+                    <li><strong>Generate camera poses</strong> — use COLMAP or Nerfstudio to compute pose graphs for
+                        each frame.</li>
+                    <li><strong>Feed into training</strong> — frames become points for color, opacity, depth, and
+                        anisotropy optimization.</li>
+                </ol>
 
-                <h3>1. Data Ingestion</h3>
+                <p class="muted">Result: a dense Gaussian splat reconstruction ready for cinematic rendering and layer
+                    blending.</p>
+            </section>
+
+            <section id="timeline" class="card">
+                <h2>Production Timeline</h2>
                 <ul>
-                    <li>Import multi‑camera footage</li>
-                    <li>Normalize exposure & color</li>
-                    <li>Extract frames for training</li>
-                    <li>Generate metadata</li>
+                    <li><strong>Phase 1 Pre Production 2–4 weeks</strong> — script lock, capture plan, equipment prep,
+                        casting.</li>
+                    <li><strong>Phase 2 Capture 3–7 days</strong> — environment and character capture sessions.</li>
+                    <li><strong>Phase 3 AI Training and Splat Construction 4–8 weeks</strong> — model training, scene
+                        alignment, orchestration.</li>
+                    <li><strong>Phase 4 Post Production 3–6 weeks</strong> — sound design, score, color, mastering,
+                        festival prep.</li>
                 </ul>
+            </section>
 
-                <h3>2. Pre‑Processing</h3>
+            <section id="team" class="card">
+                <h2>Key Creative Roles</h2>
                 <ul>
-                    <li>Camera pose estimation</li>
-                    <li>Depth estimation</li>
-                    <li>Segmentation (actors vs environment)</li>
-                    <li>Feature extraction</li>
+                    <li><strong>Producer</strong> — oversees budget, schedule, and festival strategy.</li>
+                    <li><strong>Director</strong> — creative lead for performance and visual storytelling.</li>
+                    <li><strong>Director of Photography Volumetric</strong> — capture lead for splat fidelity.</li>
+                    <li><strong>AI Coordinator Lead</strong> — pipeline architect and orchestration lead.</li>
+                    <li><strong>Volumetric Capture Supervisor</strong> — on set capture and sensor management.</li>
+                    <li><strong>VFX Supervisor</strong> — splat cleanup, compositing, and render supervision.</li>
+                    <li><strong>Sound Designer Composer</strong> — integrated audio language for splat visuals.</li>
                 </ul>
+                <p class="muted">Roles can be filled by freelancers or partners depending on budget tier.</p>
+            </section>
 
-                <h3>3. Training</h3>
-                <ul>
-                    <li>Optimize point positions</li>
-                    <li>Optimize opacity & color</li>
-                    <li>Reduce noise & merge splats</li>
-                    <li>Multi‑GPU or cloud compute</li>
-                </ul>
+            <section id="distribution" class="card">
+                <h2>Distribution Strategy</h2>
+                <h3>Festival Path</h3>
+                <p>Target festivals: Sundance, SXSW, Tribeca, TIFF Midnight, Fantastic Fest. Festivals build critical
+                    momentum and press.</p>
+                <h3>Streaming Path</h3>
+                <p>Pitch to tech‑forward streamers and experimental short programs. Use festival laurels to open
+                    conversations with platform curators.</p>
+                <h3>Series Expansion</h3>
+                <p>The pilot is designed as a proof of concept for a limited series exploring multiple parallel earths
+                    and the evolution of fenced souls into unfenced presences.</p>
+            </section>
 
-                <h3>4. Scene Orchestration</h3>
-                <p>The AI‑coordinator manages:</p>
-                <ul>
-                    <li>Scene alignment across parallel earths</li>
-                    <li>Camera path generation</li>
-                    <li>Lighting simulation</li>
-                    <li>Versioning & re‑training</li>
-                </ul>
+            <section id="summary" class="card">
+                <h2>Project Summary</h2>
+                <p>This single document now functions as a cohesive production bible: creative vision, pilot structure,
+                    visual language, embedded concept imagery, audience analysis, budget tiers, equipment list, AI
+                    pipeline, capture methodology, timeline, team roles, and distribution strategy. It is ready for
+                    internal review, investor conversations, festival planning, and technical scoping.</p>
+                <p class="muted">Next steps: finalize director and AI coordinator, schedule a short capture test, and
+                    prepare a festival submission plan for a proof of concept screening.</p>
+            </section>
 
-                <h3>5. Rendering</h3>
-                <ul>
-                    <li>Real‑time or near‑real‑time splat rendering</li>
-                    <li>Depth‑of‑field & motion blur</li>
-                    <li>Color grading</li>
-                    <li>Export to ProRes / MP4</li>
-                </ul>
-
-                <h3>6. Post‑Processing</h3>
-                <ul>
-                    <li>Sound design</li>
-                    <li>Score</li>
-                    <li>Dialogue sync</li>
-                    <li>Final mastering</li>
-                </ul>
-            </div>
-        </section>
-
-        <div class="section-divider"></div>
-
-        <section>
-            <h2>Summary – The Full Project at a Glance</h2>
-            <div class="card">
-                <p>
-                    This extended document now includes the full cinematic pilot, concept imagery,
-                    business analysis, audience segmentation, cost breakdown, capture equipment,
-                    and the complete AI‑coordinator pipeline. It forms a unified production artifact
-                    suitable for internal review, pitching, or planning the next phase of development.
-                </p>
-            </div>
-        </section>
-
-        <!-- ========================= -->
-        <!-- CAPTURE REQUIREMENTS + FRAME ACQUISITION EXTENSION -->
-        <!-- ========================= -->
-
-        <div class="section-divider"></div>
-
-        <section>
-            <h2>Capture Requirements – Camera Count & Setup</h2>
-
-            <div class="card">
-                <h3>How Many Cameras Are Required?</h3>
-                <p>
-                    Gaussian‑splat filmmaking is flexible: you can capture with a single camera or a full
-                    multi‑camera rig depending on the fidelity you want.
-                </p>
-
-                <h4>Single‑Camera Capture (Minimum)</h4>
-                <ul>
-                    <li>1 camera</li>
-                    <li>Walk around the subject or environment</li>
-                    <li>Best for static scenes or environments</li>
-                    <li>Lower cost, slower capture, more manual cleanup</li>
-                </ul>
-
-                <h4>Dual‑Camera Capture (Recommended Minimum for Characters)</h4>
-                <ul>
-                    <li>2 cameras mounted side‑by‑side or offset</li>
-                    <li>Improves depth estimation and reduces occlusion gaps</li>
-                    <li>Ideal for capturing Steve or Grim in motion</li>
-                </ul>
-
-                <h4>Multi‑Camera Array (High‑Fidelity)</h4>
-                <ul>
-                    <li>6–12 cameras arranged in a semicircle or full ring</li>
-                    <li>Captures full volumetric detail in a single moment</li>
-                    <li>Used for premium splat or NeRF character capture</li>
-                    <li>Best for close‑ups, emotional beats, or complex motion</li>
-                </ul>
-
-                <h4>Environment Capture</h4>
-                <p>
-                    For large spaces (gardens, peaks, corridors), a <strong>single roaming camera</strong> or
-                    <strong>two alternating cameras</strong> is sufficient. The key is coverage, not quantity.
-                </p>
-            </div>
-        </section>
-
-        <div class="section-divider"></div>
-
-        <section>
-            <h2>How to Capture a Frame of Data</h2>
-
-            <div class="card">
-                <h3>What a “Frame of Data” Means in Splat Filmmaking</h3>
-                <p>
-                    A frame isn’t just a single video frame — it’s a <strong>bundle of information</strong>:
-                    image pixels, camera pose, depth cues, and metadata. Each frame becomes a data point the
-                    splat model uses to reconstruct the 3D world.
-                </p>
-
-                <h3>Step‑by‑Step Frame Capture Process</h3>
-
-                <h4>1. Position the Camera</h4>
-                <ul>
-                    <li>Keep a consistent distance from the subject</li>
-                    <li>Move smoothly (gimbal recommended)</li>
-                    <li>Avoid sudden rotations or whip‑pans</li>
-                </ul>
-
-                <h4>2. Record High‑Resolution Video</h4>
-                <ul>
-                    <li>4K or 6K preferred</li>
-                    <li>24–30 fps is enough (higher fps not required)</li>
-                    <li>Lock exposure and white balance</li>
-                </ul>
-
-                <h4>3. Maintain Overlap</h4>
-                <p>
-                    Each frame must share visual overlap with the previous one so the AI can track features.
-                    Think of it like painting the scene with your camera.
-                </p>
-
-                <h4>4. Capture Multiple Angles</h4>
-                <ul>
-                    <li>Walk around the subject</li>
-                    <li>Capture high angles, low angles, and side passes</li>
-                    <li>For characters, capture front, sides, and back</li>
-                </ul>
-
-                <h4>5. Extract Frames</h4>
-                <p>
-                    After recording, the AI‑coordinator extracts frames at intervals (e.g., every 3rd or 5th
-                    frame) to create the training dataset.
-                </p>
-
-                <h4>6. Generate Camera Poses</h4>
-                <p>
-                    Tools like COLMAP or Nerfstudio compute the exact position and orientation of the camera
-                    for each frame — this is essential for splat training.
-                </p>
-
-                <h4>7. Feed Into Training Pipeline</h4>
-                <p>
-                    Each frame becomes a point in the optimization process:
-                </p>
-                <ul>
-                    <li>Color</li>
-                    <li>Opacity</li>
-                    <li>Depth</li>
-                    <li>Point position</li>
-                    <li>Anisotropy (shape)</li>
-                </ul>
-
-                <h3>Result</h3>
-                <p>
-                    The system reconstructs the scene as a <strong>dense cloud of Gaussian splats</strong>,
-                    ready for rendering, animation, and cinematic camera paths.
-                </p>
-            </div>
-        </section>
-
-    </main>
+            <footer>
+                <div class="small">Prepared for internal review. Use this document as a living production bible and
+                    update roles, budget, and timeline as the project advances.</div>
+            </footer>
+        </main>
+    </div>
 </body>
 
 </html>
