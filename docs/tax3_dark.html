@@ -1,0 +1,804 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Tax Amount Generator — Terminal UI Theme</title>
+    <style>
+        /* Terminal UI Theme (Copilot-style) */
+        :root {
+            --bg: #0b1220;
+            /* deep terminal background */
+            --panel: #07101a;
+            /* panel background */
+            --muted: #7f8c8d;
+            /* muted text */
+            --accent: #39ff14;
+            /* neon green accent */
+            --accent-dim: #2aa84a;
+            /* dimmer green */
+            --card-border: #0f1720;
+            /* subtle border */
+            --danger: #ff5c57;
+            /* red for remove */
+            --glass: rgba(57, 255, 20, 0.06);
+            font-family: "SFMono-Regular", Menlo, Monaco, "Roboto Mono", "Courier New", monospace;
+            box-sizing: border-box;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: inherit
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            background: linear-gradient(180deg, var(--bg), #041018);
+            color: var(--accent);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale
+        }
+
+        .wrap {
+            max-width: 980px;
+            margin: 28px auto;
+            padding: 18px;
+            border-radius: 8px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
+            border: 1px solid rgba(255, 255, 255, 0.02)
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px
+        }
+
+        h1 {
+            font-size: 18px;
+            margin: 0;
+            color: var(--accent)
+        }
+
+        p.lead {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        .card {
+            background: var(--panel);
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 14px;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6)
+        }
+
+        .card.tight {
+            padding: 10px
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 14px;
+            align-items: start
+        }
+
+        @media (max-width:920px) {
+            .grid {
+                grid-template-columns: 1fr
+            }
+        }
+
+        .tax-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 360px;
+            overflow: auto;
+            padding-right: 6px
+        }
+
+        .tax-row {
+            display: grid;
+            grid-template-columns: 1fr 84px 110px 110px 80px;
+            gap: 8px;
+            align-items: center;
+            padding: 10px;
+            border-radius: 6px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0.00));
+            border: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        @media (max-width:820px) {
+            .tax-row {
+                grid-template-columns: 1fr 84px 96px 96px 72px
+            }
+        }
+
+        @media (max-width:620px) {
+            .tax-row {
+                grid-template-columns: 1fr;
+                gap: 6px;
+                padding: 8px
+            }
+
+            .tax-row>* {
+                width: 100%
+            }
+
+            .tax-row .actions {
+                display: flex;
+                justify-content: space-between;
+                align-items: center
+            }
+        }
+
+        label {
+            font-size: 12px;
+            color: var(--muted);
+            display: block;
+            margin-bottom: 6px
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            background: transparent;
+            color: var(--accent);
+            font-size: 13px;
+            outline: none;
+        }
+
+        input::placeholder {
+            color: rgba(127, 140, 141, 0.35)
+        }
+
+        input:focus,
+        select:focus {
+            box-shadow: 0 6px 18px rgba(57, 255, 20, 0.04);
+            border-color: rgba(57, 255, 20, 0.12)
+        }
+
+        .small {
+            font-size: 13px;
+            color: var(--muted)
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: flex-end
+        }
+
+        button {
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid rgba(57, 255, 20, 0.12);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 13px;
+        }
+
+        button:hover {
+            background: rgba(57, 255, 20, 0.02)
+        }
+
+        button.secondary {
+            border-color: rgba(57, 255, 20, 0.06);
+            color: var(--accent-dim)
+        }
+
+        button.ghost {
+            border-color: rgba(255, 255, 255, 0.03);
+            color: var(--muted)
+        }
+
+        .summary-card {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0.00));
+        }
+
+        .grand {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .grand .amount {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--accent);
+            white-space: nowrap;
+            min-width: 120px;
+            text-align: right
+        }
+
+        .table-wrap {
+            width: 100%;
+            overflow: auto;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            background: transparent;
+            max-height: 300px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            min-width: 520px;
+            color: var(--accent);
+            font-size: 13px;
+        }
+
+        th,
+        td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+            vertical-align: middle;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            white-space: normal;
+        }
+
+        th {
+            color: var(--muted);
+            font-weight: 700
+        }
+
+        td.right,
+        th.right {
+            text-align: right;
+            white-space: nowrap
+        }
+
+        .total-row td {
+            font-weight: 800;
+            color: var(--accent)
+        }
+
+        .summary-empty {
+            padding: 18px;
+            color: var(--muted);
+            font-size: 13px;
+            text-align: center
+        }
+
+        td:first-child,
+        th:first-child {
+            max-width: 220px
+        }
+
+        td:nth-child(2),
+        th:nth-child(2) {
+            max-width: 160px
+        }
+
+        td:nth-child(3),
+        th:nth-child(3) {
+            max-width: 90px
+        }
+
+        td:nth-child(4),
+        th:nth-child(4) {
+            max-width: 120px
+        }
+
+        .remove-btn {
+            background: transparent;
+            border: 1px solid rgba(255, 0, 0, 0.06);
+            color: var(--danger);
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-weight: 700
+        }
+
+        .remove-btn:hover {
+            background: rgba(255, 92, 87, 0.04)
+        }
+
+        .note {
+            font-size: 13px;
+            color: var(--muted);
+            margin-top: 8px
+        }
+
+        .preset {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            color: var(--muted);
+            padding: 8px 10px;
+            border-radius: 6px;
+            cursor: pointer
+        }
+
+        .meta {
+            font-size: 13px;
+            color: var(--muted);
+            margin-left: 8px
+        }
+
+        /* subtle terminal cursor effect for headings */
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 16px;
+            background: var(--accent);
+            margin-left: 8px;
+            animation: blink 1s steps(2, start) infinite;
+            vertical-align: middle;
+            border-radius: 2px;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0
+            }
+
+            100% {
+                opacity: 1
+            }
+        }
+
+        /* compact scrollbar for terminal look */
+        .tax-list::-webkit-scrollbar,
+        .table-wrap::-webkit-scrollbar {
+            height: 8px;
+            width: 8px
+        }
+
+        .tax-list::-webkit-scrollbar-thumb,
+        .table-wrap::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 8px
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <header>
+            <div>
+                <h1>tax-gen — terminal</h1>
+                <p class="lead">Define taxes, enter incomes (daily/monthly/other), then calculate totals<span
+                        class="cursor" aria-hidden="true"></span></p>
+            </div>
+            <div style="margin-left:auto" class="muted">theme: terminal • mode: copilot</div>
+        </header>
+
+        <section class="card" aria-labelledby="defineTaxes">
+            <h2 id="defineTaxes" style="font-size:13px;margin:0 0 10px 0;color:var(--muted)">1. define taxes</h2>
+
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                <button id="addTax">+ add tax</button>
+                <button id="resetTaxes" class="secondary">reset defaults</button>
+                <button id="clearAll" class="ghost">remove all</button>
+                <div style="flex:1"></div>
+                <div class="meta" id="taxCount">taxes: 0</div>
+            </div>
+
+            <div id="taxList" class="tax-list" aria-live="polite">
+                <!-- Tax rows injected by JS -->
+            </div>
+
+            <p class="note">Tip: toggle <span style="color:var(--muted)">Active</span> to include/exclude a tax from
+                calculation.</p>
+        </section>
+
+        <section class="card" aria-labelledby="incomeInputs">
+            <h2 id="incomeInputs" style="font-size:13px;margin:0 0 10px 0;color:var(--muted)">2. income inputs &
+                calculate</h2>
+
+            <div class="grid">
+                <div>
+                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+                        <div class="small">Enter income for each tax. Choose Daily, Weekly, or Monthly.</div>
+                    </div>
+
+                    <div id="incomeRows" style="visibility:hidden;display:table-column;flex-direction:column;gap:10px">
+                        <!-- Income inputs mirror tax rows -->
+                    </div>
+                </div>
+            </div>
+            <div>
+                <div class="summary-card">
+                    <div class="grand">
+                        <div>
+                            <div class="small" style="color:var(--muted)">grand total</div>
+                            <div id="grandTotal" class="amount">$0.00</div>
+                        </div>
+                        <div class="controls">
+                            <button id="calculate">run calculate</button>
+                            <button id="clear" class="secondary">clear incomes</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="small" style="margin-bottom:8px;color:var(--muted)">summary</div>
+                        <div class="table-wrap" id="summaryWrap" role="region" aria-live="polite"
+                            aria-label="Tax summary table">
+                            <table id="summaryTable">
+                                <thead>
+                                    <tr>
+                                        <th>tax</th>
+                                        <th>income</th>
+                                        <th>rate</th>
+                                        <th class="right">tax amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="4" class="summary-empty">no results yet — run calculate</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="total-row">
+                                        <td colspan="3" class="right">grand total</td>
+                                        <td id="grandTotalFooter" class="right">$0.00</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <section class="card tight" aria-labelledby="examples">
+            <h2 id="examples" style="font-size:13px;margin:0 0 10px 0;color:var(--muted)">presets</h2>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="preset" data-preset="example1">load motel example</button>
+                <button class="preset" data-preset="clear">clear all</button>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        (function () {
+            // Terminal-themed tax generator (same logic, UI updated)
+            const taxListEl = document.getElementById('taxList');
+            const incomeRowsEl = document.getElementById('incomeRows');
+            const summaryBody = document.querySelector('#summaryTable tbody');
+            const grandTotalEl = document.getElementById('grandTotal');
+            const grandTotalFooter = document.getElementById('grandTotalFooter');
+            const addTaxBtn = document.getElementById('addTax');
+            const calculateBtn = document.getElementById('calculate');
+            const clearBtn = document.getElementById('clear');
+            const resetBtn = document.getElementById('resetTaxes');
+            const clearAllBtn = document.getElementById('clearAll');
+            const presetButtons = document.querySelectorAll('.preset');
+            const taxCountEl = document.getElementById('taxCount');
+
+            const DEFAULTS = [
+                { label: 'Monthly Tax 1', rate: 3.32, type: 'monthly', income: 14000, active: true },
+                { label: 'Monthly Tax 2', rate: 2.13, type: 'monthly', income: 14000, active: true },
+                { label: 'Transient Tax', rate: 5.67, type: 'daily', income: 67000, active: true },
+                { label: 'Transient Tax 2', rate: 4.45, type: 'daily', income: 67000, active: true },
+                { label: 'Special Local Tax', rate: 1.47, type: 'other', income: 10000, active: true }
+            ];
+
+            let taxes = [];
+
+            function formatCurrency(v) {
+                const n = Number(v) || 0;
+                return n.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
+            }
+
+            function createTaxRow(idx, tax) {
+                const row = document.createElement('div');
+                row.className = 'tax-row';
+                row.dataset.index = idx;
+
+                // Label
+                const labelWrap = document.createElement('div');
+                const labelLabel = document.createElement('label');
+                labelLabel.textContent = 'label';
+                labelLabel.style.color = 'var(--muted)';
+                const labelInput = document.createElement('input');
+                labelInput.type = 'text';
+                labelInput.value = tax.label || '';
+                labelInput.placeholder = 'tax label';
+                labelInput.addEventListener('input', () => { taxes[idx].label = labelInput.value; syncIncomeRow(idx); });
+                labelWrap.appendChild(labelLabel);
+                labelWrap.appendChild(labelInput);
+
+                // Rate
+                const rateWrap = document.createElement('div');
+                const rateLabel = document.createElement('label');
+                rateLabel.textContent = 'rate %';
+                rateLabel.style.color = 'var(--muted)';
+                const rateInput = document.createElement('input');
+                rateInput.type = 'number';
+                rateInput.min = '0';
+                rateInput.step = '0.01';
+                rateInput.value = tax.rate ?? 0;
+                rateInput.addEventListener('input', () => { taxes[idx].rate = parseFloat(rateInput.value) || 0; syncIncomeRow(idx); });
+                rateWrap.appendChild(rateLabel);
+                rateWrap.appendChild(rateInput);
+
+                // Type (Daily / Weekly / Monthly)
+                const typeWrap = document.createElement('div');
+                const typeLabel = document.createElement('label');
+                typeLabel.textContent = 'type';
+                typeLabel.style.color = 'var(--muted)';
+                const typeSelect = document.createElement('select');
+                const optDaily = document.createElement('option'); optDaily.value = 'daily'; optDaily.textContent = 'Daily';
+                const optMonthly = document.createElement('option'); optMonthly.value = 'monthly'; optMonthly.textContent = 'Monthly';
+                const optOther = document.createElement('option'); optOther.value = 'other'; optOther.textContent = 'Other';
+                typeSelect.appendChild(optDaily); typeSelect.appendChild(optMonthly); typeSelect.appendChild(optOther);
+                typeSelect.value = tax.type || 'monthly';
+                typeSelect.addEventListener('change', () => { taxes[idx].type = typeSelect.value; syncIncomeRow(idx); });
+                typeWrap.appendChild(typeLabel);
+                typeWrap.appendChild(typeSelect);
+
+                // Income
+                const incomeWrap = document.createElement('div');
+                const incomeLabel = document.createElement('label');
+                incomeLabel.textContent = 'income';
+                incomeLabel.style.color = 'var(--muted)';
+                const incomeInput = document.createElement('input');
+                incomeInput.type = 'number';
+                incomeInput.min = '0';
+                incomeInput.step = '0.01';
+                incomeInput.value = tax.income ?? 0;
+                incomeInput.addEventListener('input', () => { taxes[idx].income = parseFloat(incomeInput.value) || 0; });
+                incomeWrap.appendChild(incomeLabel);
+                incomeWrap.appendChild(incomeInput);
+
+                // Active / Remove
+                const actionWrap = document.createElement('div');
+                actionWrap.className = 'actions';
+                actionWrap.style.display = 'flex';
+                actionWrap.style.flexDirection = 'column';
+                actionWrap.style.alignItems = 'flex-end';
+                const activeLabel = document.createElement('label');
+                activeLabel.className = 'small';
+                activeLabel.style.marginBottom = '6px';
+                const activeCheckbox = document.createElement('input');
+                activeCheckbox.type = 'checkbox';
+                activeCheckbox.checked = tax.active !== false;
+                activeCheckbox.addEventListener('change', () => { taxes[idx].active = activeCheckbox.checked; });
+                activeLabel.appendChild(activeCheckbox);
+                activeLabel.appendChild(document.createTextNode(' Active'));
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = 'remove';
+                removeBtn.className = 'remove-btn';
+                removeBtn.addEventListener('click', () => { removeTax(idx); });
+                actionWrap.appendChild(activeLabel);
+                actionWrap.appendChild(removeBtn);
+
+                row.appendChild(labelWrap);
+                row.appendChild(rateWrap);
+                row.appendChild(typeWrap);
+                row.appendChild(incomeWrap);
+                row.appendChild(actionWrap);
+
+                return row;
+            }
+
+            function createIncomeRow(idx, tax) {
+                const wrap = document.createElement('div');
+                wrap.className = 'card';
+                wrap.style.marginBottom = '8px';
+                wrap.dataset.index = idx;
+
+                const title = document.createElement('div');
+                title.style.display = 'flex';
+                title.style.justifyContent = 'space-between';
+                title.style.alignItems = 'center';
+                title.style.marginBottom = '8px';
+
+                const left = document.createElement('div');
+                left.innerHTML = `<div style="font-weight:800;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)">${escapeHtml(tax.label || 'Tax ' + (idx + 1))}</div><div class="small" style="color:var(--muted)">${tax.type === 'daily' ? 'Daily income' : tax.type === 'other' ? 'Other income' : 'Monthly income'}</div>`;
+                const right = document.createElement('div');
+                right.style.textAlign = 'right';
+                right.innerHTML = `<div class="small" style="color:var(--muted)">rate</div><div style="font-weight:800;color:var(--accent)">${(tax.rate || 0).toFixed(2)}%</div>`;
+
+                title.appendChild(left);
+                title.appendChild(right);
+
+                const inputWrap = document.createElement('div');
+                inputWrap.style.display = 'flex';
+                inputWrap.style.gap = '8px';
+                inputWrap.style.alignItems = 'center';
+
+                const incomeInput = document.createElement('input');
+                incomeInput.type = 'number';
+                incomeInput.min = '0';
+                incomeInput.step = '0.01';
+                incomeInput.value = tax.income ?? 0;
+                incomeInput.style.flex = '1';
+                incomeInput.addEventListener('input', () => { taxes[idx].income = parseFloat(incomeInput.value) || 0; });
+
+                const typeSelect = document.createElement('select');
+                const optDaily2 = document.createElement('option'); optDaily2.value = 'daily'; optDaily2.textContent = 'Daily';
+                const optMonthly2 = document.createElement('option'); optMonthly2.value = 'monthly'; optMonthly2.textContent = 'Monthly';
+                const optOther2 = document.createElement('option'); optOther2.value = 'other'; optOther2.textContent = 'Other';
+                typeSelect.appendChild(optDaily2); typeSelect.appendChild(optMonthly2); typeSelect.appendChild(optOther2);
+                typeSelect.value = tax.type || 'monthly';
+                typeSelect.addEventListener('change', () => { taxes[idx].type = typeSelect.value; rebuildUI(); });
+
+                inputWrap.appendChild(incomeInput);
+                inputWrap.appendChild(typeSelect);
+
+                wrap.appendChild(title);
+                wrap.appendChild(inputWrap);
+
+                return wrap;
+            }
+
+            function rebuildUI() {
+                taxListEl.innerHTML = '';
+                incomeRowsEl.innerHTML = '';
+                taxes.forEach((t, i) => {
+                    taxListEl.appendChild(createTaxRow(i, t));
+                    incomeRowsEl.appendChild(createIncomeRow(i, t));
+                });
+                updateTaxCount();
+            }
+
+            function syncIncomeRow(idx) {
+                const incomeCard = incomeRowsEl.querySelector(`[data-index="${idx}"]`);
+                if (!incomeCard) return;
+                const tax = taxes[idx];
+                const titleDiv = incomeCard.querySelector('div');
+                if (titleDiv) {
+                    titleDiv.querySelector('div').textContent = tax.label || 'Tax ' + (idx + 1);
+                    const small = titleDiv.querySelector('.small');
+                    if (small) small.textContent = tax.type === 'daily' ? 'Daily income' : tax.type === 'other' ? 'Other income' : 'Monthly income';
+                }
+                const select = incomeCard.querySelector('select');
+                if (select) select.value = tax.type;
+                const inputs = incomeCard.querySelectorAll('input[type="number"]');
+                if (inputs && inputs[0]) inputs[0].value = tax.income ?? 0;
+            }
+
+            function addTax(t) {
+                taxes.push(Object.assign({ label: '', rate: 0, type: 'monthly', income: 0, active: true }, t || {}));
+                rebuildUI();
+                setTimeout(() => {
+                    const last = taxListEl.lastElementChild;
+                    if (last) last.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 80);
+            }
+
+            function removeTax(idx) {
+                taxes.splice(idx, 1);
+                rebuildUI();
+            }
+
+            function clearAll() {
+                taxes = [];
+                rebuildUI();
+                updateSummary([]);
+            }
+
+            function resetDefaults() {
+                taxes = DEFAULTS.map(d => Object.assign({}, d));
+                rebuildUI();
+                updateSummary([]);
+            }
+
+            // Calculation: uses entered income directly. Weekly is displayed as / other.
+            function calculate() {
+                const rows = [];
+                let grand = 0;
+                taxes.forEach((t, i) => {
+                    if (!t.active) return;
+                    const rateDecimal = (Number(t.rate) || 0) / 100;
+                    let income = Number(t.income) || 0;
+                    const taxAmount = income * rateDecimal;
+                    rows.push({
+                        label: t.label || `Tax ${i + 1}`,
+                        incomeRaw: Number(t.income) || 0,
+                        incomeConverted: income,
+                        type: t.type,
+                        rate: Number(t.rate) || 0,
+                        amount: taxAmount
+                    });
+                    grand += taxAmount;
+                });
+                updateSummary(rows, grand);
+            }
+
+            function updateSummary(rows, grand) {
+                summaryBody.innerHTML = '';
+                rows = rows || [];
+                if (rows.length === 0) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td colspan="4" class="summary-empty">no results yet — run calculate</td>`;
+                    summaryBody.appendChild(tr);
+                } else {
+                    rows.forEach(r => {
+                        const incomeDisplay = r.type === 'daily'
+                            ? `${formatCurrency(r.incomeRaw)} / daily`
+                            : r.type === 'other'
+                                ? `${formatCurrency(r.incomeConverted)} / other`
+                                : `${formatCurrency(r.incomeConverted)} / month`;
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `<td title="${escapeHtml(r.label)}">${escapeHtml(r.label)}</td><td title="${incomeDisplay}">${incomeDisplay}</td><td>${(r.rate || 0).toFixed(2)}%</td><td class="right">${formatCurrency(r.amount)}</td>`;
+                        summaryBody.appendChild(tr);
+                    });
+                }
+                grand = grand || 0;
+                grandTotalEl.textContent = formatCurrency(grand);
+                grandTotalFooter.textContent = formatCurrency(grand);
+            }
+
+            function updateTaxCount() {
+                taxCountEl.textContent = `taxes: ${taxes.length}`;
+            }
+
+            function escapeHtml(s) { return String(s).replace(/[&<>"']/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]; }); }
+
+            // Event bindings
+            addTaxBtn.addEventListener('click', () => addTax({ label: 'New Tax', rate: 0, type: 'monthly', income: 0, active: true }));
+            calculateBtn.addEventListener('click', () => calculate());
+            clearBtn.addEventListener('click', () => { taxes.forEach(t => { t.income = 0; }); rebuildUI(); updateSummary([]); });
+            resetBtn.addEventListener('click', () => resetDefaults());
+            clearAllBtn.addEventListener('click', () => clearAll());
+
+            presetButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const p = e.currentTarget.dataset.preset;
+                    if (p === 'example1') resetDefaults();
+                    if (p === 'clear') clearAll();
+                });
+            });
+
+            // initialize with defaults
+            resetDefaults();
+
+            // auto-calc on Enter key when focused in income inputs
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const active = document.activeElement;
+                    if (active && (active.tagName === 'INPUT' || active.tagName === 'SELECT')) {
+                        e.preventDefault();
+                        calculate();
+                    }
+                }
+            });
+
+            // expose a small API for debugging in console
+            window.TaxGen = {
+                getTaxes: () => taxes,
+                addTax,
+                removeTax,
+                calculate
+            };
+        })();
+    </script>
+</body>
+
+</html>
