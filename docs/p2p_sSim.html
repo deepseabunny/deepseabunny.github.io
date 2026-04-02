@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>P2P Node Simulator — Updated</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+        :root {
+            --bg: #050712;
+            --card: #111729;
+            --accent: #5b8cff;
+            --accent-2: #ff7ac4;
+            --accent-3: #4ade80;
+            --text: #f9fafb;
+            --muted: #9ca3af;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --radius-pill: 999px;
+            --node-width: 320px;
+            --grid-gap: 1.2rem;
+            --shadow-soft: 0 18px 45px rgba(0, 0, 0, 0.55);
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+            background: radial-gradient(circle at top, #111827 0, #020617 45%, #000 100%);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .app-shell {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem
+        }
+
+        .title-block {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem
+        }
+
+        .app-pill {
+            padding: 0.18rem 0.7rem;
+            border-radius: var(--radius-pill);
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            background: radial-gradient(circle at top left, #1f2937 0, #020617 70%);
+            font-size: 0.7rem;
+            color: var(--muted);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem
+        }
+
+        .app-pill-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background: radial-gradient(circle, #4ade80 0, #16a34a 60%, #052e16 100%);
+            box-shadow: 0 0 12px rgba(74, 222, 128, 0.8)
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem
+        }
+
+        h1 .accent {
+            background: linear-gradient(120deg, #5b8cff, #ff7ac4);
+            -webkit-background-clip: text;
+            color: transparent
+        }
+
+        .subtitle {
+            font-size: 0.85rem;
+            color: var(--muted);
+            max-width: 520px
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.5rem
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            justify-content: flex-end
+        }
+
+        button,
+        .chip {
+            border: none;
+            outline: none;
+            cursor: pointer;
+            font-family: inherit
+        }
+
+        .btn {
+            padding: 0.45rem 0.9rem;
+            border-radius: var(--radius-pill);
+            font-size: 0.8rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            background: radial-gradient(circle at top left, #020617 0, #020617 40%, #020617 100%);
+            color: var(--muted);
+            transition: all .18s
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #5b8cff, #ff7ac4);
+            border-color: rgba(129, 140, 248, 0.7);
+            color: #0b1020;
+            box-shadow: 0 12px 30px rgba(59, 130, 246, 0.45)
+        }
+
+        .btn-ghost {
+            background: rgba(15, 23, 42, 0.8)
+        }
+
+        .legend {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.75rem;
+            color: var(--muted);
+            flex-wrap: wrap;
+            justify-content: flex-end
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px
+        }
+
+        .legend-dot.local {
+            background: var(--accent-3)
+        }
+
+        .legend-dot.remote {
+            background: var(--accent-2)
+        }
+
+        .legend-dot.persisted {
+            background: var(--accent)
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(var(--node-width), 1fr));
+            gap: var(--grid-gap)
+        }
+
+        .node-card {
+            position: relative;
+            border-radius: var(--radius-lg);
+            background: radial-gradient(circle at top left, #111827 0, #020617 55%, #020617 100%);
+            border: 1px solid rgba(31, 41, 55, 0.9);
+            box-shadow: var(--shadow-soft);
+            padding: 0.9rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            overflow: hidden
+        }
+
+        .node-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            z-index: 1
+        }
+
+        .node-id {
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem
+        }
+
+        .node-label-row {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem
+        }
+
+        .node-chip {
+            padding: 0.1rem 0.5rem;
+            border-radius: var(--radius-pill);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            color: var(--muted);
+            background: rgba(15, 23, 42, 0.9);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem
+        }
+
+        .node-chip-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background: radial-gradient(circle, #22c55e 0, #16a34a 60%, #052e16 100%);
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.8)
+        }
+
+        .node-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase
+        }
+
+        .node-meta {
+            font-size: 0.7rem;
+            color: var(--muted)
+        }
+
+        .node-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem
+        }
+
+        .node-body {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.2fr);
+            gap: 0.6rem;
+            z-index: 1
+        }
+
+        .node-panel {
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(31, 41, 55, 0.9);
+            background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.85));
+            padding: 0.55rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            position: relative;
+            overflow: hidden
+        }
+
+        .panel-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.4rem;
+            font-size: 0.75rem;
+            color: var(--muted)
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 70px;
+            max-height: 120px;
+            resize: vertical;
+            border-radius: 10px;
+            border: 1px solid rgba(55, 65, 81, 0.9);
+            background: rgba(15, 23, 42, 0.95);
+            color: var(--text);
+            padding: 0.45rem 0.5rem;
+            font-size: 0.8rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            outline: none
+        }
+
+        .input-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.4rem;
+            margin-top: 0.2rem
+        }
+
+        .input-meta {
+            font-size: 0.7rem;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 0.35rem
+        }
+
+        .btn-send {
+            padding: 0.3rem 0.7rem;
+            border-radius: var(--radius-pill);
+            border: 1px solid rgba(129, 140, 248, 0.8);
+            background: linear-gradient(135deg, #4f46e5, #22c55e);
+            color: #e5e7eb;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.45);
+            transition: all .18s
+        }
+
+        .history-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            max-height: 150px;
+            overflow-y: auto;
+            border-radius: 8px;
+            border: 1px solid rgba(31, 41, 55, 0.9);
+            background: radial-gradient(circle at top, rgba(15, 23, 42, 0.95) 0, #020617 60%);
+            font-size: 0.75rem
+        }
+
+        .history-item {
+            padding: 0.35rem 0.45rem;
+            border-bottom: 1px solid rgba(31, 41, 55, 0.9);
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 0.1rem
+        }
+
+        .history-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.4rem;
+            font-size: 0.68rem;
+            color: var(--muted)
+        }
+
+        .badge {
+            padding: 0.05rem 0.4rem;
+            border-radius: var(--radius-pill);
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            border: 1px solid rgba(55, 65, 81, 0.9);
+            background: rgba(15, 23, 42, 0.9)
+        }
+
+        .badge-local {
+            border-color: rgba(34, 197, 94, 0.8);
+            color: #bbf7d0
+        }
+
+        .badge-remote {
+            border-color: rgba(244, 114, 182, 0.8);
+            color: #f9a8d4
+        }
+
+        .badge-persisted {
+            border-color: rgba(59, 130, 246, 0.8);
+            color: #bfdbfe
+        }
+
+        .history-text {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            color: #e5e7eb;
+            word-break: break-word
+        }
+
+        .history-empty {
+            padding: 0.4rem 0.45rem;
+            font-size: 0.7rem;
+            color: var(--muted);
+            text-align: center
+        }
+
+        .panel-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.4rem;
+            margin-top: 0.25rem;
+            font-size: 0.7rem;
+            color: var(--muted)
+        }
+
+        .btn-mini {
+            padding: 0.15rem 0.45rem;
+            border-radius: var(--radius-pill);
+            border: 1px solid rgba(55, 65, 81, 0.9);
+            background: rgba(15, 23, 42, 0.9);
+            color: var(--muted);
+            font-size: 0.65rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            transition: all .18s
+        }
+
+        .btn-mini-danger {
+            border-color: rgba(248, 113, 113, 0.8);
+            color: #fecaca
+        }
+
+        .status-pill {
+            padding: 0.05rem 0.45rem;
+            border-radius: var(--radius-pill);
+            border: 1px solid rgba(55, 65, 81, 0.9);
+            background: rgba(15, 23, 42, 0.9);
+            font-size: 0.65rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background: radial-gradient(circle, #22c55e 0, #16a34a 60%, #052e16 100%);
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.8)
+        }
+
+        .status-dot.offline {
+            background: radial-gradient(circle, #f97373 0, #b91c1c 60%, #450a0a 100%);
+            box-shadow: 0 0 10px rgba(248, 113, 113, 0.8)
+        }
+
+        .node-meta-small {
+            font-size: 0.72rem;
+            color: var(--muted);
+            margin-top: 0.25rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center
+        }
+
+        .small-pill {
+            padding: 0.06rem 0.35rem;
+            border-radius: 999px;
+            background: rgba(91, 140, 255, 0.06);
+            border: 1px solid rgba(91, 140, 255, 0.12);
+            font-size: 0.68rem;
+            color: var(--muted)
+        }
+
+        .footer {
+            margin-top: 0.5rem;
+            font-size: 0.7rem;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            gap: 0.5rem;
+            flex-wrap: wrap
+        }
+
+        @media (max-width:768px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start
+            }
+
+            .controls {
+                align-items: flex-start
+            }
+
+            .node-body {
+                grid-template-columns: 1fr
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-shell">
+        <header>
+            <div class="title-block">
+                <div class="app-pill"><span class="app-pill-dot"></span><span>P2P Playground</span></div>
+                <div style="display:flex;align-items:center;gap:.6rem">
+                    <h1><span class="accent">Node Mesh</span> Simulator</h1>
+                </div>
+                <p class="subtitle">Each card is a node with its own IndexedDB store. Messages are broadcast over a
+                    shared socket bus and persisted locally per node. This build includes reliability fixes and debug
+                    logging.</p>
+            </div>
+
+            <div class="controls">
+                <div class="control-row">
+                    <button class="btn btn-primary" id="btn-add-node">+ Add Node</button>
+                    <button class="btn btn-ghost" id="btn-clear-all">Clear All IndexedDB</button>
+                </div>
+                <div class="legend">
+                    <span class="legend-item"><span class="legend-dot local"></span> Local send</span>
+                    <span class="legend-item"><span class="legend-dot remote"></span> Remote receive</span>
+                    <span class="legend-item"><span class="legend-dot persisted"></span> Persisted in IndexedDB</span>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <section class="grid" id="node-grid"></section>
+
+            <div class="footer">
+                <span><strong>IndexedDB:</strong> per-node stores (<code>p2p_node_{id}</code>) with message
+                    history.</span>
+                <span><strong>Socket bus:</strong> BroadcastChannel + local handler invocation for reliable same-page
+                    delivery.</span>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // -------------------- SocketBus (robust) --------------------
+        class SocketBus {
+            constructor(channelName = "p2p-mesh-channel") {
+                this.channelName = channelName;
+                this.handlers = new Set();
+                this.channel = (typeof BroadcastChannel !== "undefined") ? new BroadcastChannel(channelName) : null;
+
+                if (this.channel) {
+                    this.channel.onmessage = (event) => {
+                        // deliver to handlers (other tabs will also get this)
+                        for (const h of this.handlers) {
+                            try { h(event.data); } catch (e) { console.error("SocketBus handler (bc) error:", e); }
+                        }
+                    };
+                } else {
+                    console.warn("BroadcastChannel unavailable — using local-only bus.");
+                }
+            }
+
+            onMessage(handler) {
+                this.handlers.add(handler);
+                return () => this.handlers.delete(handler);
+            }
+
+            send(payload) {
+                // 1) Broadcast to other contexts
+                if (this.channel) {
+                    try { this.channel.postMessage(payload); }
+                    catch (err) { console.warn("BroadcastChannel.postMessage failed:", err); }
+                }
+
+                // 2) Also invoke local handlers directly so same-page nodes always receive it
+                for (const h of this.handlers) {
+                    try { h(payload); } catch (err) { console.error("SocketBus handler (local) error:", err); }
+                }
+            }
+
+            close() {
+                if (this.channel) this.channel.close();
+                this.handlers.clear();
+            }
+        }
+
+        const socketBus = new SocketBus();
+
+        // -------------------- IndexedDB helpers (improved) --------------------
+        const DB_VERSION = 1;
+        const STORE_NAME = "messages";
+
+        function openNodeDB(nodeId) {
+            return new Promise((resolve, reject) => {
+                const dbName = `p2p_node_${nodeId}`;
+                const request = indexedDB.open(dbName, DB_VERSION);
+
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        const store = db.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
+                        store.createIndex("createdAt", "createdAt", { unique: false });
+                        // optional index for dedupe by origin/time
+                        store.createIndex("from_createdAt", ["from", "createdAt"], { unique: false });
+                    }
+                };
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function addMessageToDB(nodeId, message) {
+            return openNodeDB(nodeId).then((db) => {
+                return new Promise((resolve, reject) => {
+                    try {
+                        const tx = db.transaction(STORE_NAME, "readwrite");
+                        const store = tx.objectStore(STORE_NAME);
+
+                        // Basic dedupe: check if a message with same from+createdAt exists
+                        // (prevents duplicates when both local invocation and BroadcastChannel deliver)
+                        const idx = store.index("from_createdAt");
+                        const key = [message.from, message.createdAt];
+                        const getReq = idx.getAll(key);
+
+                        getReq.onsuccess = () => {
+                            const found = getReq.result || [];
+                            if (found.length > 0) {
+                                // Already persisted similar message — resolve with existing id
+                                resolve(found[0].id);
+                                try { db.close(); } catch (_) { }
+                                return;
+                            }
+
+                            const addReq = store.add(message);
+                            addReq.onsuccess = () => {
+                                resolve(addReq.result);
+                            };
+                            addReq.onerror = () => {
+                                reject(addReq.error || tx.error);
+                            };
+                        };
+                        getReq.onerror = () => {
+                            reject(getReq.error || new Error("IndexedDB dedupe check failed"));
+                        };
+
+                        tx.oncomplete = () => { try { db.close(); } catch (_) { } };
+                        tx.onerror = () => { try { db.close(); } catch (_) { } };
+                    } catch (err) {
+                        try { db.close(); } catch (_) { }
+                        reject(err);
+                    }
+                });
+            });
+        }
+
+        function getAllMessagesFromDB(nodeId) {
+            return openNodeDB(nodeId).then((db) => {
+                return new Promise((resolve, reject) => {
+                    try {
+                        const tx = db.transaction(STORE_NAME, "readonly");
+                        const store = tx.objectStore(STORE_NAME);
+                        const index = store.index("createdAt");
+                        const request = index.getAll();
+
+                        request.onsuccess = () => {
+                            const result = request.result || [];
+                            resolve(result);
+                        };
+                        request.onerror = () => {
+                            reject(request.error || new Error("IndexedDB getAll failed"));
+                        };
+
+                        tx.oncomplete = () => { try { db.close(); } catch (_) { } };
+                        tx.onerror = () => { try { db.close(); } catch (_) { } };
+                    } catch (err) {
+                        try { db.close(); } catch (_) { }
+                        reject(err);
+                    }
+                });
+            });
+        }
+
+        function clearNodeDB(nodeId) {
+            return new Promise((resolve, reject) => {
+                const dbName = `p2p_node_${nodeId}`;
+                const deleteRequest = indexedDB.deleteDatabase(dbName);
+                deleteRequest.onsuccess = () => resolve();
+                deleteRequest.onerror = () => reject(deleteRequest.error);
+                deleteRequest.onblocked = () => {
+                    console.warn(`Delete blocked for DB ${dbName}`);
+                };
+            });
+        }
+
+        // -------------------- Node UI + logic (merged + debug) --------------------
+        let nodeCounter = 0;
+        const nodeGrid = document.getElementById("node-grid");
+        const nodes = new Map();
+
+        const NODE_COLORS = ["#5b8cff", "#ff7ac4", "#4ade80", "#facc15", "#38bdf8", "#a855f7"];
+
+        class Node {
+            constructor(id) {
+                this.id = id;
+                this.color = NODE_COLORS[(id - 1) % NODE_COLORS.length];
+                this.online = true;
+                this.lastSent = null;
+                this.lastReceived = null;
+                this.element = this.createNodeElement();
+
+                // Subscribe to socket bus
+                this.unsubscribe = socketBus.onMessage((payload) => {
+                    console.debug(`[Node ${this.id}] socketBus.onMessage payload ->`, payload);
+                    if (!this.online) {
+                        console.debug(`[Node ${this.id}] ignoring payload because offline`);
+                        return;
+                    }
+                    // Validate payload shape
+                    if (!payload || payload.type !== "message" || payload.to !== "all") return;
+                    // Ignore messages from self
+                    if (payload.from === this.id) return;
+
+                    // Handle incoming asynchronously and surface errors
+                    this.handleIncoming(payload).catch((err) => {
+                        console.error(`[Node ${this.id}] handleIncoming error:`, err);
+                    });
+                });
+
+                // Load initial history
+                this.refreshHistory().catch((err) => {
+                    console.error(`[Node ${this.id}] initial refreshHistory error:`, err);
+                });
+            }
+
+            createNodeElement() {
+                const card = document.createElement("article");
+                card.className = "node-card";
+
+                const header = document.createElement("div");
+                header.className = "node-header";
+
+                const idBlock = document.createElement("div");
+                idBlock.className = "node-id";
+
+                const labelRow = document.createElement("div");
+                labelRow.className = "node-label-row";
+
+                const chip = document.createElement("div");
+                chip.className = "node-chip";
+                chip.innerHTML = `<span class="node-chip-dot" style="background:${this.color}"></span><span>Node</span>`;
+
+                const name = document.createElement("div");
+                name.className = "node-name";
+                name.textContent = `#${this.id.toString().padStart(2, "0")}`;
+
+                labelRow.appendChild(chip);
+                labelRow.appendChild(name);
+
+                const meta = document.createElement("div");
+                meta.className = "node-meta";
+                meta.textContent = `DB: p2p_node_${this.id}`;
+
+                idBlock.appendChild(labelRow);
+                idBlock.appendChild(meta);
+
+                const actions = document.createElement("div");
+                actions.className = "node-actions";
+
+                const toggleBtn = document.createElement("button");
+                toggleBtn.className = "btn-mini";
+                toggleBtn.innerHTML = `<span>Go offline</span>`;
+                toggleBtn.addEventListener("click", () => {
+                    this.online = !this.online;
+                    this.updateStatus();
+                });
+
+                const syncBtn = document.createElement("button");
+                syncBtn.className = "btn-mini";
+                syncBtn.innerHTML = `<span>Sync history</span>`;
+                syncBtn.addEventListener("click", () => this.refreshHistory().catch(err => {
+                    console.error(`[Node ${this.id}] sync error:`, err);
+                    this.historyList.innerHTML = `<li class="history-empty">Error loading history (see console)</li>`;
+                }));
+
+                const clearBtn = document.createElement("button");
+                clearBtn.className = "btn-mini btn-mini-danger";
+                clearBtn.innerHTML = `<span>Clear DB</span>`;
+                clearBtn.addEventListener("click", async () => {
+                    try {
+                        await clearNodeDB(this.id);
+                        this.renderHistory([]);
+                    } catch (err) {
+                        console.error(`[Node ${this.id}] clear DB error:`, err);
+                        alert("Failed to clear DB (see console).");
+                    }
+                });
+
+                actions.appendChild(toggleBtn);
+                actions.appendChild(syncBtn);
+                actions.appendChild(clearBtn);
+
+                header.appendChild(idBlock);
+                header.appendChild(actions);
+
+                const body = document.createElement("div");
+                body.className = "node-body";
+
+                // Input panel
+                const inputPanel = document.createElement("div");
+                inputPanel.className = "node-panel";
+
+                const inputTitleRow = document.createElement("div");
+                inputTitleRow.className = "panel-title-row";
+                inputTitleRow.innerHTML = `<div class="panel-title"><span>Outbound</span></div><div class="panel-pill">Broadcast → all</div>`;
+
+                const textarea = document.createElement("textarea");
+                textarea.placeholder = "Type a message to broadcast to all nodes…";
+
+                const inputFooter = document.createElement("div");
+                inputFooter.className = "input-footer";
+
+                const inputMeta = document.createElement("div");
+                inputMeta.className = "input-meta";
+                inputMeta.innerHTML = `<span class="dot"></span><span>Local write + socket broadcast</span>`;
+
+                const sendBtn = document.createElement("button");
+                sendBtn.className = "btn-send";
+                sendBtn.innerHTML = `<span>Send</span>`;
+                sendBtn.addEventListener("click", async () => {
+                    const text = textarea.value.trim();
+                    if (!text) return;
+                    try {
+                        await this.sendMessage(text);
+                        textarea.value = "";
+                    } catch (err) {
+                        console.error(`[Node ${this.id}] sendMessage error:`, err);
+                        alert("Failed to send message (see console).");
+                    }
+                });
+
+                inputFooter.appendChild(inputMeta);
+                inputFooter.appendChild(sendBtn);
+
+                inputPanel.appendChild(inputTitleRow);
+                inputPanel.appendChild(textarea);
+                inputPanel.appendChild(inputFooter);
+
+                // History panel
+                const historyPanel = document.createElement("div");
+                historyPanel.className = "node-panel";
+
+                const historyTitleRow = document.createElement("div");
+                historyTitleRow.className = "panel-title-row";
+                historyTitleRow.innerHTML = `<div class="panel-title"><span>History</span></div><div class="panel-pill">IndexedDB</div>`;
+
+                const historyList = document.createElement("ul");
+                historyList.className = "history-list";
+                historyList.innerHTML = `<li class="history-empty">No messages yet.</li>`;
+
+                const panelFooter = document.createElement("div");
+                panelFooter.className = "panel-footer";
+
+                const footerLeft = document.createElement("div");
+                footerLeft.className = "panel-footer-left";
+                footerLeft.innerHTML = `<span>Stored locally per node.</span>`;
+
+                const footerRight = document.createElement("div");
+                footerRight.className = "panel-footer-right";
+
+                const statusPill = document.createElement("div");
+                statusPill.className = "status-pill";
+                statusPill.innerHTML = `<span class="status-dot"></span><span>Online</span>`;
+
+                footerRight.appendChild(statusPill);
+
+                panelFooter.appendChild(footerLeft);
+                panelFooter.appendChild(footerRight);
+
+                historyPanel.appendChild(historyTitleRow);
+                historyPanel.appendChild(historyList);
+                historyPanel.appendChild(panelFooter);
+
+                // Small meta row for last sent/received
+                const metaSmall = document.createElement("div");
+                metaSmall.className = "node-meta-small";
+                metaSmall.innerHTML = `<span class="small-pill" id="last-sent-${this.id}">Last sent: —</span><span class="small-pill" id="last-recv-${this.id}">Last recv: —</span>`;
+
+                body.appendChild(inputPanel);
+                body.appendChild(historyPanel);
+
+                card.appendChild(header);
+                card.appendChild(body);
+                card.appendChild(metaSmall);
+
+                this.textarea = textarea;
+                this.historyList = historyList;
+                this.statusPill = statusPill;
+                this.toggleBtn = toggleBtn;
+                this.lastSentEl = metaSmall.querySelector(`#last-sent-${this.id}`);
+                this.lastRecvEl = metaSmall.querySelector(`#last-recv-${this.id}`);
+
+                nodeGrid.appendChild(card);
+                return card;
+            }
+
+            updateStatus() {
+                const dot = this.statusPill.querySelector(".status-dot");
+                const label = this.statusPill.querySelector("span:nth-child(2)");
+                if (this.online) {
+                    dot.classList.remove("offline");
+                    label.textContent = "Online";
+                    this.toggleBtn.innerHTML = `<span>Go offline</span>`;
+                } else {
+                    dot.classList.add("offline");
+                    label.textContent = "Offline";
+                    this.toggleBtn.innerHTML = `<span>Go online</span>`;
+                }
+            }
+
+            async sendMessage(text) {
+                const now = new Date().toISOString();
+                const message = {
+                    type: "message",
+                    from: this.id,
+                    to: "all",
+                    body: text,
+                    createdAt: now,
+                    direction: "outbound",
+                };
+
+                console.debug(`[Node ${this.id}] sendMessage ->`, message);
+
+                // Persist locally first
+                await addMessageToDB(this.id, {
+                    ...message,
+                    persistedAt: now
+                });
+
+                // Update last sent UI
+                this.lastSent = now;
+                this.lastSentEl.textContent = `Last sent: ${new Date(now).toLocaleTimeString()}`;
+
+                // Broadcast to bus
+                socketBus.send(message);
+
+                // Refresh own history
+                await this.refreshHistory();
+            }
+
+            async handleIncoming(payload) {
+                // payload validated earlier
+                const now = new Date().toISOString();
+                const message = {
+                    type: "message",
+                    from: payload.from,
+                    to: payload.to,
+                    body: payload.body,
+                    createdAt: payload.createdAt,
+                    direction: "inbound",
+                    persistedAt: now,
+                };
+
+                console.debug(`[Node ${this.id}] handleIncoming ->`, message);
+
+                // Persist inbound message
+                await addMessageToDB(this.id, message);
+
+                // Update last received UI
+                this.lastReceived = now;
+                this.lastRecvEl.textContent = `Last recv: ${new Date(now).toLocaleTimeString()}`;
+
+                // Refresh UI
+                await this.refreshHistory();
+            }
+
+            async refreshHistory() {
+                try {
+                    const messages = await getAllMessagesFromDB(this.id);
+                    console.debug(`[Node ${this.id}] refreshHistory loaded ${messages.length} messages`);
+                    this.renderHistory(messages);
+                } catch (err) {
+                    console.error(`[Node ${this.id}] refreshHistory error:`, err);
+                    this.historyList.innerHTML = `<li class="history-empty">Error loading history (see console)</li>`;
+                }
+            }
+
+            renderHistory(messages) {
+                this.historyList.innerHTML = "";
+                if (!messages.length) {
+                    this.historyList.innerHTML = `<li class="history-empty">No messages yet.</li>`;
+                    return;
+                }
+
+                messages
+                    .slice()
+                    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+                    .forEach((msg) => {
+                        const li = document.createElement("li");
+                        li.className = "history-item";
+
+                        const meta = document.createElement("div");
+                        meta.className = "history-meta";
+
+                        const left = document.createElement("div");
+                        left.className = "history-meta-left";
+
+                        const directionBadge = document.createElement("span");
+                        directionBadge.className = "badge " + (msg.direction === "outbound" ? "badge-local" : "badge-remote");
+                        directionBadge.textContent = msg.direction === "outbound" ? "Local" : `From #${String(msg.from).padStart(2, "0")}`;
+
+                        const persistedBadge = document.createElement("span");
+                        persistedBadge.className = "badge badge-persisted";
+                        persistedBadge.textContent = "IndexedDB";
+
+                        left.appendChild(directionBadge);
+                        left.appendChild(persistedBadge);
+
+                        const time = document.createElement("span");
+                        time.textContent = new Date(msg.createdAt).toLocaleTimeString();
+
+                        meta.appendChild(left);
+                        meta.appendChild(time);
+
+                        const text = document.createElement("div");
+                        text.className = "history-text";
+                        text.textContent = msg.body;
+
+                        li.appendChild(meta);
+                        li.appendChild(text);
+                        this.historyList.appendChild(li);
+                    });
+
+                this.historyList.scrollTop = this.historyList.scrollHeight;
+            }
+
+            destroy() {
+                if (this.unsubscribe) this.unsubscribe();
+                if (this.element && this.element.parentNode) {
+                    this.element.parentNode.removeChild(this.element);
+                }
+            }
+        }
+
+        // -------------------- Global controls --------------------
+        function addNode() {
+            nodeCounter += 1;
+            const node = new Node(nodeCounter);
+            nodes.set(nodeCounter, node);
+        }
+
+        async function clearAllIndexedDB() {
+            const promises = [];
+            for (const id of nodes.keys()) {
+                promises.push(clearNodeDB(id));
+            }
+            try {
+                await Promise.all(promises);
+                for (const node of nodes.values()) {
+                    node.renderHistory([]);
+                    node.lastSentEl.textContent = `Last sent: —`;
+                    node.lastRecvEl.textContent = `Last recv: —`;
+                }
+            } catch (err) {
+                console.error("clearAllIndexedDB error:", err);
+                alert("Failed to clear all DBs (see console).");
+            }
+        }
+
+        document.getElementById("btn-add-node").addEventListener("click", () => addNode());
+        document.getElementById("btn-clear-all").addEventListener("click", () => clearAllIndexedDB());
+
+        // Seed with a few nodes
+        addNode();
+        addNode();
+        addNode();
+
+        // Expose a small debug helper on window for quick checks
+        window.__p2p_debug = {
+            socketBus,
+            nodes,
+            addNode,
+            clearAllIndexedDB,
+            openNodeDB,
+            getAllMessagesFromDB
+        };
+
+        console.info("P2P Node Simulator initialized. Use window.__p2p_debug for quick inspection.");
+    </script>
+</body>
+
+</html>
