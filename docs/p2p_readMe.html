@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>P2P Node Mesh Simulator — README</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+        :root {
+            --bg: #071028;
+            --card: #0f1724;
+            --accent: #5b8cff;
+            --accent-2: #ff7ac4;
+            --muted: #9aa6b2;
+            --text: #e6eef8;
+            --mono: ui-monospace, Menlo, Monaco, "Courier New", monospace;
+            --radius: 12px;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0
+        }
+
+        body {
+            background: linear-gradient(180deg, #041026 0, #020617 100%);
+            color: var(--text);
+            font-family: Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+            line-height: 1.6;
+            padding: 28px;
+        }
+
+        .container {
+            max-width: 980px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 14px;
+            padding: 28px;
+            border: 1px solid rgba(255, 255, 255, 0.04)
+        }
+
+        h1 {
+            color: var(--accent);
+            margin: 0 0 8px;
+            font-size: 1.9rem
+        }
+
+        h2 {
+            color: #cfe0ff;
+            margin-top: 22px;
+            margin-bottom: 8px
+        }
+
+        h3 {
+            color: #dbe9ff;
+            margin-top: 16px;
+            margin-bottom: 6px
+        }
+
+        p,
+        ul,
+        ol {
+            color: var(--muted);
+            margin: 8px 0
+        }
+
+        ul {
+            margin-left: 20px
+        }
+
+        pre {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 12px;
+            border-radius: 10px;
+            overflow: auto;
+            color: #dbe9ff;
+            font-family: var(--mono);
+            font-size: 0.95rem
+        }
+
+        code {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-family: var(--mono)
+        }
+
+        .note {
+            background: rgba(91, 140, 255, 0.06);
+            border-left: 4px solid rgba(91, 140, 255, 0.18);
+            padding: 10px;
+            border-radius: 8px;
+            color: #dbe9ff
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px
+        }
+
+        th,
+        td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            color: var(--muted)
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 0.95rem
+        }
+
+        footer {
+            margin-top: 18px;
+            color: var(--muted);
+            font-size: 0.9rem
+        }
+
+        @media (max-width:720px) {
+            .container {
+                padding: 18px
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>P2P Node Mesh Simulator</h1>
+        <p>
+            A browser‑based simulator that models a small peer‑to‑peer mesh. Each node runs in the same page,
+            has its own IndexedDB store, and exchanges messages over a socket‑like bus. This README documents
+            the architecture, exact runtime behavior, UI controls, technical operations, JSON examples, and
+            troubleshooting steps.
+        </p>
+
+        <h2>Architecture</h2>
+        <p>
+            The simulator is intentionally simple and client‑side only. It is composed of three main parts:
+        </p>
+        <ul>
+            <li><strong>Node UI</strong> — a card representing a peer with controls for sending, syncing, and toggling
+                online state.</li>
+            <li><strong>IndexedDB per node</strong> — each node stores messages in a database named
+                <code>p2p_node_{id}</code>.</li>
+            <li><strong>SocketBus</strong> — a hybrid broadcast layer using <code>BroadcastChannel</code> plus direct
+                local handler invocation to guarantee same‑page delivery.</li>
+        </ul>
+
+        <h3>Databases and Stores</h3>
+        <p>Each node uses an IndexedDB database with a single object store:</p>
+        <pre><code>Database: p2p_node_{id}
+Object store: messages
+Indexes: createdAt, from_createdAt</code></pre>
+
+        <h2>Message Model and Operations</h2>
+        <p>
+            Messages and control operations use a small canonical JSON schema. The simulator supports three top‑level
+            operation types: <code>message</code>, <code>sync-request</code>, and <code>sync-response</code>.
+        </p>
+
+        <h3>Canonical message</h3>
+        <pre><code>{
+  "type": "message",
+  "from": 1,
+  "to": "all",
+  "body": "Hello world",
+  "createdAt": "2026-04-02T07:00:00.000Z",
+  "direction": "outbound",
+  "persistedAt": "2026-04-02T07:00:00.050Z"
+}</code></pre>
+
+        <h3>Operation examples</h3>
+        <p class="muted">Outbound broadcast (sender constructs and posts):</p>
+        <pre><code>{
+  "type": "message",
+  "from": 1,
+  "to": "all",
+  "body": "Ping from Node 1",
+  "createdAt": "2026-04-02T07:00:00.000Z"
+}</code></pre>
+
+        <p class="muted">Sync request (requester asks peers for messages newer than lastSeen):</p>
+        <pre><code>{
+  "type": "sync-request",
+  "from": 2,
+  "to": "all",
+  "lastSeen": "2026-04-02T07:00:00.000Z" // or null to request everything
+}</code></pre>
+
+        <p class="muted">Sync response (peer replies directly to requester):</p>
+        <pre><code>{
+  "type": "sync-response",
+  "from": 3,
+  "to": 2,
+  "messages": [
+    {
+      "type": "message",
+      "from": 3,
+      "to": "all",
+      "body": "Missed message",
+      "createdAt": "2026-04-02T07:05:00.000Z"
+    }
+  ]
+}</code></pre>
+
+        <h3>IndexedDB record example</h3>
+        <pre><code>{
+  "id": 7,
+  "type": "message",
+  "from": 1,
+  "to": "all",
+  "body": "Hello world",
+  "createdAt": "2026-04-02T07:00:00.000Z",
+  "direction": "inbound",
+  "persistedAt": "2026-04-02T07:00:00.120Z"
+}</code></pre>
+
+        <h2>Runtime Behavior</h2>
+        <p>
+            The simulator intentionally models a real‑time broadcast mesh without a central store. The exact behavior
+            you will observe is described below.
+        </p>
+
+        <h3>Normal send and receive</h3>
+        <ol>
+            <li>Sender persists the message to its own DB (outbound record).</li>
+            <li>Sender calls <code>socketBus.send(payload)</code>.</li>
+            <li>SocketBus posts to BroadcastChannel (cross‑tab) and invokes local handlers directly (same‑page).</li>
+            <li>Each online peer receives the payload, persists an inbound record, and updates UI.</li>
+        </ol>
+
+        <h3>Offline handling</h3>
+        <p class="note">
+            By design, when a node is toggled offline it stops processing incoming broadcasts. The node does not buffer,
+            queue, or persist messages while offline. Messages sent while a node is offline are not automatically
+            recovered.
+        </p>
+
+        <h3>Sync history behavior</h3>
+        <p>
+            The Sync History control currently performs a local read of the node's IndexedDB and refreshes the UI.
+            It does not contact peers or request missed messages unless a sync protocol (sync‑request / sync‑response)
+            is implemented and enabled.
+        </p>
+
+        <h2>Scenario Walkthroughs</h2>
+
+        <h3>Scenario A: Real‑time delivery</h3>
+        <pre><code>1. Node 1 sends "Hello"
+2. Node 2 and Node 3 are online
+3. Node 2 and Node 3 receive and persist the message
+4. All three nodes show the message in their history</code></pre>
+
+        <h3>Scenario B: Offline gap</h3>
+        <pre><code>1. Node 1 sends "Hello"
+2. Node 2 receives it
+3. Node 2 goes offline
+4. Node 3 sends "Missed A" and "Missed B"
+5. Node 2 clicks Sync History
+6. Node 2 sees only messages it persisted earlier; "Missed A" and "Missed B" are not present</code></pre>
+
+        <p class="muted">Reason: Sync History reads local DB only; Node 2 never persisted Node 3's messages while
+            offline.</p>
+
+        <h2>Sync Protocol Design (optional extension)</h2>
+        <p>
+            To recover missed messages, implement the following peer‑to‑peer catch‑up protocol:
+        </p>
+        <ol>
+            <li><strong>Requester</strong> computes <code>lastSeen</code> (latest <code>createdAt</code> it has) and
+                broadcasts a <code>sync-request</code>.</li>
+            <li><strong>Peers</strong> query their DB for messages with <code>createdAt &gt; lastSeen</code> and reply
+                with a <code>sync-response</code> addressed to the requester.</li>
+            <li><strong>Requester</strong> persists incoming messages (dedupe by <code>from</code> +
+                <code>createdAt</code>) and refreshes UI.</li>
+        </ol>
+
+        <h3>getMessagesSince helper</h3>
+        <pre><code>function getMessagesSince(nodeId, sinceIso) {
+  // open DB p2p_node_{nodeId}, query createdAt index with lowerBound(sinceIso, true)
+  // return array of messages
+}</code></pre>
+
+        <h3>Requester flow example</h3>
+        <pre><code>// requester
+socketBus.send({
+  type: "sync-request",
+  from: requesterId,
+  to: "all",
+  lastSeen: "2026-04-02T07:00:00.000Z"
+});</code></pre>
+
+        <h3>Peer response example</h3>
+        <pre><code>// peer replies with messages newer than lastSeen
+socketBus.send({
+  type: "sync-response",
+  from: peerId,
+  to: requesterId,
+  messages: [ /* messages */ ]
+});</code></pre>
+
+        <h2>UI Controls and Exact Effects</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Control</th>
+                    <th>Effect</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Add Node</td>
+                    <td>Creates a new node card, subscribes to socket bus, DB created on demand</td>
+                </tr>
+                <tr>
+                    <td>Clear All IndexedDB</td>
+                    <td>Deletes all <code>p2p_node_{id}</code> databases and clears UI</td>
+                </tr>
+                <tr>
+                    <td>Send</td>
+                    <td>Persist locally, broadcast via socket bus, refresh sender UI</td>
+                </tr>
+                <tr>
+                    <td>Go offline / online</td>
+                    <td>Toggle whether node processes incoming broadcasts</td>
+                </tr>
+                <tr>
+                    <td>Sync history</td>
+                    <td>Reads local DB and refreshes UI; does not contact peers unless sync protocol is added</td>
+                </tr>
+                <tr>
+                    <td>Clear DB</td>
+                    <td>Deletes that node's DB and clears its history UI</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>Troubleshooting</h2>
+        <h3>If messages are not appearing on other nodes</h3>
+        <ul>
+            <li>Confirm receiving nodes are online (status pill shows Online).</li>
+            <li>Open DevTools console and watch for logs from <code>sendMessage</code>,
+                <code>socketBus.onMessage</code>, and <code>refreshHistory</code>.</li>
+            <li>Ensure <code>BroadcastChannel</code> is available in your environment; the bus also invokes local
+                handlers directly for same‑page delivery.</li>
+            <li>Check for IndexedDB errors in the console (permissions, blocked deletes, open connections).</li>
+        </ul>
+
+        <h3>If Sync history shows no new messages after offline period</h3>
+        <ul>
+            <li>Understand that Sync history reads local DB only; missed messages must be recovered via a sync protocol.
+            </li>
+            <li>Implement the sync‑request / sync‑response flow described above to enable catch‑up.</li>
+        </ul>
+
+        <h2>Extensions and Next Steps</h2>
+        <ul>
+            <li>Implement the sync protocol to recover missed messages.</li>
+            <li>Add selective routing so <code>to</code> can be a node id instead of <code>"all"</code>.</li>
+            <li>Introduce a lightweight relay or WebSocket backend for multi‑device persistence.</li>
+            <li>Use CRDTs for conflict‑free replicated state beyond simple message logs.</li>
+            <li>Add encryption and signatures for message authenticity.</li>
+        </ul>
+
+        <footer>
+            <div class="muted">
+                This README documents the simulator's current behavior and provides concrete JSON examples and a clear
+                path to add robust sync. If you want, I can produce a single‑file HTML patch that implements the sync
+                protocol and visual sync indicators.
+            </div>
+        </footer>
+    </div>
+</body>
+
+</html>
