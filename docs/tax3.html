@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Tax Amount Generator — Improved UI</title>
+    <title>Tax Amount Generator — Unlimited Taxes (Weekly Support)</title>
     <style>
         :root {
             --bg: #f6f7fb;
@@ -12,7 +12,6 @@
             --muted: #6b7280;
             --accent: #0f62fe;
             --danger: #ef4444;
-            --glass: rgba(15, 98, 254, 0.06);
             --surface-border: #e6e9f2;
             font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
             box-sizing: border-box;
@@ -227,7 +226,7 @@
             border-radius: 8px;
             border: 1px solid rgba(12, 20, 40, 0.03);
             background: #fff;
-            max-height: 260px;
+            max-height: 320px;
         }
 
         table {
@@ -319,6 +318,12 @@
             border-radius: 8px;
             cursor: pointer
         }
+
+        .meta {
+            font-size: 13px;
+            color: var(--muted);
+            margin-left: 8px
+        }
     </style>
 </head>
 
@@ -327,27 +332,29 @@
         <header>
             <div>
                 <h1>Tax Amount Generator</h1>
-                <p class="lead">Define up to five taxes, enter incomes (daily or monthly), and get tax amounts and a
-                    grand total.</p>
+                <p class="lead">Define any number of taxes, enter incomes (daily, other, or monthly), and get tax
+                    amounts and a grand total.</p>
             </div>
             <div style="margin-left:auto" class="muted">Single page • No dependencies</div>
         </header>
 
         <section class="card" aria-labelledby="defineTaxes">
-            <h2 id="defineTaxes" style="font-size:15px;margin:0 0 10px 0">1. Define Taxes (up to 5)</h2>
+            <h2 id="defineTaxes" style="font-size:15px;margin:0 0 10px 0">1. Define Taxes</h2>
+
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+                <button id="addTax">Add Tax</button>
+                <button id="resetTaxes" class="secondary">Reset Defaults</button>
+                <button id="clearAll" class="ghost">Remove All</button>
+                <div style="flex:1"></div>
+                <div class="meta" id="taxCount">Taxes: 0</div>
+            </div>
 
             <div id="taxList" class="tax-list">
                 <!-- Tax rows injected by JS -->
             </div>
 
-            <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
-                <button id="addTax">Add Tax</button>
-                <button id="resetTaxes" class="secondary">Reset Defaults</button>
-                <button id="compactView" class="ghost">Compact View</button>
-                <div style="flex:1"></div>
-            </div>
-
-            <p class="note">Tip: mark a tax as inactive to exclude it from calculations.</p>
+            <p class="note">Tip: mark a tax as inactive to exclude it from calculations. You can add as many taxes as
+                you need.</p>
         </section>
 
         <section class="card" aria-labelledby="incomeInputs">
@@ -356,10 +363,11 @@
             <div class="grid">
                 <div>
                     <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-                        <div class="small">Enter income for each tax row below. Choose Daily or Monthly per tax.</div>
+                        <div class="small">Enter income for each tax row below. Choose Daily, Weekly, or Monthly per
+                            tax.</div>
                     </div>
 
-                    <div id="incomeRows" style="display:table-column;flex-direction:column;gap:10px;visibility:hidden;">
+                    <div id="incomeRows" style="visibility:hidden;display:table-column;flex-direction:column;gap:10px">
                         <!-- Income inputs mirror tax rows -->
                     </div>
                 </div>
@@ -374,7 +382,7 @@
                         </div>
                         <div class="controls">
                             <button id="calculate">Calculate</button>
-                            <button id="clear" class="secondary">Clear</button>
+                            <button id="clear" class="secondary">Clear Incomes</button>
                         </div>
                     </div>
 
@@ -393,8 +401,8 @@
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td colspan="4" class="summary-empty">No results yet. Click Calculate to see
-                                            tax amounts.</td>
+                                        <td colspan="4" class="summary-empty">No results yet. Click Calculate to see tax
+                                            amounts.</td>
                                     </tr>
                                 </tbody>
                                 <tfoot>
@@ -423,7 +431,7 @@
 
     <script>
         (function () {
-            const MAX_TAXES = 5;
+            // Unlimited taxes supported
             const taxListEl = document.getElementById('taxList');
             const incomeRowsEl = document.getElementById('incomeRows');
             const summaryBody = document.querySelector('#summaryTable tbody');
@@ -433,19 +441,19 @@
             const calculateBtn = document.getElementById('calculate');
             const clearBtn = document.getElementById('clear');
             const resetBtn = document.getElementById('resetTaxes');
+            const clearAllBtn = document.getElementById('clearAll');
             const presetButtons = document.querySelectorAll('.preset');
-            const compactBtn = document.getElementById('compactView');
+            const taxCountEl = document.getElementById('taxCount');
 
             const DEFAULTS = [
-                { label: 'Monthly Tax 1', rate: 1.27, type: 'monthly', income: 4000, active: true },
-                { label: 'Monthly Tax 2', rate: 2.3, type: 'monthly', income: 4000, active: true },
-                { label: 'Transient Tax', rate: 3.34, type: 'daily', income: 300, active: true },
-                { label: 'Transient Tax 2', rate: 4.8, type: 'daily', income: 300, active: true },
-                { label: 'Special Local Tax', rate: 5.56, type: 'monthly', income: 4000, active: true }
+                { label: 'Monthly Tax 1', rate: 3.33, type: 'monthly', income: 14000, active: true },
+                { label: 'Monthly Tax 2', rate: 2.23, type: 'monthly', income: 14000, active: true },
+                { label: 'Transient Tax', rate: 5.65, type: 'daily', income: 67000, active: true },
+                { label: 'Transient Tax 2', rate: 4.87, type: 'daily', income: 67000, active: true },
+                { label: 'Special Local Tax', rate: 1.34, type: 'other', income: 8000, active: true }
             ];
 
             let taxes = [];
-            let compact = false;
 
             function formatCurrency(v) {
                 const n = Number(v) || 0;
@@ -482,14 +490,15 @@
                 rateWrap.appendChild(rateLabel);
                 rateWrap.appendChild(rateInput);
 
-                // Type
+                // Type (Daily / Weekly / Monthly)
                 const typeWrap = document.createElement('div');
                 const typeLabel = document.createElement('label');
                 typeLabel.textContent = 'Income Type';
                 const typeSelect = document.createElement('select');
                 const optDaily = document.createElement('option'); optDaily.value = 'daily'; optDaily.textContent = 'Daily';
+                const optWeekly = document.createElement('option'); optWeekly.value = 'other'; optWeekly.textContent = 'Other';
                 const optMonthly = document.createElement('option'); optMonthly.value = 'monthly'; optMonthly.textContent = 'Monthly';
-                typeSelect.appendChild(optDaily); typeSelect.appendChild(optMonthly);
+                typeSelect.appendChild(optDaily); typeSelect.appendChild(optWeekly); typeSelect.appendChild(optMonthly);
                 typeSelect.value = tax.type || 'monthly';
                 typeSelect.addEventListener('change', () => { taxes[idx].type = typeSelect.value; syncIncomeRow(idx); });
                 typeWrap.appendChild(typeLabel);
@@ -554,7 +563,7 @@
                 title.style.marginBottom = '8px';
 
                 const left = document.createElement('div');
-                left.innerHTML = `<div style="font-weight:700;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(tax.label || 'Tax ' + (idx + 1))}</div><div class="small">${tax.type === 'daily' ? 'Daily income' : 'Monthly income'}</div>`;
+                left.innerHTML = `<div style="font-weight:700;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(tax.label || 'Tax ' + (idx + 1))}</div><div class="small">${tax.type === 'daily' ? 'Daily income' : tax.type === 'other' ? 'Weekly income' : 'Monthly income'}</div>`;
                 const right = document.createElement('div');
                 right.style.textAlign = 'right';
                 right.innerHTML = `<div class="small">Rate</div><div style="font-weight:700">${(tax.rate || 0).toFixed(2)}%</div>`;
@@ -576,9 +585,10 @@
                 incomeInput.addEventListener('input', () => { taxes[idx].income = parseFloat(incomeInput.value) || 0; });
 
                 const typeSelect = document.createElement('select');
-                const optDaily = document.createElement('option'); optDaily.value = 'daily'; optDaily.textContent = 'Daily';
-                const optMonthly = document.createElement('option'); optMonthly.value = 'monthly'; optMonthly.textContent = 'Monthly';
-                typeSelect.appendChild(optDaily); typeSelect.appendChild(optMonthly);
+                const optDaily2 = document.createElement('option'); optDaily2.value = 'daily'; optDaily2.textContent = 'Daily';
+                const optWeekly2 = document.createElement('option'); optWeekly2.value = 'other'; optWeekly2.textContent = 'Other';
+                const optMonthly2 = document.createElement('option'); optMonthly2.value = 'monthly'; optMonthly2.textContent = 'Monthly';
+                typeSelect.appendChild(optDaily2); typeSelect.appendChild(optWeekly2); typeSelect.appendChild(optMonthly2);
                 typeSelect.value = tax.type || 'monthly';
                 typeSelect.addEventListener('change', () => { taxes[idx].type = typeSelect.value; rebuildUI(); });
 
@@ -598,6 +608,7 @@
                     taxListEl.appendChild(createTaxRow(i, t));
                     incomeRowsEl.appendChild(createIncomeRow(i, t));
                 });
+                updateTaxCount();
             }
 
             function syncIncomeRow(idx) {
@@ -608,7 +619,7 @@
                 if (titleDiv) {
                     titleDiv.querySelector('div').textContent = tax.label || 'Tax ' + (idx + 1);
                     const small = titleDiv.querySelector('.small');
-                    if (small) small.textContent = tax.type === 'daily' ? 'Daily income' : 'Monthly income';
+                    if (small) small.textContent = tax.type === 'daily' ? 'Daily income' : tax.type === 'other' ? 'Other income' : 'Monthly income';
                 }
                 const select = incomeCard.querySelector('select');
                 if (select) select.value = tax.type;
@@ -617,9 +628,13 @@
             }
 
             function addTax(t) {
-                if (taxes.length >= MAX_TAXES) return alert('Maximum of 5 taxes allowed.');
                 taxes.push(Object.assign({ label: '', rate: 0, type: 'monthly', income: 0, active: true }, t || {}));
                 rebuildUI();
+                // scroll to bottom so user sees the new row
+                setTimeout(() => {
+                    const last = taxListEl.lastElementChild;
+                    if (last) last.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 80);
             }
 
             function removeTax(idx) {
@@ -639,7 +654,7 @@
                 updateSummary([]);
             }
 
-            // NOTE: Removed conversion checkbox. Daily incomes are treated as daily and not auto-converted.
+            // Calculation: uses entered income directly. Weekly is treated as other (displayed as / other).
             function calculate() {
                 const rows = [];
                 let grand = 0;
@@ -647,7 +662,6 @@
                     if (!t.active) return;
                     const rateDecimal = (Number(t.rate) || 0) / 100;
                     let income = Number(t.income) || 0;
-                    // No automatic conversion: daily incomes remain daily for display and calculation uses the entered value.
                     const taxAmount = income * rateDecimal;
                     rows.push({
                         label: t.label || `Tax ${i + 1}`,
@@ -671,7 +685,11 @@
                     summaryBody.appendChild(tr);
                 } else {
                     rows.forEach(r => {
-                        const incomeDisplay = r.type === 'daily' ? `${formatCurrency(r.incomeRaw)} / day` : `${formatCurrency(r.incomeConverted)} / month`;
+                        const incomeDisplay = r.type === 'daily'
+                            ? `${formatCurrency(r.incomeRaw)} / daily`
+                            : r.type === 'other'
+                                ? `${formatCurrency(r.incomeConverted)} / other`
+                                : `${formatCurrency(r.incomeConverted)} / monthly`;
                         const tr = document.createElement('tr');
                         tr.innerHTML = `<td title="${escapeHtml(r.label)}">${escapeHtml(r.label)}</td><td title="${incomeDisplay}">${incomeDisplay}</td><td>${(r.rate || 0).toFixed(2)}%</td><td class="right">${formatCurrency(r.amount)}</td>`;
                         summaryBody.appendChild(tr);
@@ -682,6 +700,10 @@
                 grandTotalFooter.textContent = formatCurrency(grand);
             }
 
+            function updateTaxCount() {
+                taxCountEl.textContent = `Taxes: ${taxes.length}`;
+            }
+
             function escapeHtml(s) { return String(s).replace(/[&<>"']/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]; }); }
 
             // Event bindings
@@ -689,6 +711,7 @@
             calculateBtn.addEventListener('click', () => calculate());
             clearBtn.addEventListener('click', () => { taxes.forEach(t => { t.income = 0; }); rebuildUI(); updateSummary([]); });
             resetBtn.addEventListener('click', () => resetDefaults());
+            clearAllBtn.addEventListener('click', () => clearAll());
 
             presetButtons.forEach(btn => {
                 btn.addEventListener('click', (e) => {
@@ -696,12 +719,6 @@
                     if (p === 'example1') resetDefaults();
                     if (p === 'clear') clearAll();
                 });
-            });
-
-            compactBtn.addEventListener('click', () => {
-                compact = !compact;
-                document.querySelectorAll('.card').forEach(c => c.classList.toggle('tight', compact));
-                compactBtn.textContent = compact ? 'Expanded View' : 'Compact View';
             });
 
             // initialize with defaults
@@ -718,8 +735,11 @@
                 }
             });
 
+            // expose a small API for debugging in console
             window.TaxGen = {
                 getTaxes: () => taxes,
+                addTax,
+                removeTax,
                 calculate
             };
         })();
