@@ -496,9 +496,9 @@
                 typeLabel.textContent = 'Income Type';
                 const typeSelect = document.createElement('select');
                 const optDaily = document.createElement('option'); optDaily.value = 'daily'; optDaily.textContent = 'Daily';
-                const optWeekly = document.createElement('option'); optWeekly.value = 'other'; optWeekly.textContent = 'Other';
                 const optMonthly = document.createElement('option'); optMonthly.value = 'monthly'; optMonthly.textContent = 'Monthly';
-                typeSelect.appendChild(optDaily); typeSelect.appendChild(optWeekly); typeSelect.appendChild(optMonthly);
+                const optOther = document.createElement('option'); optOther.value = 'other'; optOther.textContent = 'Other';
+                typeSelect.appendChild(optDaily); typeSelect.appendChild(optMonthly); typeSelect.appendChild(optOther);
                 typeSelect.value = tax.type || 'monthly';
                 typeSelect.addEventListener('change', () => { taxes[idx].type = typeSelect.value; syncIncomeRow(idx); });
                 typeWrap.appendChild(typeLabel);
@@ -586,9 +586,9 @@
 
                 const typeSelect = document.createElement('select');
                 const optDaily2 = document.createElement('option'); optDaily2.value = 'daily'; optDaily2.textContent = 'Daily';
-                const optWeekly2 = document.createElement('option'); optWeekly2.value = 'other'; optWeekly2.textContent = 'Other';
                 const optMonthly2 = document.createElement('option'); optMonthly2.value = 'monthly'; optMonthly2.textContent = 'Monthly';
-                typeSelect.appendChild(optDaily2); typeSelect.appendChild(optWeekly2); typeSelect.appendChild(optMonthly2);
+                const optOther2 = document.createElement('option'); optOther2.value = 'other'; optOther2.textContent = 'Other';
+                typeSelect.appendChild(optDaily2); typeSelect.appendChild(optMonthly2); typeSelect.appendChild(optOther2);
                 typeSelect.value = tax.type || 'monthly';
                 typeSelect.addEventListener('change', () => { taxes[idx].type = typeSelect.value; rebuildUI(); });
 
