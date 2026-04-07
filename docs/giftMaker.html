@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Card Overlay Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 520px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 15px;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+
+        #previewCanvas {
+            width: 100%;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 12px;
+            width: 100%;
+            background: #0078ff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>Card Overlay Generator</h2>
+
+        <label>Amount</label>
+        <input type="text" id="amountInput" placeholder="Enter amount">
+
+        <label>Activation Code</label>
+        <input type="text" id="codeInput" placeholder="Enter activation code">
+
+        <label>Upload Image</label>
+        <input type="file" id="imageUpload" accept="image/*">
+
+        <canvas id="previewCanvas"></canvas>
+
+        <label>Save As</label>
+        <select id="formatSelect">
+            <option value="png">PNG (RGB)</option>
+            <option value="jpeg">JPEG (RGB)</option>
+            <option value="cmyk">CMYK PNG (Simulated)</option>
+            <option value="cmykraw">Raw CMYK Data (.cmyk)</option>
+        </select>
+
+        <button id="saveBtn">Save Image</button>
+    </div>
+
+    <script>
+        const amountInput = document.getElementById("amountInput");
+        const codeInput = document.getElementById("codeInput");
+        const imageUpload = document.getElementById("imageUpload");
+        const canvas = document.getElementById("previewCanvas");
+        const ctx = canvas.getContext("2d");
+        const saveBtn = document.getElementById("saveBtn");
+        const formatSelect = document.getElementById("formatSelect");
+
+        let loadedImage = null;
+
+        imageUpload.addEventListener("change", function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const img = new Image();
+            img.onload = function () {
+                loadedImage = img;
+                canvas.width = img.width;
+                canvas.height = img.height;
+                drawOverlay();
+            };
+            img.src = URL.createObjectURL(file);
+        });
+
+        amountInput.addEventListener("input", drawOverlay);
+        codeInput.addEventListener("input", drawOverlay);
+
+        function drawOverlay() {
+            if (!loadedImage) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(loadedImage, 0, 0, canvas.width, canvas.height);
+
+            // Amount (top-left)
+            ctx.font = "bold 48px Arial";
+            ctx.fillStyle = "white";
+            ctx.strokeStyle = "black";
+            ctx.lineWidth = 4;
+            ctx.textAlign = "left";
+            ctx.strokeText(amountInput.value, 30, 60);
+            ctx.fillText(amountInput.value, 30, 60);
+
+            // Activation Code (bottom-center)
+            ctx.font = "bold 42px Arial";
+            ctx.textAlign = "center";
+            const y = canvas.height - 40;
+            ctx.strokeText(codeInput.value, canvas.width / 2, y);
+            ctx.fillText(codeInput.value, canvas.width / 2, y);
+        }
+
+        // Convert RGB → CMYK
+        function rgbToCmyk(r, g, b) {
+            let c = 1 - (r / 255);
+            let m = 1 - (g / 255);
+            let y = 1 - (b / 255);
+            let k = Math.min(c, m, y);
+
+            c = (c - k) / (1 - k) || 0;
+            m = (m - k) / (1 - k) || 0;
+            y = (y - k) / (1 - k) || 0;
+
+            return {
+                c: Math.round(c * 255),
+                m: Math.round(m * 255),
+                y: Math.round(y * 255),
+                k: Math.round(k * 255)
+            };
+        }
+
+        // Create CMYK PNG-like image
+        function exportCMYK() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const rgbData = ctx.getImageData(0, 0, w, h).data;
+
+            const cmykCanvas = document.createElement("canvas");
+            cmykCanvas.width = w;
+            cmykCanvas.height = h;
+            const cctx = cmykCanvas.getContext("2d");
+            const imgData = cctx.createImageData(w, h);
+
+            for (let i = 0; i < rgbData.length; i += 4) {
+                const r = rgbData[i];
+                const g = rgbData[i + 1];
+                const b = rgbData[i + 2];
+
+                const { c, m, y, k } = rgbToCmyk(r, g, b);
+
+                imgData.data[i] = c;
+                imgData.data[i + 1] = m;
+                imgData.data[i + 2] = y;
+                imgData.data[i + 3] = 255; // alpha
+            }
+
+            cctx.putImageData(imgData, 0, 0);
+            return cmykCanvas.toDataURL("image/png");
+        }
+
+        // Raw CMYK dump
+        function exportCMYKRaw() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const rgbData = ctx.getImageData(0, 0, w, h).data;
+
+            let raw = "";
+            for (let i = 0; i < rgbData.length; i += 4) {
+                const r = rgbData[i];
+                const g = rgbData[i + 1];
+                const b = rgbData[i + 2];
+                const { c, m, y, k } = rgbToCmyk(r, g, b);
+                raw += `${c},${m},${y},${k}\n`;
+            }
+            return raw;
+        }
+
+        saveBtn.addEventListener("click", () => {
+            const format = formatSelect.value;
+
+            if (format === "png") {
+                const url = canvas.toDataURL("image/png");
+                download(url, "card.png");
+            }
+            else if (format === "jpeg") {
+                const url = canvas.toDataURL("image/jpeg", 0.92);
+                download(url, "card.jpg");
+            }
+            else if (format === "cmyk") {
+                const url = exportCMYK();
+                download(url, "card_cmyk.png");
+            }
+            else if (format === "cmykraw") {
+                const raw = exportCMYKRaw();
+                const blob = new Blob([raw], { type: "text/plain" });
+                const url = URL.createObjectURL(blob);
+                download(url, "card.cmyk");
+            }
+        });
+
+        function download(url, filename) {
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            a.click();
+        }
+    </script>
+
+</body>
+
+</html>
