@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Parallel Multi‑Agent Motel Simulator — README</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 40px;
+            background: #0b0d12;
+            color: #e5e7eb;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+            line-height: 1.6;
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: #4ade80;
+            margin-top: 32px;
+            letter-spacing: 0.5px;
+        }
+
+        h1 {
+            font-size: 32px;
+        }
+
+        h2 {
+            font-size: 24px;
+        }
+
+        h3 {
+            font-size: 18px;
+            color: #93c5fd;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 4px 10px;
+            margin: 4px 4px 0 0;
+            border-radius: 999px;
+            font-size: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .pill.green {
+            border-color: #4ade80;
+            color: #4ade80;
+        }
+
+        .pill.blue {
+            border-color: #60a5fa;
+            color: #60a5fa;
+        }
+
+        .pill.yellow {
+            border-color: #facc15;
+            color: #facc15;
+        }
+
+        .pill.purple {
+            border-color: #a855f7;
+            color: #a855f7;
+        }
+
+        .pill.red {
+            border-color: #fb7185;
+            color: #fb7185;
+        }
+
+        .diagram {
+            margin-top: 20px;
+            padding: 20px;
+            background: #111827;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-family: monospace;
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        .code {
+            background: #111827;
+            padding: 14px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Parallel Multi‑Agent Motel Simulator</h1>
+    <p>
+        This README documents the architecture, goals, agent behaviors, shared state model, and learning loops of the
+        <strong>Parallel Multi‑Agent Motel Simulator</strong>.
+        All agents run continuously in parallel, reading and writing to a shared blackboard state while coordinating
+        indirectly through signals, state changes, and learned preferences.
+    </p>
+
+    <div class="section">
+        <h2>1. System Overview</h2>
+        <p>
+            The simulator models a motel as a living multi‑agent ecosystem.
+            Each agent operates independently in its own loop, but all share a common world model:
+        </p>
+
+        <div class="pill green">Booking Agent</div>
+        <div class="pill.blue">Housekeeping Agent</div>
+        <div class="pill.yellow">Pricing Agent</div>
+        <div class="pill.purple">Forecasting Agent</div>
+        <div class="pill.red">Maintenance Agent</div>
+
+        <div class="diagram">
+        PARALLEL AGENT LOOPS (HIGH-LEVEL)
+
+        ┌─────────────────────────────────────────────────────────────────┐
+        │                      SHARED BLACKBOARD                          │
+        │  rooms[] · occupancyPressure · pricing · forecast · lastBooking │
+        └─────────────────────────────────────────────────────────────────┘
+                ▲            ▲             ▲             ▲            ▲
+                │            │             │             │            │
+                │            │             │             │            │
+                │            │             │             │            │
+        Booking Loop   Housekeeping   Pricing Loop   Forecast Loop   Maintenance
+        (3–5s)         Loop (4–6s)    (3–5s)         (5–7s)          Loop (4–6s)
+        </div>
+
+        <p>
+            Agents do not call each other directly.
+            Instead, they <strong>observe, interpret, and modify shared state</strong>, producing emergent coordination.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>2. Agent Roles & Goals</h2>
+
+        <h3>2.1 Booking Agent</h3>
+        <div class="pill green">Primary decision-maker</div>
+        <p>
+            Evaluates guest requests, filters feasible rooms, scores options, proposes a price, and simulates
+            acceptance.
+            Learns which room types succeed.
+        </p>
+
+        <h3>2.2 Housekeeping Agent</h3>
+        <div class="pill blue">Room readiness</div>
+        <p>
+            Scans for dirty rooms, prioritizes cleaning, and updates room cleanliness.
+            Ensures Booking Agent sees accurate readiness.
+        </p>
+
+        <h3>2.3 Pricing Agent</h3>
+        <div class="pill yellow">Dynamic pricing</div>
+        <p>
+            Adjusts prices based on occupancy pressure, demand index, and recent booking outcomes.
+            Learns elasticity per room type.
+        </p>
+
+        <h3>2.4 Forecasting Agent</h3>
+        <div class="pill purple">Demand modeling</div>
+        <p>
+            Estimates demand index and expected occupancy using occupancy signals and noise.
+            Feeds Pricing Agent with demand pressure.
+        </p>
+
+        <h3>2.5 Maintenance Agent</h3>
+        <div class="pill red">Room safety</div>
+        <p>
+            Randomly introduces or resolves maintenance issues.
+            Blocks/unblocks rooms for Booking Agent.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>3. Shared State Model (Blackboard)</h2>
+        <p>
+            All agents read/write to a single shared object.
+            This is the coordination substrate.
+        </p>
+
+        <div class="code">
+            {
+            "rooms": {
+            "101": { "type": "standard", "capacity": 2, "clean": true, "maintenance": false, "occupied": false },
+            "102": { "type": "standard", "capacity": 2, "clean": false, "maintenance": false, "occupied": false },
+            "201": { "type": "deluxe", "capacity": 3, "clean": true, "maintenance": false, "occupied": false },
+            "202": { "type": "deluxe", "capacity": 3, "clean": true, "maintenance": true, "occupied": false },
+            "301": { "type": "suite", "capacity": 4, "clean": true, "maintenance": false, "occupied": false }
+            },
+            "occupancyPressure": "medium",
+            "forecast": {
+            "demandIndex": 0.6,
+            "expectedOccupancy": 0.7
+            },
+            "pricing": {
+            "standard": 80,
+            "deluxe": 120,
+            "suite": 180
+            },
+            "lastBooking": null
+            }
+        </div>
+
+        <p>
+            Agents modify this structure continuously, producing emergent behavior.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>4. Agent Loop Behaviors</h2>
+
+        <h3>4.1 Booking Agent Loop</h3>
+        <div class="pill green">sense → context → decide → act → learn</div>
+        <ul>
+            <li>Reads guest request + room states</li>
+            <li>Filters feasible rooms (clean, available, no maintenance)</li>
+            <li>Scores rooms using preference, price sensitivity, occupancy pressure, and memory</li>
+            <li>Simulates acceptance probability</li>
+            <li>Updates booking preference memory</li>
+        </ul>
+
+        <h3>4.2 Housekeeping Agent Loop</h3>
+        <ul>
+            <li>Scans for dirty rooms</li>
+            <li>Selects a subset to clean</li>
+            <li>Marks them clean</li>
+            <li>Implicitly learns throughput</li>
+        </ul>
+
+        <h3>4.3 Pricing Agent Loop</h3>
+        <ul>
+            <li>Reads occupancy pressure + demand index</li>
+            <li>Adjusts prices dynamically</li>
+            <li>Uses last booking outcome to refine elasticity</li>
+        </ul>
+
+        <h3>4.4 Forecasting Agent Loop</h3>
+        <ul>
+            <li>Computes occupancy ratio</li>
+            <li>Updates demand index</li>
+            <li>Feeds Pricing Agent indirectly</li>
+        </ul>
+
+        <h3>4.5 Maintenance Agent Loop</h3>
+        <ul>
+            <li>Randomly flags/unflags maintenance issues</li>
+            <li>Blocks/unblocks rooms</li>
+            <li>Ensures Booking Agent respects safety</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>5. Learning & Adaptation</h2>
+
+        <h3>5.1 Booking Agent Memory</h3>
+        <div class="pill green">Learns which room types succeed</div>
+
+        <div class="code">
+            if accepted:
+            bookingPreferenceScore[type] += +1.0
+            else:
+            bookingPreferenceScore[type] += -0.7
+        </div>
+
+        <h3>5.2 Pricing Agent Elasticity</h3>
+        <div class="pill yellow">Learns price sensitivity</div>
+
+        <div class="code">
+            if accepted:
+            elasticity[type] += +0.5
+            else:
+            elasticity[type] += -0.4
+        </div>
+
+        <p>
+            Other agents adapt implicitly through state changes and loop timing.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>6. Emergent Behavior</h2>
+        <p>
+            Because all agents run in parallel, the system exhibits emergent patterns:
+        </p>
+
+        <ul>
+            <li>High demand → Pricing Agent raises prices → Booking Agent shifts to cheaper rooms</li>
+            <li>Maintenance issues → Booking Agent avoids flagged rooms → Housekeeping reprioritizes</li>
+            <li>High occupancy → Forecasting Agent raises demand → Pricing Agent surges</li>
+            <li>Frequent rejections → Booking Agent learns to avoid certain room types</li>
+        </ul>
+
+        <p>
+            No agent is “in charge” — coordination emerges from shared state.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>7. Intended Use Cases</h2>
+
+        <div class="pill.green">Agentic system research</div>
+        <div class="pill.blue">Parallel loop coordination</div>
+        <div class="pill.yellow">Pricing experiments</div>
+        <div class="pill.purple">Forecasting simulations</div>
+        <div class="pill.red">Maintenance modeling</div>
+        <div class="pill.green">Multi-agent emergent behavior</div>
+
+        <p>
+            This simulator is ideal for exploring agentic architectures, blackboard coordination, and autonomous
+            decision loops.
+        </p>
+    </div>
+
+</body>
+
+</html>
