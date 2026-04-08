@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Agentic Motel Booking Simulator</title>
+    <style>
+        :root {
+            --bg: #05060a;
+            --panel: #0f1117;
+            --accent: #4ade80;
+            --accent-soft: rgba(74, 222, 128, 0.12);
+            --accent-strong: rgba(74, 222, 128, 0.3);
+            --text-main: #f9fafb;
+            --text-soft: #9ca3af;
+            --border-soft: #1f2933;
+            --danger: #fb7185;
+            --danger-soft: rgba(251, 113, 133, 0.12);
+            --muted: #6b7280;
+            --shadow-soft: 0 18px 45px rgba(0, 0, 0, 0.6);
+            --radius-lg: 18px;
+            --radius-md: 12px;
+            --radius-pill: 999px;
+            --transition-fast: 0.18s ease-out;
+            --font-mono: system-ui, -apple-system, BlinkMacSystemFont, "SF Mono", Menlo, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+            background: radial-gradient(circle at top, #020617 0, #020617 40%, #020617 100%);
+            color: var(--text-main);
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+            padding: 32px;
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 1200px;
+            background: radial-gradient(circle at top left, #020617 0, #020617 40%, #020617 100%);
+            border-radius: 28px;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            box-shadow: var(--shadow-soft);
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr);
+            gap: 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .app-shell::before {
+            content: "";
+            position: absolute;
+            inset: -40%;
+            background:
+                radial-gradient(circle at 0% 0%, rgba(74, 222, 128, 0.12), transparent 55%),
+                radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.12), transparent 55%);
+            opacity: 0.7;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .panel {
+            padding: 24px 26px;
+            position: relative;
+        }
+
+        .panel+.panel {
+            border-left: 1px solid rgba(15, 23, 42, 0.9);
+            background: radial-gradient(circle at top right, #020617 0, #020617 40%, #020617 100%);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+
+        .title-block {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .title {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .title-pill {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: var(--text-soft);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pill-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background: var(--accent);
+            box-shadow: 0 0 0 4px var(--accent-soft);
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: var(--radius-pill);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            font-size: 11px;
+            color: var(--text-soft);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.7));
+        }
+
+        .badge-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            background: var(--accent);
+        }
+
+        .section-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        .card {
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-soft);
+            background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.98));
+            padding: 14px 14px 12px;
+            margin-bottom: 12px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .card-subtitle {
+            font-size: 11px;
+            color: var(--text-soft);
+        }
+
+        .chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .chip {
+            font-size: 11px;
+            padding: 4px 9px;
+            border-radius: var(--radius-pill);
+            border: 1px solid rgba(55, 65, 81, 0.9);
+            color: var(--text-soft);
+            background: rgba(15, 23, 42, 0.9);
+        }
+
+        .chip.chip-accent {
+            border-color: rgba(74, 222, 128, 0.7);
+            color: var(--accent);
+            background: rgba(22, 163, 74, 0.08);
+        }
+
+        .chip.chip-danger {
+            border-color: rgba(248, 113, 113, 0.7);
+            color: #fecaca;
+            background: var(--danger-soft);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px 12px;
+            margin-top: 6px;
+        }
+
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        label {
+            font-size: 11px;
+            color: var(--text-soft);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        input,
+        select {
+            border-radius: 9px;
+            border: 1px solid rgba(55, 65, 81, 0.9);
+            background: rgba(15, 23, 42, 0.9);
+            color: var(--text-main);
+            padding: 7px 9px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+        }
+
+        input:focus,
+        select:focus {
+            border-color: rgba(74, 222, 128, 0.9);
+            box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.5);
+            background: rgba(15, 23, 42, 0.98);
+        }
+
+        .inline {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: var(--text-soft);
+            margin-top: 4px;
+        }
+
+        .inline strong {
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        .btn-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 12px;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            flex: 1;
+            border-radius: var(--radius-pill);
+            border: none;
+            padding: 9px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            background: radial-gradient(circle at top left, #22c55e, #16a34a);
+            color: #022c22;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 12px 30px rgba(34, 197, 94, 0.35);
+            transition: transform var(--transition-fast), box-shadow var(--transition-fast), filter var(--transition-fast);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.05);
+            box-shadow: 0 16px 40px rgba(34, 197, 94, 0.45);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+            box-shadow: 0 10px 24px rgba(34, 197, 94, 0.35);
+        }
+
+        .btn-secondary {
+            border-radius: var(--radius-pill);
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            padding: 8px 12px;
+            font-size: 11px;
+            color: var(--text-soft);
+            background: rgba(15, 23, 42, 0.9);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(15, 23, 42, 1);
+            border-color: rgba(148, 163, 184, 0.7);
+            color: #e5e7eb;
+        }
+
+        .btn-secondary span.dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.9);
+        }
+
+        .timeline {
+            margin-top: 4px;
+            max-height: 380px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .timeline::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .timeline::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .timeline::-webkit-scrollbar-thumb {
+            background: rgba(31, 41, 55, 0.9);
+            border-radius: 999px;
+        }
+
+        .timeline-item {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px;
+            padding: 8px 4px;
+            position: relative;
+        }
+
+        .timeline-item::before {
+            content: "";
+            position: absolute;
+            left: 11px;
+            top: 0;
+            bottom: -4px;
+            width: 1px;
+            background: linear-gradient(to bottom, rgba(55, 65, 81, 0.9), rgba(31, 41, 55, 0.2));
+            z-index: 0;
+        }
+
+        .timeline-item:last-child::before {
+            bottom: 10px;
+        }
+
+        .timeline-badge {
+            width: 22px;
+            height: 22px;
+            border-radius: 999px;
+            border: 1px solid rgba(75, 85, 99, 0.9);
+            background: radial-gradient(circle at top, rgba(15, 23, 42, 1), rgba(15, 23, 42, 0.9));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: var(--text-soft);
+            z-index: 1;
+        }
+
+        .timeline-badge.phase-sense {
+            border-color: rgba(56, 189, 248, 0.9);
+            color: #7dd3fc;
+            box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.18);
+        }
+
+        .timeline-badge.phase-context {
+            border-color: rgba(129, 140, 248, 0.9);
+            color: #a5b4fc;
+            box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.18);
+        }
+
+        .timeline-badge.phase-decide {
+            border-color: rgba(74, 222, 128, 0.9);
+            color: #bbf7d0;
+            box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.18);
+        }
+
+        .timeline-badge.phase-act {
+            border-color: rgba(251, 191, 36, 0.9);
+            color: #facc15;
+            box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.18);
+        }
+
+        .timeline-badge.phase-learn {
+            border-color: rgba(248, 113, 113, 0.9);
+            color: #fecaca;
+            box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.18);
+        }
+
+        .timeline-content {
+            padding-bottom: 4px;
+        }
+
+        .timeline-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 2px;
+        }
+
+        .timeline-title {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .timeline-phase-tag {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            padding: 2px 7px;
+            border-radius: var(--radius-pill);
+            border: 1px solid rgba(55, 65, 81, 0.9);
+            color: var(--text-soft);
+        }
+
+        .timeline-phase-tag.phase-sense {
+            border-color: rgba(56, 189, 248, 0.7);
+            color: #7dd3fc;
+        }
+
+        .timeline-phase-tag.phase-context {
+            border-color: rgba(129, 140, 248, 0.7);
+            color: #a5b4fc;
+        }
+
+        .timeline-phase-tag.phase-decide {
+            border-color: rgba(74, 222, 128, 0.7);
+            color: #bbf7d0;
+        }
+
+        .timeline-phase-tag.phase-act {
+            border-color: rgba(251, 191, 36, 0.7);
+            color: #facc15;
+        }
+
+        .timeline-phase-tag.phase-learn {
+            border-color: rgba(248, 113, 113, 0.7);
+            color: #fecaca;
+        }
+
+        .timeline-body {
+            font-size: 11px;
+            color: var(--text-soft);
+            line-height: 1.4;
+        }
+
+        .timeline-meta {
+            font-size: 10px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .pill {
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: var(--radius-pill);
+            border: 1px solid rgba(55, 65, 81, 0.9);
+            color: var(--text-soft);
+            background: rgba(15, 23, 42, 0.9);
+        }
+
+        .pill.pill-good {
+            border-color: rgba(74, 222, 128, 0.7);
+            color: #bbf7d0;
+            background: rgba(22, 163, 74, 0.08);
+        }
+
+        .pill.pill-bad {
+            border-color: rgba(248, 113, 113, 0.7);
+            color: #fecaca;
+            background: var(--danger-soft);
+        }
+
+        .memory-card {
+            margin-top: 10px;
+            border-radius: var(--radius-md);
+            border: 1px dashed rgba(55, 65, 81, 0.9);
+            background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.98));
+            padding: 10px 12px;
+            font-size: 11px;
+            color: var(--text-soft);
+        }
+
+        .memory-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .memory-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .memory-pill {
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: var(--radius-pill);
+            border: 1px solid rgba(55, 65, 81, 0.9);
+            background: rgba(15, 23, 42, 0.9);
+            color: var(--text-soft);
+        }
+
+        .memory-pill strong {
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        @media (max-width: 900px) {
+            body {
+                padding: 16px;
+            }
+
+            .app-shell {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .panel+.panel {
+                border-left: none;
+                border-top: 1px solid rgba(15, 23, 42, 0.9);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-shell">
+        <!-- LEFT: GOAL + CONTEXT -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="title-block">
+                    <div class="title">
+                        Motel Booking Agent
+                    </div>
+                    <div class="title-pill">
+                        <span class="pill-dot"></span>
+                        Agentic loop: goal → context → decision → adaptation
+                    </div>
+                </div>
+                <div class="badge">
+                    <span class="badge-dot"></span>
+                    Booking agent · v0.1
+                </div>
+            </div>
+
+            <div class="section-label">Goal</div>
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Book a viable room</div>
+                        <div class="card-subtitle">
+                            Satisfy guest constraints while protecting revenue and occupancy.
+                        </div>
+                    </div>
+                </div>
+                <div class="chip-row">
+                    <div class="chip chip-accent">Minimize friction for guest</div>
+                    <div class="chip">Respect inventory + blackout rules</div>
+                    <div class="chip">Prefer higher-margin rooms</div>
+                </div>
+            </div>
+
+            <div class="section-label">Context: Guest request</div>
+            <div class="card">
+                <div class="form-grid">
+                    <div class="form-field">
+                        <label for="checkIn">Check-in</label>
+                        <input type="date" id="checkIn" />
+                    </div>
+                    <div class="form-field">
+                        <label for="checkOut">Check-out</label>
+                        <input type="date" id="checkOut" />
+                    </div>
+                    <div class="form-field">
+                        <label for="guests">Guests</label>
+                        <select id="guests">
+                            <option value="1">1 guest</option>
+                            <option value="2" selected>2 guests</option>
+                            <option value="3">3 guests</option>
+                            <option value="4">4 guests</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label for="preference">Room preference</label>
+                        <select id="preference">
+                            <option value="any" selected>No preference</option>
+                            <option value="standard">Standard</option>
+                            <option value="deluxe">Deluxe</option>
+                            <option value="suite">Suite</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="inline">
+                    <span>Guest tolerance:</span>
+                    <select id="priceSensitivity">
+                        <option value="low">Price-sensitive</option>
+                        <option value="medium" selected>Balanced</option>
+                        <option value="high">Comfort-first</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="section-label">Context: Motel state</div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Tonight’s inventory snapshot</div>
+                    <div class="chip">Simulated</div>
+                </div>
+                <div class="pill-row" id="inventoryPills"></div>
+                <div class="inline">
+                    <span>Occupancy pressure:</span>
+                    <strong id="occupancyLabel">Medium</strong>
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn-primary" id="runAgentBtn">
+                    Run agentic booking loop
+                </button>
+                <button class="btn-secondary" id="randomizeBtn">
+                    <span class="dot"></span>
+                    Randomize motel state
+                </button>
+            </div>
+
+            <div class="memory-card">
+                <div class="memory-title">Agent memory (adaptation)</div>
+                <div id="memorySummary">
+                    No bookings yet. Agent has no learned preferences.
+                </div>
+                <div class="memory-row" id="memoryPills"></div>
+            </div>
+        </div>
+
+        <!-- RIGHT: LOOP TIMELINE -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="title-block">
+                    <div class="title">Agent loop timeline</div>
+                    <div class="title-pill">
+                        <span class="pill-dot"></span>
+                        Sense · Context · Decide · Act · Learn
+                    </div>
+                </div>
+                <div class="badge">
+                    Loop inspector
+                </div>
+            </div>
+
+            <div class="section-label">Current run</div>
+            <div class="card" style="margin-bottom: 8px;">
+                <div id="runSummary" class="card-subtitle">
+                    Configure a guest request and motel state, then run the agent.
+                </div>
+            </div>
+
+            <div class="section-label">Loop trace</div>
+            <div class="card" style="margin-bottom: 0; padding-top: 10px;">
+                <div class="timeline" id="timeline"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Simple agentic motel booking simulation ---
+        // Agent = goals + context + decisions + adaptation
+
+        const inventoryEl = document.getElementById("inventoryPills");
+        const occupancyLabelEl = document.getElementById("occupancyLabel");
+        const runAgentBtn = document.getElementById("runAgentBtn");
+        const randomizeBtn = document.getElementById("randomizeBtn");
+        const timelineEl = document.getElementById("timeline");
+        const runSummaryEl = document.getElementById("runSummary");
+        const memorySummaryEl = document.getElementById("memorySummary");
+        const memoryPillsEl = document.getElementById("memoryPills");
+
+        const checkInEl = document.getElementById("checkIn");
+        const checkOutEl = document.getElementById("checkOut");
+        const guestsEl = document.getElementById("guests");
+        const preferenceEl = document.getElementById("preference");
+        const priceSensitivityEl = document.getElementById("priceSensitivity");
+
+        // Initialize dates to something reasonable
+        (function initDates() {
+            const today = new Date();
+            const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+            checkInEl.valueAsDate = today;
+            checkOutEl.valueAsDate = tomorrow;
+        })();
+
+        // Motel inventory model
+        const baseInventory = {
+            standard: { label: "Standard", capacity: 2, basePrice: 80 },
+            deluxe: { label: "Deluxe", capacity: 3, basePrice: 120 },
+            suite: { label: "Suite", capacity: 4, basePrice: 180 }
+        };
+
+        let motelState = {
+            occupancyPressure: "medium", // low | medium | high
+            roomsAvailable: {
+                standard: 8,
+                deluxe: 5,
+                suite: 2
+            }
+        };
+
+        // Agent memory: learns which room types tend to be accepted
+        const agentMemory = {
+            bookings: [], // {roomType, accepted, price, guests}
+            preferenceScore: {
+                standard: 0,
+                deluxe: 0,
+                suite: 0
+            }
+        };
+
+        function randomizeMotelState() {
+            const pressureOptions = ["low", "medium", "high"];
+            const pressure = pressureOptions[Math.floor(Math.random() * pressureOptions.length)];
+
+            const base = {
+                low: { standard: [10, 16], deluxe: [6, 10], suite: [3, 6] },
+                medium: { standard: [6, 10], deluxe: [3, 7], suite: [1, 4] },
+                high: { standard: [2, 6], deluxe: [1, 4], suite: [0, 2] }
+            }[pressure];
+
+            function randRange(min, max) {
+                return Math.floor(Math.random() * (max - min + 1)) + min;
+            }
+
+            motelState.occupancyPressure = pressure;
+            motelState.roomsAvailable = {
+                standard: randRange(base.standard[0], base.standard[1]),
+                deluxe: randRange(base.deluxe[0], base.deluxe[1]),
+                suite: randRange(base.suite[0], base.suite[1])
+            };
+
+            renderMotelState();
+        }
+
+        function renderMotelState() {
+            inventoryEl.innerHTML = "";
+            const { roomsAvailable, occupancyPressure } = motelState;
+
+            Object.entries(roomsAvailable).forEach(([key, count]) => {
+                const meta = baseInventory[key];
+                const pill = document.createElement("div");
+                pill.className = "pill";
+                pill.textContent = `${meta.label}: ${count} left`;
+                if (count === 0) {
+                    pill.classList.add("pill-bad");
+                } else if (count <= 2) {
+                    pill.classList.add("pill-bad");
+                    pill.textContent += " · tight";
+                } else if (count >= 8) {
+                    pill.classList.add("pill-good");
+                    pill.textContent += " · plenty";
+                }
+                inventoryEl.appendChild(pill);
+            });
+
+            const labelMap = {
+                low: "Low (lots of empty rooms)",
+                medium: "Medium (balanced)",
+                high: "High (nearly full)"
+            };
+            occupancyLabelEl.textContent = labelMap[occupancyPressure];
+        }
+
+        function renderMemory() {
+            const total = agentMemory.bookings.length;
+            if (total === 0) {
+                memorySummaryEl.textContent = "No bookings yet. Agent has no learned preferences.";
+                memoryPillsEl.innerHTML = "";
+                return;
+            }
+
+            memorySummaryEl.textContent =
+                `Learned from ${total} booking${total === 1 ? "" : "s"}: agent biases toward historically accepted room types.`;
+
+            memoryPillsEl.innerHTML = "";
+            const scores = agentMemory.preferenceScore;
+            Object.entries(scores)
+                .sort((a, b) => b[1] - a[1])
+                .forEach(([roomType, score]) => {
+                    const pill = document.createElement("div");
+                    pill.className = "memory-pill";
+                    pill.innerHTML = `<strong>${baseInventory[roomType].label}</strong> · score ${score.toFixed(1)}`;
+                    memoryPillsEl.appendChild(pill);
+                });
+        }
+
+        function clearTimeline() {
+            timelineEl.innerHTML = "";
+        }
+
+        function addTimelineItem({ phase, title, body, meta }) {
+            const item = document.createElement("div");
+            item.className = "timeline-item";
+
+            const badge = document.createElement("div");
+            badge.className = "timeline-badge phase-" + phase;
+            badge.textContent = phase[0].toUpperCase();
+
+            const content = document.createElement("div");
+            content.className = "timeline-content";
+
+            const titleRow = document.createElement("div");
+            titleRow.className = "timeline-title-row";
+
+            const titleEl = document.createElement("div");
+            titleEl.className = "timeline-title";
+            titleEl.textContent = title;
+
+            const phaseTag = document.createElement("div");
+            phaseTag.className = "timeline-phase-tag phase-" + phase;
+            phaseTag.textContent = phase.toUpperCase();
+
+            titleRow.appendChild(titleEl);
+            titleRow.appendChild(phaseTag);
+
+            const bodyEl = document.createElement("div");
+            bodyEl.className = "timeline-body";
+            bodyEl.textContent = body;
+
+            content.appendChild(titleRow);
+            content.appendChild(bodyEl);
+
+            if (meta) {
+                const metaEl = document.createElement("div");
+                metaEl.className = "timeline-meta";
+                metaEl.textContent = meta;
+                content.appendChild(metaEl);
+            }
+
+            item.appendChild(badge);
+            item.appendChild(content);
+            timelineEl.appendChild(item);
+
+            timelineEl.scrollTop = timelineEl.scrollHeight;
+        }
+
+        function simulateAgenticBooking() {
+            clearTimeline();
+
+            const checkIn = checkInEl.value;
+            const checkOut = checkOutEl.value;
+            const guests = parseInt(guestsEl.value, 10);
+            const preference = preferenceEl.value;
+            const priceSensitivity = priceSensitivityEl.value;
+
+            if (!checkIn || !checkOut) {
+                runSummaryEl.textContent = "Missing dates. Agent refuses to act without minimal context.";
+                addTimelineItem({
+                    phase: "sense",
+                    title: "Invalid context",
+                    body: "Check-in and check-out dates are required before the agent can reason about availability.",
+                    meta: "Outcome: loop aborted."
+                });
+                return;
+            }
+
+            // --- SENSE ---
+            addTimelineItem({
+                phase: "sense",
+                title: "Ingest guest request",
+                body: `Guest requests a room for ${guests} guest(s) from ${checkIn} to ${checkOut}.`,
+                meta: `Preference: ${preference}, price sensitivity: ${priceSensitivity}.`
+            });
+
+            addTimelineItem({
+                phase: "sense",
+                title: "Read motel state",
+                body: `Agent reads current inventory and occupancy pressure.`,
+                meta: `Standard: ${motelState.roomsAvailable.standard}, Deluxe: ${motelState.roomsAvailable.deluxe}, Suite: ${motelState.roomsAvailable.suite}.`
+            });
+
+            // --- CONTEXT ---
+            const feasibleTypes = Object.entries(baseInventory)
+                .filter(([key, meta]) => {
+                    const capacityOK = meta.capacity >= guests;
+                    const available = motelState.roomsAvailable[key] > 0;
+                    return capacityOK && available;
+                })
+                .map(([key]) => key);
+
+            if (feasibleTypes.length === 0) {
+                addTimelineItem({
+                    phase: "context",
+                    title: "Context evaluation",
+                    body: "No room type can satisfy capacity and availability constraints.",
+                    meta: "Agent will decline booking."
+                });
+
+                addTimelineItem({
+                    phase: "act",
+                    title: "Decline booking",
+                    body: "Agent cannot safely commit to a room. Suggests alternative dates or nearby properties.",
+                    meta: "Outcome: booking declined."
+                });
+
+                runSummaryEl.textContent = "No feasible room. Agent declined the booking based on context constraints.";
+                return;
+            }
+
+            addTimelineItem({
+                phase: "context",
+                title: "Feasible room set",
+                body: `Agent narrows options to room types that can host ${guests} guest(s) and are available.`,
+                meta: `Feasible: ${feasibleTypes.map(t => baseInventory[t].label).join(", ")}.`
+            });
+
+            // --- DECIDE ---
+            // Decision factors:
+            // - Guest preference
+            // - Price sensitivity
+            // - Occupancy pressure
+            // - Learned preference scores
+            const scores = {};
+            feasibleTypes.forEach(type => {
+                let score = 0;
+
+                // Base: learned preference
+                score += agentMemory.preferenceScore[type] || 0;
+
+                // Guest preference
+                if (preference === type) score += 2;
+                if (preference === "any") score += 0.5;
+
+                // Price sensitivity vs base price
+                const price = baseInventory[type].basePrice;
+                if (priceSensitivity === "low") {
+                    score += (100 - price) / 40; // cheaper = better
+                } else if (priceSensitivity === "high") {
+                    score += price / 60; // more expensive = better
+                } else {
+                    score += price / 120; // mild bias
+                }
+
+                // Occupancy pressure: under high pressure, prefer higher-margin rooms
+                if (motelState.occupancyPressure === "high") {
+                    score += price / 80;
+                } else if (motelState.occupancyPressure === "low") {
+                    score += (100 - price) / 80;
+                }
+
+                scores[type] = score;
+            });
+
+            const sorted = feasibleTypes.slice().sort((a, b) => scores[b] - scores[a]);
+            const chosenType = sorted[0];
+            const chosenMeta = baseInventory[chosenType];
+
+            addTimelineItem({
+                phase: "decide",
+                title: "Score candidate rooms",
+                body: "Agent scores each feasible room type using guest preference, price sensitivity, occupancy pressure, and learned memory.",
+                meta: sorted.map(t => `${baseInventory[t].label}: score ${scores[t].toFixed(2)}`).join(" · ")
+            });
+
+            // Price adjustment based on occupancy + sensitivity
+            let finalPrice = chosenMeta.basePrice;
+            if (motelState.occupancyPressure === "high") {
+                finalPrice *= 1.25;
+            } else if (motelState.occupancyPressure === "low") {
+                finalPrice *= 0.9;
+            }
+
+            if (priceSensitivity === "low") {
+                finalPrice *= 0.9;
+            } else if (priceSensitivity === "high") {
+                finalPrice *= 1.1;
+            }
+
+            finalPrice = Math.round(finalPrice);
+
+            addTimelineItem({
+                phase: "decide",
+                title: "Set offer price",
+                body: `Agent adjusts base price for ${chosenMeta.label} based on occupancy and guest price sensitivity.`,
+                meta: `Base: $${chosenMeta.basePrice}, final offer: $${finalPrice} per night.`
+            });
+
+            // --- ACT ---
+            // Simulate guest acceptance probability
+            let acceptanceProbability = 0.6;
+            if (priceSensitivity === "low" && finalPrice <= chosenMeta.basePrice) {
+                acceptanceProbability += 0.2;
+            }
+            if (priceSensitivity === "high" && finalPrice >= chosenMeta.basePrice) {
+                acceptanceProbability += 0.1;
+            }
+            if (preference === chosenType) {
+                acceptanceProbability += 0.15;
+            }
+
+            acceptanceProbability = Math.min(0.95, Math.max(0.05, acceptanceProbability));
+            const accepted = Math.random() < acceptanceProbability;
+
+            addTimelineItem({
+                phase: "act",
+                title: "Present offer to guest",
+                body: `Agent offers a ${chosenMeta.label} room at $${finalPrice} per night.`,
+                meta: `Estimated acceptance probability: ${(acceptanceProbability * 100).toFixed(0)}%.`
+            });
+
+            if (accepted) {
+                motelState.roomsAvailable[chosenType] = Math.max(
+                    0,
+                    motelState.roomsAvailable[chosenType] - 1
+                );
+                addTimelineItem({
+                    phase: "act",
+                    title: "Guest accepts booking",
+                    body: "Guest confirms the room and price. Agent commits inventory and issues confirmation.",
+                    meta: `Room type: ${chosenMeta.label}.`
+                });
+                runSummaryEl.textContent =
+                    `Booking succeeded: ${chosenMeta.label} at $${finalPrice}/night. Agent will update its memory.`;
+            } else {
+                addTimelineItem({
+                    phase: "act",
+                    title: "Guest rejects offer",
+                    body: "Guest declines the proposed room/price. Agent treats this as a negative signal.",
+                    meta: "Outcome: booking lost."
+                });
+                runSummaryEl.textContent =
+                    `Booking failed: guest rejected the ${chosenMeta.label} at $${finalPrice}/night. Agent will adapt.`;
+            }
+
+            // --- LEARN / ADAPT ---
+            const delta = accepted ? 1.0 : -0.7;
+            agentMemory.preferenceScore[chosenType] =
+                (agentMemory.preferenceScore[chosenType] || 0) + delta;
+
+            agentMemory.bookings.push({
+                roomType: chosenType,
+                accepted,
+                price: finalPrice,
+                guests
+            });
+
+            addTimelineItem({
+                phase: "learn",
+                title: "Update preference model",
+                body: `Agent updates its internal score for ${chosenMeta.label} based on guest response.`,
+                meta: `New score for ${chosenMeta.label}: ${agentMemory.preferenceScore[chosenType].toFixed(2)}.`
+            });
+
+            renderMotelState();
+            renderMemory();
+        }
+
+        // Initial render
+        renderMotelState();
+        renderMemory();
+
+        runAgentBtn.addEventListener("click", simulateAgenticBooking);
+        randomizeBtn.addEventListener("click", () => {
+            randomizeMotelState();
+            runSummaryEl.textContent = "Motel state randomized. Run the agent again to see different decisions.";
+        });
+    </script>
+</body>
+
+</html>
