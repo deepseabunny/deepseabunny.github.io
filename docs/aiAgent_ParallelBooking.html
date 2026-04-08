@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Parallel Multi-Agent Motel Simulator</title>
+<style>
+  :root {
+    --bg: #020617;
+    --panel: #020617;
+    --border: rgba(148, 163, 184, 0.25);
+    --text: #e5e7eb;
+    --muted: #9ca3af;
+    --accent-booking: #4ade80;
+    --accent-house: #60a5fa;
+    --accent-price: #facc15;
+    --accent-forecast: #a855f7;
+    --accent-maint: #fb7185;
+    --radius-lg: 18px;
+    --radius-md: 12px;
+    --radius-pill: 999px;
+    --shadow: 0 18px 45px rgba(0, 0, 0, 0.6);
+    --font: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(circle at top, #020617 0, #020617 40%, #020617 100%);
+    color: var(--text);
+    font-family: var(--font);
+    padding: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+  }
+  .app {
+    width: 100%;
+    max-width: 1300px;
+    border-radius: 28px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.6fr);
+    overflow: hidden;
+    position: relative;
+  }
+  .app::before {
+    content: "";
+    position: absolute;
+    inset: -40%;
+    background:
+      radial-gradient(circle at 0% 0%, rgba(74, 222, 128, 0.12), transparent 55%),
+      radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.12), transparent 55%);
+    opacity: 0.7;
+    pointer-events: none;
+    z-index: -1;
+  }
+  .panel {
+    padding: 20px 22px;
+    background: radial-gradient(circle at top left, #020617 0, #020617 40%, #020617 100%);
+  }
+  .panel + .panel {
+    border-left: 1px solid rgba(15, 23, 42, 0.9);
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .title-block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .title {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .subtitle {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--accent-booking);
+    box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.18);
+  }
+  .badge {
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+    background: rgba(15, 23, 42, 0.9);
+  }
+  .section-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--muted);
+    margin: 10px 0 6px;
+  }
+  .card {
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(30, 41, 59, 0.9);
+    background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.98));
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .card-sub {
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .pill {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(55, 65, 81, 0.9);
+    color: var(--muted);
+    background: rgba(15, 23, 42, 0.9);
+  }
+  .pill.booking { border-color: var(--accent-booking); color: var(--accent-booking); }
+  .pill.house { border-color: var(--accent-house); color: var(--accent-house); }
+  .pill.price { border-color: var(--accent-price); color: var(--accent-price); }
+  .pill.forecast { border-color: var(--accent-forecast); color: var(--accent-forecast); }
+  .pill.maint { border-color: var(--accent-maint); color: var(--accent-maint); }
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 10px;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  input, select {
+    border-radius: 9px;
+    border: 1px solid rgba(55, 65, 81, 0.9);
+    background: rgba(15, 23, 42, 0.9);
+    color: var(--text);
+    padding: 6px 8px;
+    font-size: 13px;
+    outline: none;
+  }
+  input:focus, select:focus {
+    border-color: rgba(74, 222, 128, 0.9);
+    box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.5);
+  }
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .btn {
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(148, 163, 184, 0.5);
+    background: rgba(15, 23, 42, 0.95);
+    color: var(--muted);
+    font-size: 11px;
+    padding: 7px 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-primary {
+    flex: 1;
+    border: none;
+    background: radial-gradient(circle at top left, #22c55e, #16a34a);
+    color: #022c22;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 12px 30px rgba(34, 197, 94, 0.35);
+  }
+  .btn-primary:hover { filter: brightness(1.05); }
+  .rooms-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .room {
+    border-radius: 10px;
+    border: 1px solid rgba(31, 41, 55, 0.9);
+    padding: 6px 7px;
+    font-size: 11px;
+  }
+  .room-id { font-weight: 500; }
+  .room-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .room.bad { border-color: rgba(248, 113, 113, 0.8); }
+  .room.good { border-color: rgba(74, 222, 128, 0.8); }
+  .memory-card {
+    margin-top: 8px;
+    border-radius: var(--radius-md);
+    border: 1px dashed rgba(55, 65, 81, 0.9);
+    padding: 10px 12px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .memory-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    margin-bottom: 4px;
+  }
+  .memory-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .memory-pill {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(55, 65, 81, 0.9);
+    background: rgba(15, 23, 42, 0.9);
+  }
+  .memory-pill strong { color: var(--accent-booking); }
+  .timeline-card {
+    height: calc(100% - 70px);
+    display: flex;
+    flex-direction: column;
+  }
+  .timeline {
+    margin-top: 6px;
+    max-height: 460px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .timeline::-webkit-scrollbar { width: 6px; }
+  .timeline::-webkit-scrollbar-thumb {
+    background: rgba(31, 41, 55, 0.9);
+    border-radius: 999px;
+  }
+  .log-item {
+    border-bottom: 1px solid rgba(31, 41, 55, 0.8);
+    padding: 6px 2px;
+    font-size: 11px;
+  }
+  .log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2px;
+  }
+  .log-agent {
+    font-weight: 500;
+  }
+  .log-agent.booking { color: var(--accent-booking); }
+  .log-agent.house { color: var(--accent-house); }
+  .log-agent.price { color: var(--accent-price); }
+  .log-agent.forecast { color: var(--accent-forecast); }
+  .log-agent.maint { color: var(--accent-maint); }
+  .log-phase {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    padding: 2px 6px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(55, 65, 81, 0.9);
+    color: var(--muted);
+  }
+  .log-body { color: var(--muted); }
+  .log-meta { font-size: 10px; color: #6b7280; margin-top: 2px; }
+  .status-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+    font-size: 10px;
+    color: var(--muted);
+  }
+  .status-pill {
+    padding: 3px 8px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(55, 65, 81, 0.9);
+  }
+  @media (max-width: 900px) {
+    body { padding: 12px; }
+    .app { grid-template-columns: minmax(0, 1fr); }
+    .panel + .panel { border-left: none; border-top: 1px solid rgba(15, 23, 42, 0.9); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- LEFT: STATE + CONTROLS -->
+  <div class="panel">
+    <div class="header">
+      <div class="title-block">
+        <div class="title">Parallel Multi-Agent Motel</div>
+        <div class="subtitle">
+          <span class="dot"></span>
+          Booking · Housekeeping · Pricing · Forecasting · Maintenance
+        </div>
+      </div>
+      <div class="badge">Fully parallel loops</div>
+    </div>
+
+    <div class="section-label">Guest request</div>
+    <div class="card">
+      <div class="form-grid">
+        <div class="field">
+          <label for="checkIn">Check-in</label>
+          <input type="date" id="checkIn">
+        </div>
+        <div class="field">
+          <label for="checkOut">Check-out</label>
+          <input type="date" id="checkOut">
+        </div>
+        <div class="field">
+          <label for="guests">Guests</label>
+          <select id="guests">
+            <option value="1">1 guest</option>
+            <option value="2" selected>2 guests</option>
+            <option value="3">3 guests</option>
+            <option value="4">4 guests</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="preference">Room preference</label>
+          <select id="preference">
+            <option value="any" selected>No preference</option>
+            <option value="standard">Standard</option>
+            <option value="deluxe">Deluxe</option>
+            <option value="suite">Suite</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" style="margin-top:6px;">
+        <label for="priceSensitivity">Price sensitivity</label>
+        <select id="priceSensitivity">
+          <option value="low">Price-sensitive</option>
+          <option value="medium" selected>Balanced</option>
+          <option value="high">Comfort-first</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-label">Shared motel state</div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Rooms & occupancy</div>
+          <div class="card-sub">Shared blackboard for all agents.</div>
+        </div>
+      </div>
+      <div class="pill-row" id="pressurePills"></div>
+      <div class="rooms-grid" id="roomsGrid"></div>
+    </div>
+
+    <div class="section-label">Agent memories</div>
+    <div class="memory-card">
+      <div class="memory-title">Booking & Pricing memory</div>
+      <div id="memorySummary">No runs yet. Agents have no learned preferences.</div>
+      <div class="memory-row" id="memoryRow"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary" id="startBtn">Start parallel loops</button>
+      <button class="btn" id="stopBtn">Stop</button>
+      <button class="btn" id="randomizeBtn">Randomize motel state</button>
+    </div>
+  </div>
+
+  <!-- RIGHT: TIMELINE -->
+  <div class="panel">
+    <div class="header">
+      <div class="title-block">
+        <div class="title">Agent loop timeline</div>
+        <div class="subtitle">Continuous parallel reasoning trace</div>
+      </div>
+      <div class="badge" id="runStatus">Idle</div>
+    </div>
+
+    <div class="card timeline-card">
+      <div class="card-sub" id="runSummary">
+        Press “Start parallel loops” to let all agents run continuously against shared state.
+      </div>
+      <div class="status-row" id="agentStatusRow"></div>
+      <div class="timeline" id="timeline"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Shared state (blackboard)
+  const sharedState = {
+    rooms: {
+      "101": { type: "standard", capacity: 2, clean: true, maintenance: false, occupied: false },
+      "102": { type: "standard", capacity: 2, clean: false, maintenance: false, occupied: false },
+      "201": { type: "deluxe", capacity: 3, clean: true, maintenance: false, occupied: false },
+      "202": { type: "deluxe", capacity: 3, clean: true, maintenance: true, occupied: false },
+      "301": { type: "suite", capacity: 4, clean: true, maintenance: false, occupied: false },
+      "302": { type: "suite", capacity: 4, clean: false, maintenance: false, occupied: false }
+    },
+    occupancyPressure: "medium", // low | medium | high
+    forecast: {
+      demandIndex: 0.6,
+      expectedOccupancy: 0.7
+    },
+    pricing: {
+      standard: 80,
+      deluxe: 120,
+      suite: 180
+    },
+    lastBooking: null
+  };
+
+  // Agent memories
+  const memories = {
+    bookingPreferenceScore: { standard: 0, deluxe: 0, suite: 0 },
+    pricingElasticity: { standard: 0, deluxe: 0, suite: 0 }
+  };
+
+  // DOM refs
+  const roomsGridEl = document.getElementById("roomsGrid");
+  const pressurePillsEl = document.getElementById("pressurePills");
+  const memorySummaryEl = document.getElementById("memorySummary");
+  const memoryRowEl = document.getElementById("memoryRow");
+  const timelineEl = document.getElementById("timeline");
+  const runStatusEl = document.getElementById("runStatus");
+  const runSummaryEl = document.getElementById("runSummary");
+  const agentStatusRowEl = document.getElementById("agentStatusRow");
+
+  const checkInEl = document.getElementById("checkIn");
+  const checkOutEl = document.getElementById("checkOut");
+  const guestsEl = document.getElementById("guests");
+  const preferenceEl = document.getElementById("preference");
+  const priceSensitivityEl = document.getElementById("priceSensitivity");
+
+  const startBtn = document.getElementById("startBtn");
+  const stopBtn = document.getElementById("stopBtn");
+  const randomizeBtn = document.getElementById("randomizeBtn");
+
+  // Init dates
+  (function initDates() {
+    const today = new Date();
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    checkInEl.valueAsDate = today;
+    checkOutEl.valueAsDate = tomorrow;
+  })();
+
+  // Render motel state
+  function renderRooms() {
+    roomsGridEl.innerHTML = "";
+    Object.entries(sharedState.rooms).forEach(([id, room]) => {
+      const div = document.createElement("div");
+      div.className = "room";
+      if (!room.clean || room.maintenance) div.classList.add("bad");
+      if (room.clean && !room.maintenance && !room.occupied) div.classList.add("good");
+      div.innerHTML = `
+        <div class="room-id">${id} · ${room.type}</div>
+        <div class="room-meta">
+          cap ${room.capacity} · ${room.clean ? "clean" : "dirty"} ·
+          ${room.maintenance ? "maintenance" : "ok"} ·
+          ${room.occupied ? "occupied" : "free"}
+        </div>
+      `;
+      roomsGridEl.appendChild(div);
+    });
+  }
+
+  function renderPressure() {
+    pressurePillsEl.innerHTML = "";
+    const pill = document.createElement("div");
+    pill.className = "pill";
+    pill.textContent = `Occupancy pressure: ${sharedState.occupancyPressure}`;
+    pressurePillsEl.appendChild(pill);
+
+    const pill2 = document.createElement("div");
+    pill2.className = "pill";
+    pill2.textContent = `Demand index: ${sharedState.forecast.demandIndex.toFixed(2)}`;
+    pressurePillsEl.appendChild(pill2);
+  }
+
+  function renderMemory() {
+    memoryRowEl.innerHTML = "";
+    const scores = memories.bookingPreferenceScore;
+    const total = Object.values(scores).reduce((a, b) => a + Math.abs(b), 0);
+    if (total === 0) {
+      memorySummaryEl.textContent = "No runs yet. Agents have no learned preferences.";
+      return;
+    }
+    memorySummaryEl.textContent = "Booking agent biases toward room types with higher acceptance; pricing agent tracks elasticity.";
+    Object.entries(scores)
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([type, score]) => {
+        const pill = document.createElement("div");
+        pill.className = "memory-pill";
+        pill.innerHTML = `<strong>${type}</strong> · booking score ${score.toFixed(1)}`;
+        memoryRowEl.appendChild(pill);
+      });
+  }
+
+  function addLog(agent, phase, body, meta) {
+    const item = document.createElement("div");
+    item.className = "log-item";
+    const header = document.createElement("div");
+    header.className = "log-header";
+
+    const agentEl = document.createElement("div");
+    agentEl.className = "log-agent " + agent;
+    agentEl.textContent = agent.charAt(0).toUpperCase() + agent.slice(1) + " agent";
+
+    const phaseEl = document.createElement("div");
+    phaseEl.className = "log-phase";
+    phaseEl.textContent = phase.toUpperCase();
+
+    header.appendChild(agentEl);
+    header.appendChild(phaseEl);
+
+    const bodyEl = document.createElement("div");
+    bodyEl.className = "log-body";
+    bodyEl.textContent = body;
+
+    item.appendChild(header);
+    item.appendChild(bodyEl);
+
+    if (meta) {
+      const metaEl = document.createElement("div");
+      metaEl.className = "log-meta";
+      metaEl.textContent = meta;
+      item.appendChild(metaEl);
+    }
+
+    timelineEl.appendChild(item);
+    timelineEl.scrollTop = timelineEl.scrollHeight;
+  }
+
+  // Agent status pills
+  const agentStatus = {
+    booking: "idle",
+    housekeeping: "idle",
+    pricing: "idle",
+    forecasting: "idle",
+    maintenance: "idle"
+  };
+
+  function renderAgentStatus() {
+    agentStatusRowEl.innerHTML = "";
+    Object.entries(agentStatus).forEach(([agent, status]) => {
+      const pill = document.createElement("div");
+      pill.className = "status-pill";
+      pill.textContent = `${agent} · ${status}`;
+      agentStatusRowEl.appendChild(pill);
+    });
+  }
+
+  // Utility
+  function randomRange(min, max) {
+    return Math.random() * (max - min) + min;
+  }
+
+  function randomizeMotelState() {
+    const pressures = ["low", "medium", "high"];
+    sharedState.occupancyPressure = pressures[Math.floor(Math.random() * pressures.length)];
+    Object.entries(sharedState.rooms).forEach(([id, room]) => {
+      room.clean = Math.random() > 0.25;
+      room.maintenance = Math.random() < 0.15;
+      room.occupied = Math.random() < 0.4;
+    });
+    sharedState.forecast.demandIndex = randomRange(0.3, 0.95);
+    sharedState.forecast.expectedOccupancy = randomRange(0.4, 0.95);
+    renderRooms();
+    renderPressure();
+  }
+
+  // Agent loops (parallel via setInterval)
+  let intervals = [];
+
+  function startLoops() {
+    if (intervals.length > 0) return;
+    runStatusEl.textContent = "Running";
+    runSummaryEl.textContent = "All agents are running in parallel, continuously updating shared state and logging decisions.";
+
+    // Booking agent loop
+    intervals.push(setInterval(() => {
+      agentStatus.booking = "loop";
+      renderAgentStatus();
+      runBookingAgent();
+    }, 3500 + Math.random() * 1500));
+
+    // Housekeeping agent loop
+    intervals.push(setInterval(() => {
+      agentStatus.housekeeping = "loop";
+      renderAgentStatus();
+      runHousekeepingAgent();
+    }, 4000 + Math.random() * 2000));
+
+    // Pricing agent loop
+    intervals.push(setInterval(() => {
+      agentStatus.pricing = "loop";
+      renderAgentStatus();
+      runPricingAgent();
+    }, 3200 + Math.random() * 1800));
+
+    // Forecasting agent loop
+    intervals.push(setInterval(() => {
+      agentStatus.forecasting = "loop";
+      renderAgentStatus();
+      runForecastingAgent();
+    }, 5000 + Math.random() * 2500));
+
+    // Maintenance agent loop
+    intervals.push(setInterval(() => {
+      agentStatus.maintenance = "loop";
+      renderAgentStatus();
+      runMaintenanceAgent();
+    }, 4500 + Math.random() * 2000));
+  }
+
+  function stopLoops() {
+    intervals.forEach(clearInterval);
+    intervals = [];
+    runStatusEl.textContent = "Stopped";
+    Object.keys(agentStatus).forEach(k => agentStatus[k] = "idle");
+    renderAgentStatus();
+  }
+
+  // Agents
+
+  function getGuestContext() {
+    const checkIn = checkInEl.value;
+    const checkOut = checkOutEl.value;
+    const guests = parseInt(guestsEl.value, 10);
+    const preference = preferenceEl.value;
+    const priceSensitivity = priceSensitivityEl.value;
+    return { checkIn, checkOut, guests, preference, priceSensitivity };
+  }
+
+  function runBookingAgent() {
+    const ctx = getGuestContext();
+    if (!ctx.checkIn || !ctx.checkOut) {
+      addLog("booking", "sense", "Missing dates; booking agent skips this loop.", null);
+      return;
+    }
+
+    // Sense
+    addLog("booking", "sense", "Reads guest request and current room states.", `Guests: ${ctx.guests}, pref: ${ctx.preference}, price: ${ctx.priceSensitivity}.`);
+
+    // Context: feasible rooms
+    const feasible = Object.entries(sharedState.rooms).filter(([id, room]) => {
+      return !room.occupied && room.clean && !room.maintenance && room.capacity >= ctx.guests;
+    });
+
+    if (feasible.length === 0) {
+      addLog("booking", "context", "No feasible rooms (clean, available, no maintenance) for this guest.", null);
+      sharedState.lastBooking = null;
+      return;
+    }
+
+    // Decide: score rooms
+    const scores = feasible.map(([id, room]) => {
+      let score = 0;
+      // learned preference
+      score += memories.bookingPreferenceScore[room.type] || 0;
+      // guest preference
+      if (ctx.preference === room.type) score += 2;
+      if (ctx.preference === "any") score += 0.5;
+      // occupancy pressure
+      if (sharedState.occupancyPressure === "high") score += 1;
+      if (sharedState.occupancyPressure === "low") score -= 0.3;
+      // price alignment
+      const basePrice = sharedState.pricing[room.type];
+      if (ctx.priceSensitivity === "low") score += (100 - basePrice) / 50;
+      if (ctx.priceSensitivity === "high") score += basePrice / 80;
+      return { id, room, score };
+    });
+
+    scores.sort((a, b) => b.score - a.score);
+    const chosen = scores[0];
+
+    addLog(
+      "booking",
+      "decide",
+      `Scores feasible rooms and selects ${chosen.id} (${chosen.room.type}).`,
+      scores.map(s => `${s.id}:${s.room.type}=${s.score.toFixed(2)}`).join(" · ")
+    );
+
+    // Act: propose booking, simulate acceptance
+    const basePrice = sharedState.pricing[chosen.room.type];
+    let acceptanceProb = 0.6;
+    if (ctx.priceSensitivity === "low" && basePrice <= 100) acceptanceProb += 0.2;
+    if (ctx.priceSensitivity === "high" && basePrice >= 120) acceptanceProb += 0.1;
+    if (ctx.preference === chosen.room.type) acceptanceProb += 0.15;
+    acceptanceProb = Math.min(0.95, Math.max(0.05, acceptanceProb));
+
+    const accepted = Math.random() < acceptanceProb;
+    if (accepted) {
+      chosen.room.occupied = true;
+      sharedState.lastBooking = { roomId: chosen.id, type: chosen.room.type, price: basePrice, accepted: true };
+      addLog(
+        "booking",
+        "act",
+        `Guest accepts ${chosen.room.type} in room ${chosen.id} at $${basePrice}.`,
+        `Acceptance probability was ${(acceptanceProb * 100).toFixed(0)}%.`
+      );
+    } else {
+      sharedState.lastBooking = { roomId: chosen.id, type: chosen.room.type, price: basePrice, accepted: false };
+      addLog(
+        "booking",
+        "act",
+        `Guest rejects ${chosen.room.type} in room ${chosen.id} at $${basePrice}.`,
+        `Acceptance probability was ${(acceptanceProb * 100).toFixed(0)}%.`
+      );
+    }
+
+    // Learn
+    const delta = accepted ? 1.0 : -0.7;
+    memories.bookingPreferenceScore[chosen.room.type] =
+      (memories.bookingPreferenceScore[chosen.room.type] || 0) + delta;
+
+    addLog(
+      "booking",
+      "learn",
+      `Updates preference score for ${chosen.room.type}.`,
+      `New score: ${memories.bookingPreferenceScore[chosen.room.type].toFixed(2)}.`
+    );
+
+    renderRooms();
+    renderMemory();
+  }
+
+  function runHousekeepingAgent() {
+    // Sense
+    addLog("house", "sense", "Scans rooms for dirty or recently vacated states.", null);
+
+    // Context: identify dirty but available rooms
+    const dirtyRooms = Object.entries(sharedState.rooms).filter(([id, room]) => room.dirty || !room.clean);
+    if (dirtyRooms.length === 0) {
+      addLog("house", "context", "No dirty rooms detected in this loop.", null);
+      return;
+    }
+
+    // Decide: which rooms to prioritize
+    const prioritized = dirtyRooms.slice(0, 2);
+    addLog(
+      "house",
+      "decide",
+      "Selects a subset of dirty rooms to clean based on capacity and type.",
+      prioritized.map(([id, r]) => id).join(", ")
+    );
+
+    // Act: clean them
+    prioritized.forEach(([id, room]) => {
+      room.clean = true;
+    });
+    addLog(
+      "house",
+      "act",
+      "Marks selected rooms as clean and ready for booking.",
+      null
+    );
+
+    // Learn: (simple placeholder)
+    addLog(
+      "house",
+      "learn",
+      "Updates internal estimate of cleaning throughput (implicit).",
+      null
+    );
+
+    renderRooms();
+  }
+
+  function runPricingAgent() {
+    // Sense
+    addLog("price", "sense", "Reads occupancy pressure, demand index, and last booking outcome.", null);
+
+    const pressure = sharedState.occupancyPressure;
+    const demand = sharedState.forecast.demandIndex;
+    const last = sharedState.lastBooking;
+
+    // Context
+    let contextMeta = `Pressure: ${pressure}, demand: ${demand.toFixed(2)}.`;
+    if (last) {
+      contextMeta += ` Last booking: ${last.type} at $${last.price} (${last.accepted ? "accepted" : "rejected"}).`;
+    }
+    addLog("price", "context", "Builds pricing context from shared state.", contextMeta);
+
+    // Decide: adjust prices
+    Object.entries(sharedState.pricing).forEach(([type, price]) => {
+      let newPrice = price;
+      if (pressure === "high" || demand > 0.8) newPrice *= 1.1;
+      if (pressure === "low" || demand < 0.4) newPrice *= 0.9;
+      if (last && last.type === type) {
+        if (last.accepted) newPrice *= 1.03;
+        else newPrice *= 0.95;
+      }
+      sharedState.pricing[type] = Math.round(newPrice);
+    });
+
+    addLog(
+      "price",
+      "decide",
+      "Adjusts base prices based on pressure, demand, and recent booking outcome.",
+      Object.entries(sharedState.pricing).map(([t, p]) => `${t}: $${p}`).join(" · ")
+    );
+
+    // Learn: track elasticity (very simple)
+    if (last) {
+      const delta = last.accepted ? 0.5 : -0.4;
+      memories.pricingElasticity[last.type] =
+        (memories.pricingElasticity[last.type] || 0) + delta;
+      addLog(
+        "price",
+        "learn",
+        `Updates elasticity estimate for ${last.type}.`,
+        `Elasticity score: ${memories.pricingElasticity[last.type].toFixed(2)}.`
+      );
+    }
+  }
+
+  function runForecastingAgent() {
+    // Sense
+    addLog("forecast", "sense", "Reads historical-like signals from shared state.", null);
+
+    // Context: approximate occupancy
+    const rooms = Object.values(sharedState.rooms);
+    const occupiedCount = rooms.filter(r => r.occupied).length;
+    const occRatio = rooms.length ? occupiedCount / rooms.length : 0;
+
+    addLog(
+      "forecast",
+      "context",
+      "Computes approximate occupancy ratio.",
+      `Occupied: ${occupiedCount}/${rooms.length} (${(occRatio * 100).toFixed(0)}%).`
+    );
+
+    // Decide: update demand index
+    let demand = sharedState.forecast.demandIndex;
+    demand = demand * 0.7 + occRatio * 0.3 + (Math.random() - 0.5) * 0.05;
+    demand = Math.min(0.98, Math.max(0.2, demand));
+    sharedState.forecast.demandIndex = demand;
+
+    addLog(
+      "forecast",
+      "decide",
+      "Updates demand index based on occupancy and noise.",
+      `New demand index: ${demand.toFixed(2)}.`
+    );
+
+    // Learn: placeholder
+    addLog(
+      "forecast",
+      "learn",
+      "Refines internal seasonal/demand model (implicit).",
+      null
+    );
+
+    renderPressure();
+  }
+
+  function runMaintenanceAgent() {
+    // Sense
+    addLog("maint", "sense", "Scans rooms for potential issues.", null);
+
+    // Context: randomly flag/unflag
+    const rooms = Object.entries(sharedState.rooms);
+    if (rooms.length === 0) return;
+
+    const [id, room] = rooms[Math.floor(Math.random() * rooms.length)];
+    const issueChance = 0.15;
+    const clearChance = 0.3;
+
+    if (!room.maintenance && Math.random() < issueChance) {
+      room.maintenance = true;
+      addLog(
+        "maint",
+        "decide",
+        `Detects a new issue in room ${id}.`,
+        "Flags room for maintenance."
+      );
+      addLog(
+        "maint",
+        "act",
+        `Blocks room ${id} from booking until resolved.`,
+        null
+      );
+    } else if (room.maintenance && Math.random() < clearChance) {
+      room.maintenance = false;
+      addLog(
+        "maint",
+        "decide",
+        `Marks maintenance complete for room ${id}.`,
+        null
+      );
+      addLog(
+        "maint",
+        "act",
+        `Unblocks room ${id} for booking.`,
+        null
+      );
+    } else {
+      addLog(
+        "maint",
+        "context",
+        "No maintenance state change in this loop.",
+        null
+      );
+    }
+
+    // Learn: placeholder
+    addLog(
+      "maint",
+      "learn",
+      "Updates internal failure-rate estimate (implicit).",
+      null
+    );
+
+    renderRooms();
+  }
+
+  // Init
+  renderRooms();
+  renderPressure();
+  renderMemory();
+  renderAgentStatus();
+
+  // Events
+  startBtn.addEventListener("click", startLoops);
+  stopBtn.addEventListener("click", stopLoops);
+  randomizeBtn.addEventListener("click", () => {
+    randomizeMotelState();
+    addLog("booking", "sense", "Motel state randomized by operator.", null);
+  });
+</script>
+</body>
+</html>
