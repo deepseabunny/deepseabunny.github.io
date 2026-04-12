@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Linux Chron Simulator 2.2</title>
+    <style>
+        :root {
+            --bg: #050608;
+            --bg-panel: #0b0f16;
+            --border: #1b2533;
+            --text: #d2f8c2;
+            --accent: #4af626;
+            --muted: #6b7a8f;
+            --error: #ff5c57;
+            --font: "Fira Code", Menlo, Monaco, Consolas, "Courier New", monospace;
+        }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            background: radial-gradient(circle at top, #101522 0, #050608 55%);
+            color: var(--text);
+            font-family: var(--font);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .shell {
+            width: 90vw;
+            max-width: 960px;
+            height: 80vh;
+            background: var(--bg-panel);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+        }
+
+        .shell-header {
+            display: flex;
+            align-items: center;
+            padding: 6px 10px;
+            background: linear-gradient(to right, #151b26, #101521);
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--muted);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .shell-dots {
+            display: flex;
+            gap: 6px;
+            margin-right: 10px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dot.red {
+            background: #ff5f57;
+        }
+
+        .dot.yellow {
+            background: #febc2e;
+        }
+
+        .dot.green {
+            background: #28c840;
+        }
+
+        .shell-title {
+            flex: 1;
+            text-align: center;
+        }
+
+        .shell-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 10px 12px;
+        }
+
+        .screen {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .line {
+            white-space: pre-wrap;
+        }
+
+        .line.system {
+            color: var(--muted);
+        }
+
+        .line.chron {
+            color: var(--accent);
+        }
+
+        .line.error {
+            color: var(--error);
+        }
+
+        .prompt-line {
+            display: flex;
+            align-items: center;
+            margin-top: 4px;
+        }
+
+        .prompt-label {
+            color: var(--accent);
+            margin-right: 6px;
+        }
+
+        .prompt-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 13px;
+        }
+
+        .status-bar {
+            border-top: 1px solid var(--border);
+            padding: 4px 10px;
+            font-size: 11px;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            background: #070a10;
+        }
+
+        .status-pill {
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid #263246;
+            background: #0c111b;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #ff5c57;
+        }
+
+        .status-dot.running {
+            background: #4af626;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="shell">
+        <div class="shell-header">
+            <div class="shell-dots">
+                <div class="dot red"></div>
+                <div class="dot yellow"></div>
+                <div class="dot green"></div>
+            </div>
+            <div class="shell-title">chron@localhost: ~ /sim</div>
+        </div>
+
+        <div class="shell-body">
+            <div id="screen" class="screen"></div>
+
+            <div class="prompt-line">
+                <span class="prompt-label">chron@localhost:~$</span>
+                <input id="prompt" class="prompt-input" type="text" autocomplete="off" spellcheck="false" />
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-pill">
+                <div id="status-dot" class="status-dot"></div>
+                <span id="status-label">IDLE</span>
+            </div>
+            <div>
+                Sim time: <strong id="status-time">--:--:--</strong> |
+                Speed: <strong id="status-speed">1x</strong>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const screen = document.getElementById("screen");
+        const prompt = document.getElementById("prompt");
+        const statusDot = document.getElementById("status-dot");
+        const statusLabel = document.getElementById("status-label");
+        const statusTime = document.getElementById("status-time");
+        const statusSpeed = document.getElementById("status-speed");
+
+        let simTime = new Date();
+        let running = false;
+        let speed = 1;
+        let timer = null;
+
+        let chronJobs = [];
+        let nextJobId = 1;
+
+        const history = [];
+        let historyIndex = -1;
+
+        function pad(n) { return n.toString().padStart(2, "0"); }
+
+        function formatTime(d) {
+            return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        }
+
+        function printLine(text, type = "system") {
+            const div = document.createElement("div");
+            div.className = `line ${type}`;
+            div.textContent = text;
+            screen.appendChild(div);
+            screen.scrollTop = screen.scrollHeight;
+        }
+
+        function printPromptEcho(cmd) {
+            printLine(`chron@localhost:~$ ${cmd}`, "system");
+        }
+
+        function updateStatus() {
+            statusTime.textContent = formatTime(simTime);
+            statusSpeed.textContent = speed + "x";
+            if (running) {
+                statusDot.classList.add("running");
+                statusLabel.textContent = "RUNNING";
+            } else {
+                statusDot.classList.remove("running");
+                statusLabel.textContent = "IDLE";
+            }
+        }
+
+        function cronMatch(schedule, date) {
+            const parts = schedule.trim().split(/\s+/);
+            if (parts.length !== 5) return false;
+
+            const [min, hr, day, mon, wk] = parts;
+
+            const checks = [
+                [min, date.getMinutes()],
+                [hr, date.getHours()],
+                [day, date.getDate()],
+                [mon, date.getMonth() + 1],
+                [wk, date.getDay()],
+            ];
+
+            for (const [field, value] of checks) {
+                if (field !== "*" && Number(field) !== value) return false;
+            }
+            return true;
+        }
+
+        function startChron() {
+            if (running) return;
+            running = true;
+            timer = setInterval(() => {
+                const prevMinute = simTime.getMinutes();
+                simTime = new Date(simTime.getTime() + 1000 * speed);
+                printLine("[chron] tick " + formatTime(simTime), "chron");
+                updateStatus();
+
+                const newMinute = simTime.getMinutes();
+                if (newMinute !== prevMinute) runChronJobs();
+            }, 1000);
+            printLine("[chron] started", "chron");
+            updateStatus();
+        }
+
+        function stopChron() {
+            if (!running) return;
+            running = false;
+            clearInterval(timer);
+            printLine("[chron] stopped", "chron");
+            updateStatus();
+        }
+
+        function setSpeed(s) {
+            const n = Number(s);
+            if (!Number.isFinite(n) || n <= 0) {
+                printLine("[chron] invalid speed", "error");
+                return;
+            }
+            speed = n;
+            printLine("[chron] speed set to " + speed + "x", "chron");
+            updateStatus();
+        }
+
+        function runChronJobs() {
+            chronJobs.forEach(job => {
+                if (cronMatch(job.schedule, simTime)) {
+                    printLine(
+                        `[chron] job ${job.id} matched schedule "${job.schedule}"`,
+                        "chron"
+                    );
+                    printLine(
+                        `[chron] job ${job.id} → ${job.command}`,
+                        "chron"
+                    );
+                }
+            });
+        }
+
+        function parseChronDelta(str) {
+            if (!str) return null;
+            const m = str.match(/^(\d+)(s|m|h)$/);
+            if (!m) return null;
+            const v = Number(m[1]);
+            return m[2] === "s" ? v * 1000 :
+                m[2] === "m" ? v * 60000 :
+                    v * 3600000;
+        }
+
+        function formatChron(fmt, d) {
+            if (fmt.startsWith("+")) fmt = fmt.slice(1);
+            return fmt
+                .replace("%Y", d.getFullYear())
+                .replace("%m", pad(d.getMonth() + 1))
+                .replace("%d", pad(d.getDate()))
+                .replace("%H", pad(d.getHours()))
+                .replace("%M", pad(d.getMinutes()))
+                .replace("%S", pad(d.getSeconds()));
+        }
+
+        function handleChronJob(args) {
+            const action = args[0];
+
+            switch (action) {
+                case "add": {
+                    if (args.length < 7) {
+                        printLine("usage: chron job add * * * * * <command>", "error");
+                        return;
+                    }
+
+                    const schedule = args.slice(1, 6).join(" ");
+                    const fields = schedule.split(/\s+/);
+
+                    if (fields.length !== 5) {
+                        printLine("[chron] invalid schedule (must have 5 fields: min hr day mon wk)", "error");
+                        return;
+                    }
+
+                    const command = args.slice(6).join(" ");
+
+                    chronJobs.push({
+                        id: nextJobId++,
+                        schedule,
+                        command
+                    });
+
+                    printLine(`[chron] job added id=${nextJobId - 1}`, "chron");
+                    break;
+                }
+
+                case "list": {
+                    if (chronJobs.length === 0) {
+                        printLine("[chron] no jobs", "chron");
+                        return;
+                    }
+                    chronJobs.forEach(job => {
+                        printLine(`${job.id}: ${job.schedule} → ${job.command}`, "chron");
+                    });
+                    break;
+                }
+
+                case "rm": {
+                    const id = Number(args[1]);
+                    const before = chronJobs.length;
+                    chronJobs = chronJobs.filter(j => j.id !== id);
+                    if (chronJobs.length === before) {
+                        printLine("[chron] no such job", "error");
+                    } else {
+                        printLine(`[chron] job ${id} removed`, "chron");
+                    }
+                    break;
+                }
+
+                case "clear":
+                    chronJobs = [];
+                    printLine("[chron] all jobs cleared", "chron");
+                    break;
+
+                case "test": {
+                    const schedule = args[1];
+                    if (!schedule) {
+                        printLine("usage: chron job test \"* * * * *\"", "error");
+                        return;
+                    }
+                    const match = cronMatch(schedule, simTime);
+                    printLine(
+                        `[chron] schedule ${match ? "matches" : "does not match"} current time`,
+                        "chron"
+                    );
+                    break;
+                }
+
+                default:
+                    printLine("chron job: unknown action", "error");
+            }
+        }
+
+        function handleChron(args) {
+            const sub = args[0];
+
+            switch (sub) {
+                case "set": {
+                    const dateStr = args.slice(1).join(" ");
+                    const d = new Date(dateStr);
+                    if (isNaN(d)) {
+                        printLine("[chron] invalid date", "error");
+                    } else {
+                        simTime = d;
+                        updateStatus();
+                        printLine("[chron] time set", "chron");
+                    }
+                    break;
+                }
+
+                case "add": {
+                    const delta = parseChronDelta(args[1]);
+                    if (!delta) {
+                        printLine("[chron] invalid delta", "error");
+                    } else {
+                        simTime = new Date(simTime.getTime() + delta);
+                        updateStatus();
+                        printLine("[chron] added " + args[1], "chron");
+                    }
+                    break;
+                }
+
+                case "sub": {
+                    const delta = parseChronDelta(args[1]);
+                    if (!delta) {
+                        printLine("[chron] invalid delta", "error");
+                    } else {
+                        simTime = new Date(simTime.getTime() - delta);
+                        updateStatus();
+                        printLine("[chron] subtracted " + args[1], "chron");
+                    }
+                    break;
+                }
+
+                case "epoch":
+                    printLine(simTime.getTime().toString(), "chron");
+                    break;
+
+                case "format":
+                    printLine(formatChron(args.slice(1).join(" "), simTime), "chron");
+                    break;
+
+                case "job":
+                    handleChronJob(args.slice(1));
+                    break;
+
+                default:
+                    printLine("chron: unknown subcommand", "error");
+            }
+        }
+
+        function handleCommand(raw) {
+            const input = raw.trim();
+            if (!input) return;
+
+            printPromptEcho(input);
+
+            const [cmd, ...args] = input.split(/\s+/);
+
+            switch (cmd) {
+                case "help":
+                    printLine("chron commands:");
+                    printLine("  chron set YYYY-MM-DD HH:MM:SS");
+                    printLine("  chron add 5m | 10s | 2h");
+                    printLine("  chron sub 5m | 10s | 2h");
+                    printLine("  chron epoch");
+                    printLine("  chron format +%Y-%m-%d %H:%M:%S");
+                    printLine("");
+                    printLine("chron job commands:");
+                    printLine("  chron job add * * * * * <command>");
+                    printLine("  chron job list");
+                    printLine("  chron job rm <id>");
+                    printLine("  chron job clear");
+                    printLine("  chron job test \"* * * * *\"");
+                    printLine("");
+                    printLine("system commands:");
+                    printLine("  start, stop, speed, now, reset, clear, date");
+                    break;
+
+                case "start": startChron(); break;
+                case "stop": stopChron(); break;
+                case "speed": setSpeed(args[0]); break;
+                case "now": printLine(formatTime(simTime), "chron"); break;
+                case "reset": simTime = new Date(); updateStatus(); break;
+                case "clear": screen.innerHTML = ""; break;
+                case "date": printLine(new Date().toString()); break;
+
+                case "chron":
+                    handleChron(args);
+                    break;
+
+                default:
+                    printLine("command not found: " + cmd, "error");
+            }
+        }
+
+        prompt.addEventListener("keydown", e => {
+            if (e.key === "Enter") {
+                const value = prompt.value.trim();
+                if (value) {
+                    history.push(value);
+                    historyIndex = history.length;
+                }
+                handleCommand(value);
+                prompt.value = "";
+            } else if (e.key === "ArrowUp") {
+                if (history.length === 0) return;
+                historyIndex = Math.max(0, historyIndex - 1);
+                prompt.value = history[historyIndex];
+                setTimeout(() => {
+                    prompt.setSelectionRange(prompt.value.length, prompt.value.length);
+                });
+            } else if (e.key === "ArrowDown") {
+                if (history.length === 0) return;
+                historyIndex = Math.min(history.length, historyIndex + 1);
+                prompt.value = history[historyIndex] || "";
+                setTimeout(() => {
+                    prompt.setSelectionRange(prompt.value.length, prompt.value.length);
+                });
+            }
+        });
+
+        function boot() {
+            printLine("Linux chron simulator 2.2");
+            printLine("--------------------------------");
+            printLine("type 'help' for commands");
+            printLine("");
+            updateStatus();
+            prompt.focus();
+        }
+
+        window.onload = boot;
+    </script>
+</body>
+
+</html>
