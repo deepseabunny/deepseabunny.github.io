@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Dense Warehouse Heatmap</title>
+<title>Clustered Warehouse Heatmap</title>
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://code.jquery.com/ui/1.13.3/jquery-ui.min.js"></script>
@@ -11,77 +11,177 @@
 <style>
     body {
         margin: 0;
-        background: #111;
+        background: #0d0d0d;
         font-family: Arial, sans-serif;
         overflow: hidden;
     }
 
-    #heatmap {
-        display: grid;
+    #warehouse {
+        position: relative;
         width: 100vw;
         height: 100vh;
+        display: grid;
+        grid-template-columns: repeat(60, 1fr);
+        grid-template-rows: repeat(40, 1fr);
+        image-rendering: pixelated;
     }
 
     .cell {
         width: 100%;
         height: 100%;
         box-sizing: border-box;
+        border: 1px solid rgba(255,255,255,0.03);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .rack {
+        background: #3a3a3a;
+    }
+
+    .aisle {
+        background: #1a1a1a;
+    }
+
+    .cross {
+        background: #111;
+    }
+
+    /* Micro heat tiles */
+    .micro-heat {
+        position: absolute;
+        width: 16.66%;   /* 6×6 grid */
+        height: 16.66%;
+        opacity: 0.65;
+        pointer-events: none;
     }
 
     .cell:hover {
-        outline: 1px solid white;
+        outline: 1px solid rgba(255,255,255,0.6);
         z-index: 10;
+    }
+
+    .ui-tooltip {
+        background: #222;
+        color: #fff;
+        border: 1px solid #555;
+        padding: 6px 10px;
+        font-size: 12px;
+        border-radius: 4px;
     }
 </style>
 </head>
 <body>
 
-<div id="heatmap"></div>
+<div id="warehouse"></div>
 
 <script>
 $(function () {
 
-    const rows = 60;     // dense grid
+    const rows = 40;
     const cols = 60;
-    const $map = $("#heatmap");
+    const micro = 6; // micro-tiles per rack
 
-    // Set CSS grid dynamically
-    $map.css({
-        "grid-template-columns": `repeat(${cols}, 1fr)`,
-        "grid-template-rows": `repeat(${rows}, 1fr)`
-    });
+    const $map = $("#warehouse");
 
-    // Generate random heat values 0–1
-    function randomHeat() {
-        return Math.random();
+    /* -------------------------
+       Warehouse Structure Rules
+       ------------------------- */
+    function getCellType(r, c) {
+        if (r % 10 === 0) return "cross";  // horizontal cross-aisle
+        if (c % 6 === 0) return "aisle";   // vertical aisle
+        return "rack";                     // storage rack
     }
 
-    // Convert heat value → color (cool → warm)
+    /* -------------------------
+       Heat Color Gradient
+       ------------------------- */
     function heatToColor(v) {
-        // v = 0 → blue, v = 1 → red
-        const r = Math.floor(255 * v);
-        const g = Math.floor(80 * (1 - v));
+        const r = Math.floor(255 * Math.min(1, v * 2));
+        const g = Math.floor(255 * Math.max(0, (v - 0.5) * 2));
         const b = Math.floor(255 * (1 - v));
         return `rgb(${r},${g},${b})`;
     }
 
-    // Build grid
-    for (let y = 0; y < rows; y++) {
-        for (let x = 0; x < cols; x++) {
+    /* -------------------------
+       Distributed Hot & Cold Zones
+       (60% smaller radii)
+       ------------------------- */
+    const hotZones = [
+        { x: 10, y: 5,  radius: 8 * 0.4, intensity: 1.0 },
+        { x: 45, y: 8,  radius: 7 * 0.4, intensity: 0.9 },
+        { x: 20, y: 30, radius: 9 * 0.4, intensity: 0.8 },
+        { x: 50, y: 25, radius: 10 * 0.4, intensity: 0.9 }
+    ];
 
-            const heat = randomHeat();
-            const color = heatToColor(heat);
+    const coldZones = [
+        { x: 25, y: 15, radius: 7 * 0.4, intensity: 0.1 },
+        { x: 50, y: 30, radius: 6 * 0.4, intensity: 0.05 },
+        { x: 15, y: 25, radius: 8 * 0.4, intensity: 0.1 },
+        { x: 40, y: 12, radius: 5 * 0.4, intensity: 0.08 }
+    ];
 
-            const $cell = $("<div>")
-                .addClass("cell")
-                .css("background", color)
-                .attr("title", `(${x}, ${y}) heat=${heat.toFixed(2)}`);
+    function dist(x1, y1, x2, y2) {
+        return Math.sqrt((x1 - x2)**2 + (y1 - y2)**2);
+    }
+
+    function clusteredHeat(globalX, globalY) {
+        let base = Math.random() * 0.4 + 0.3; // neutral baseline
+
+        hotZones.forEach(z => {
+            const d = dist(globalX, globalY, z.x, z.y);
+            if (d < z.radius) base += (1 - d / z.radius) * z.intensity;
+        });
+
+        coldZones.forEach(z => {
+            const d = dist(globalX, globalY, z.x, z.y);
+            if (d < z.radius) base -= (1 - d / z.radius) * z.intensity;
+        });
+
+        return Math.max(0, Math.min(1, base)); // clamp 0–1
+    }
+
+    /* -------------------------
+       Build Warehouse Grid
+       ------------------------- */
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+
+            const type = getCellType(r, c);
+            const $cell = $("<div>").addClass("cell " + type);
+
+            if (type === "rack") {
+
+                // Dense micro-tiles
+                for (let y = 0; y < micro; y++) {
+                    for (let x = 0; x < micro; x++) {
+
+                        const gx = c + x / micro;
+                        const gy = r + y / micro;
+
+                        const heat = clusteredHeat(gx, gy);
+
+                        const $micro = $("<div>")
+                            .addClass("micro-heat")
+                            .css({
+                                left: (x * (100 / micro)) + "%",
+                                top: (y * (100 / micro)) + "%",
+                                background: heatToColor(heat)
+                            });
+
+                        $cell.append($micro);
+                    }
+                }
+
+                $cell.attr("title", `RACK • (${c}, ${r}) • clustered heat`);
+            } else {
+                $cell.attr("title", `${type.toUpperCase()} • (${c}, ${r})`);
+            }
 
             $map.append($cell);
         }
     }
 
-    // jQuery UI tooltip
     $(document).tooltip({ track: true });
 
 });
@@ -89,4 +189,3 @@ $(function () {
 
 </body>
 </html>
-  
