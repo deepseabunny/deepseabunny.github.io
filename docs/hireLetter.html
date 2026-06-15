@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cover Letter - Deep Sea Bunny</title>
+
+  <!-- JetBrains Mono CDN -->
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0b1020;
+      --card: #111827;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.12);
+      --border: #1f2937;
+      --font-main: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top, #020617 0, #020617 40%, #020617 60%, #000 100%);
+      font-family: var(--font-main);
+      color: var(--text);
+      padding: 24px;
+      letter-spacing: 0.01em;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 900px;
+      border-radius: 18px;
+      padding: 1px;
+      background: radial-gradient(circle at top left, #38bdf8, transparent 55%),
+                  radial-gradient(circle at bottom right, #4f46e5, transparent 55%);
+    }
+
+    .card {
+      background: radial-gradient(circle at top, #020617 0, #020617 45%, #020617 60%, #020617 100%);
+      border-radius: 17px;
+      padding: 28px 26px 24px;
+      border: 1px solid rgba(15, 23, 42, 0.9);
+      box-shadow:
+        0 22px 60px rgba(15, 23, 42, 0.85),
+        0 0 0 1px rgba(15, 23, 42, 0.9);
+      position: relative;
+      overflow: hidden;
+      font-family: var(--font-main);
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.08), transparent 55%),
+        radial-gradient(circle at 100% 100%, rgba(129, 140, 248, 0.08), transparent 55%);
+      mix-blend-mode: screen;
+      opacity: 0.9;
+      pointer-events: none;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 18px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .identity {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .name {
+      font-size: 1.05rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #e5e7eb;
+      font-weight: 600;
+    }
+
+    .tagline {
+      font-size: 0.8rem;
+      color: var(--muted);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .meta {
+      text-align: right;
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      letter-spacing: 0.1em;
+    }
+
+    .meta span {
+      display: block;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+      font-family: var(--font-mono);
+      letter-spacing: 0.16em;
+    }
+
+    .pill-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
+    }
+
+    .body {
+      position: relative;
+      z-index: 1;
+      font-size: 0.9rem;
+      line-height: 1.55;
+      color: #e5e7eb;
+      font-family: var(--font-main);
+      white-space: pre-line;
+    }
+
+    .salutation {
+      margin-bottom: 10px;
+    }
+
+    .signature-block {
+      margin-top: 14px;
+    }
+
+    .signature-name {
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+    }
+
+    .footer {
+      margin-top: 16px;
+      padding-top: 10px;
+      border-top: 1px dashed rgba(51, 65, 85, 0.9);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      position: relative;
+      z-index: 1;
+      font-family: var(--font-mono);
+    }
+
+    .footer-label {
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 0.7rem;
+      color: rgba(148, 163, 184, 0.9);
+    }
+
+    .footer-chip {
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: rgba(15, 23, 42, 0.9);
+      font-size: 0.7rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(148, 163, 184, 0.95);
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 16px;
+      }
+      .card {
+        padding: 22px 18px 18px;
+      }
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .meta {
+        text-align: left;
+      }
+      .footer {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="shell">
+    <section class="card" aria-label="Cover letter from Deep Sea Bunny">
+      <header class="header">
+      </header>
+
+      <div class="pill">
+        <span class="pill-dot"></span>
+        <span class="pill-label">Application Letter</span>
+      </div>
+
+      <article class="body">
+Dear Hiring Manager,
+
+I am applying for opportunities within your organization and am returning to the software industry with a renewed focus. I bring reliability, strong communication skills, and the ability to learn quickly, but more importantly, I bring a builder’s mindset shaped by hands-on experience designing systems across multiple real-world domains.
+
+My background includes developing applications with PHP/pgSQL and Node.js/MongoDB, and creating front-end interfaces using Bootstrap and jQuery/UI to support user interactions and API-driven workflows. I ramp up rapidly on new technologies by pairing my engineering fundamentals with AI-accelerated development workflows, allowing me to learn, prototype, and deliver far faster than traditional approaches.
+
+My public portfolio reflects a wide range of projects inspired by enterprise workflows, including registration and payment systems, logistics and warehouse simulations, identity parsing (AAMVA), aviation data loaders, barcode utilities, P2P networking experiments, and multi-agent AI coordination. Many of my original applications were built for enterprise environments, so the public versions are simplified single-page demonstrations that highlight the underlying concepts, architecture, and execution. I’ve also included documentation to show how I approach system design, problem-solving, and operational thinking.
+
+I am confident I can contribute positively to your team and would welcome the opportunity to discuss how my skills and engineering approach align with your needs.
+
+Thank you for your consideration;
+      </article>
+
+      <footer class="footer">
+      </footer>
+    </section>
+  </main>
+</body>
+</html>
