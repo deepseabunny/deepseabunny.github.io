@@ -1,220 +1,313 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <title>Lexicographic Lottery 6 from 40</title>
-  <style>
-    body {
-      font-family: system-ui, sans-serif;
-      background: #111827;
-      color: #e5e7eb;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-    }
-    .panel {
-      background: #1f2937;
-      padding: 24px 32px;
-      border-radius: 12px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-      text-align: center;
-      width: 360px;
-    }
-    h1 {
-      margin-top: 0;
-      margin-bottom: 12px;
-      font-size: 20px;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: #93c5fd;
-    }
-    .buttons {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      margin: 16px 0;
-    }
-    button {
-      padding: 8px 18px;
-      border-radius: 999px;
-      border: none;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
-    }
-    #generateBtn {
-      background: #22c55e;
-      color: #022c22;
-      box-shadow: 0 0 12px rgba(34,197,94,0.5);
-    }
-    #generateBtn:hover {
-      background: #16a34a;
-      transform: translateY(-1px);
-      box-shadow: 0 0 18px rgba(34,197,94,0.7);
-    }
-    #resetBtn {
-      background: #3b82f6;
-      color: #e5e7eb;
-      box-shadow: 0 0 12px rgba(59,130,246,0.5);
-    }
-    #resetBtn:hover {
-      background: #2563eb;
-      transform: translateY(-1px);
-      box-shadow: 0 0 18px rgba(59,130,246,0.7);
-    }
-    #manualBtn {
-      background: #fbbf24;
-      color: #1f2937;
-      box-shadow: 0 0 12px rgba(251,191,36,0.5);
-      margin-top: 10px;
-    }
-    #manualBtn:hover {
-      background: #f59e0b;
-      transform: translateY(-1px);
-      box-shadow: 0 0 18px rgba(251,191,36,0.7);
-    }
-    #output {
-      margin-top: 10px;
-      font-size: 18px;
-      letter-spacing: 0.08em;
-    }
-    .label {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.16em;
-      color: #9ca3af;
-      margin-bottom: 4px;
-    }
-    .index {
-      font-family: "JetBrains Mono", monospace;
-      font-size: 13px;
-      color: #6ee7b7;
-    }
-    input {
-      width: 100%;
-      padding: 8px;
-      margin-top: 8px;
-      border-radius: 6px;
-      border: none;
-      font-size: 14px;
-      text-align: center;
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <title>Lexicographic Lottery 6 from 40</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            background: #111827;
+            color: #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .panel {
+            background: #1f2937;
+            padding: 24px 32px;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            width: 360px;
+        }
+
+        h1 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            font-size: 20px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #93c5fd;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin: 16px 0;
+        }
+
+        button {
+            padding: 8px 18px;
+            border-radius: 999px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
+        }
+
+        #generateBtn {
+            background: #22c55e;
+            color: #022c22;
+            box-shadow: 0 0 12px rgba(34, 197, 94, 0.5);
+        }
+
+        #generateBtn:hover {
+            background: #16a34a;
+            transform: translateY(-1px);
+            box-shadow: 0 0 18px rgba(34, 197, 94, 0.7);
+        }
+
+        #resetBtn {
+            background: #3b82f6;
+            color: #e5e7eb;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+        }
+
+        #resetBtn:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 0 18px rgba(59, 130, 246, 0.7);
+        }
+
+        #manualBtn {
+            background: #fbbf24;
+            color: #1f2937;
+            box-shadow: 0 0 12px rgba(251, 191, 36, 0.5);
+            margin-top: 10px;
+        }
+
+        #manualBtn:hover {
+            background: #f59e0b;
+            transform: translateY(-1px);
+            box-shadow: 0 0 18px rgba(251, 191, 36, 0.7);
+        }
+
+        #output {
+            margin-top: 10px;
+            font-size: 22px;
+            letter-spacing: 0.12em;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: #9ca3af;
+            margin-bottom: 4px;
+        }
+
+        .index {
+            font-family: "JetBrains Mono", monospace;
+            font-size: 13px;
+            color: #6ee7b7;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 8px;
+            border-radius: 6px;
+            border: none;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        /* 🎞️ Vertical Reel Slide Animation */
+        .roll {
+            display: inline-block;
+            width: 32px;
+            height: 28px;
+            overflow: hidden;
+            position: relative;
+            font-weight: bold;
+            font-size: 22px;
+            color: #fef3c7;
+        }
+
+        .roll span {
+            position: absolute;
+            width: 100%;
+            left: 0;
+            transform: translateY(0);
+            transition: transform 0.25s cubic-bezier(.17, .67, .55, 1.43);
+        }
+    </style>
 </head>
+
 <body>
-  <div class="panel">
-    <h1>6 from 40 • Lexicographic</h1>
+    <div class="panel">
+        <h1>6 from 40 • Lexicographic</h1>
 
-    <div class="label">Current index</div>
-    <div id="indexDisplay" class="index">spinning…</div>
+        <div class="label">Current index</div>
+        <div id="indexDisplay" class="index">spinning…</div>
 
-    <div class="buttons">
-      <button id="generateBtn">Generate</button>
-      <button id="resetBtn">Reset</button>
+        <div class="buttons">
+            <button id="generateBtn">Generate</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+
+        <div class="label">Enter index (0 – 3,838,379)</div>
+        <input id="manualIndex" type="number" min="0" max="3838379" placeholder="Enter index…" />
+        <button id="manualBtn">Retrieve Set</button>
+
+        <div class="label">Resulting set</div>
+        <div id="output">— — — — — —</div>
     </div>
 
-    <div class="label">Enter index (0 – 3,838,379)</div>
-    <input id="manualIndex" type="number" min="0" max="3838379" placeholder="Enter index…" />
-    <button id="manualBtn">Retrieve Set</button>
+    <script>
+        const TOTAL = 3838380;
 
-    <div class="label">Resulting set</div>
-    <div id="output">— — — — — —</div>
-  </div>
+        let running = true;
+        let currentIndex = 0;
 
-  <script>
-    const TOTAL = 3838380;
+        const indexDisplay = document.getElementById("indexDisplay");
+        const output = document.getElementById("output");
+        const generateBtn = document.getElementById("generateBtn");
+        const resetBtn = document.getElementById("resetBtn");
+        const manualBtn = document.getElementById("manualBtn");
+        const manualInput = document.getElementById("manualIndex");
 
-    let running = true;
-    let currentIndex = 0;
-
-    const indexDisplay = document.getElementById("indexDisplay");
-    const output = document.getElementById("output");
-    const generateBtn = document.getElementById("generateBtn");
-    const resetBtn = document.getElementById("resetBtn");
-    const manualBtn = document.getElementById("manualBtn");
-    const manualInput = document.getElementById("manualIndex");
-
-    function combinations(n, k) {
-      if (k > n) return 0;
-      let r = 1;
-      for (let i = 1; i <= k; i++) {
-        r = r * (n - i + 1) / i;
-      }
-      return r;
-    }
-
-    function nthCombination(n, k, index) {
-      const result = [];
-      let remaining = k;
-      let start = 1;
-
-      while (remaining > 0) {
-        for (let num = start; num <= n; num++) {
-          const count = combinations(n - num, remaining - 1);
-
-          if (index < count) {
-            result.push(num);
-            start = num + 1;
-            remaining--;
-            break;
-          }
-          index -= count;
+        function combinations(n, k) {
+            if (k > n) return 0;
+            let r = 1;
+            for (let i = 1; i <= k; i++) {
+                r = r * (n - i + 1) / i;
+            }
+            return r;
         }
-      }
-      return result;
-    }
 
-    function spin() {
-      if (!running) return;
+        function nthCombination(n, k, index) {
+            const result = [];
+            let remaining = k;
+            let start = 1;
 
-      currentIndex = Math.floor(Math.random() * TOTAL);
-      indexDisplay.textContent = currentIndex.toLocaleString("en-US");
+            while (remaining > 0) {
+                for (let num = start; num <= n; num++) {
+                    const count = combinations(n - num, remaining - 1);
 
-      const spinningSet = nthCombination(40, 6, currentIndex);
-      output.textContent = spinningSet.join("  •  ");
+                    if (index < count) {
+                        result.push(num);
+                        start = num + 1;
+                        remaining--;
+                        break;
+                    }
+                    index -= count;
+                }
+            }
+            return result;
+        }
 
-      requestAnimationFrame(spin);
-    }
+        /* 🎞️ Multi-frame reel slide animation with deterministic mode */
+        function animateNumber(container, finalValue, deterministic = false) {
+            const oldSpan = container.querySelector("span");
 
-    spin();
+            // Deterministic mode: NO fake frames
+            const frames = deterministic
+                ? [finalValue]
+                : [
+                    Math.floor(Math.random() * 40) + 1,
+                    Math.floor(Math.random() * 40) + 1,
+                    Math.floor(Math.random() * 40) + 1,
+                    finalValue
+                ];
 
-    // UPDATED: Generate now randomizes a NEW index
-    generateBtn.addEventListener("click", () => {
-      running = false;
+            let i = 0;
 
-      // NEW: pick a fresh random index for the draw
-      currentIndex = Math.floor(Math.random() * TOTAL);
-      indexDisplay.textContent = currentIndex.toLocaleString("en-US");
+            function nextFrame() {
+                const newSpan = document.createElement("span");
+                newSpan.textContent = frames[i];
+                newSpan.style.transform = "translateY(30px)";
+                container.appendChild(newSpan);
 
-      const set = nthCombination(40, 6, currentIndex);
-      output.textContent = set.join("  •  ");
-    });
+                requestAnimationFrame(() => {
+                    oldSpan.style.transform = "translateY(-30px)";
+                    newSpan.style.transform = "translateY(0)";
+                });
 
-    resetBtn.addEventListener("click", () => {
-      if (running) return;
-      running = true;
-      spin();
-    });
+                setTimeout(() => {
+                    oldSpan.remove();
+                    oldSpan = newSpan;
+                    i++;
+                    if (i < frames.length) nextFrame();
+                }, deterministic ? 120 : 200);
+            }
 
-    manualBtn.addEventListener("click", () => {
-      const value = parseInt(manualInput.value);
+            nextFrame();
+        }
 
-      if (isNaN(value) || value < 0 || value >= TOTAL) {
-        output.textContent = "Invalid index";
-        return;
-      }
+        function renderRollingSet(nums, deterministic = false) {
+            output.innerHTML = "";
 
-      running = false;
+            nums.forEach(num => {
+                const container = document.createElement("div");
+                container.className = "roll";
 
-      const set = nthCombination(40, 6, value);
-      output.textContent = set.join("  •  ");
-      indexDisplay.textContent = value.toLocaleString("en-US");
-    });
-  </script>
+                const span = document.createElement("span");
+                span.textContent = num;
+                container.appendChild(span);
+
+                output.appendChild(container);
+
+                animateNumber(container, num, deterministic);
+            });
+        }
+
+        function spin() {
+            if (!running) return;
+
+            currentIndex = Math.floor(Math.random() * TOTAL);
+            indexDisplay.textContent = currentIndex.toLocaleString("en-US");
+
+            const spinningSet = nthCombination(40, 6, currentIndex);
+            renderRollingSet(spinningSet, false);
+
+            requestAnimationFrame(spin);
+        }
+
+        spin();
+
+        generateBtn.addEventListener("click", () => {
+            running = false;
+
+            currentIndex = Math.floor(Math.random() * TOTAL);
+            indexDisplay.textContent = currentIndex.toLocaleString("en-US");
+
+            const set = nthCombination(40, 6, currentIndex);
+            renderRollingSet(set, true);
+        });
+
+        resetBtn.addEventListener("click", () => {
+            if (running) return;
+            running = true;
+            spin();
+        });
+
+        manualBtn.addEventListener("click", () => {
+            const value = parseInt(manualInput.value);
+
+            if (isNaN(value) || value < 0 || value >= TOTAL) {
+                output.textContent = "Invalid index";
+                return;
+            }
+
+            running = false;
+
+            const set = nthCombination(40, 6, value);
+            indexDisplay.textContent = value.toLocaleString("en-US");
+            renderRollingSet(set, true);
+        });
+    </script>
 </body>
+
 </html>
