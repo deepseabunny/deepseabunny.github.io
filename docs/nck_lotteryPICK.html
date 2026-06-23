@@ -118,7 +118,6 @@
       <button id="resetBtn">Reset</button>
     </div>
 
-    <!-- NEW: Manual index input -->
     <div class="label">Enter index (0 – 3,838,379)</div>
     <input id="manualIndex" type="number" min="0" max="3838379" placeholder="Enter index…" />
     <button id="manualBtn">Retrieve Set</button>
@@ -128,13 +127,11 @@
   </div>
 
   <script>
-    // Total combinations: C(40,6)
     const TOTAL = 3838380;
 
-    let running = true;       // controls spinner loop
-    let currentIndex = 0;     // current spinning index
+    let running = true;
+    let currentIndex = 0;
 
-    // DOM references
     const indexDisplay = document.getElementById("indexDisplay");
     const output = document.getElementById("output");
     const generateBtn = document.getElementById("generateBtn");
@@ -142,9 +139,6 @@
     const manualBtn = document.getElementById("manualBtn");
     const manualInput = document.getElementById("manualIndex");
 
-    // ---------------------------------------------------------
-    // nCk helper — used by lexicographic generator
-    // ---------------------------------------------------------
     function combinations(n, k) {
       if (k > n) return 0;
       let r = 1;
@@ -154,10 +148,6 @@
       return r;
     }
 
-    // ---------------------------------------------------------
-    // nthCombination(n, k, index)
-    // Returns the exact lexicographic combination at "index"
-    // ---------------------------------------------------------
     function nthCombination(n, k, index) {
       const result = [];
       let remaining = k;
@@ -179,47 +169,38 @@
       return result;
     }
 
-    // ---------------------------------------------------------
-    // Spinner loop — updates index every animation frame
-    // ---------------------------------------------------------
     function spin() {
       if (!running) return;
 
       currentIndex = Math.floor(Math.random() * TOTAL);
       indexDisplay.textContent = currentIndex.toLocaleString("en-US");
 
+      const spinningSet = nthCombination(40, 6, currentIndex);
+      output.textContent = spinningSet.join("  •  ");
+
       requestAnimationFrame(spin);
     }
 
-    // Start spinning immediately
     spin();
 
-    // ---------------------------------------------------------
-    // Generate button — freeze spinner + output set
-    // ---------------------------------------------------------
+    // UPDATED: Generate now randomizes a NEW index
     generateBtn.addEventListener("click", () => {
-      if (!running) return;
       running = false;
+
+      // NEW: pick a fresh random index for the draw
+      currentIndex = Math.floor(Math.random() * TOTAL);
+      indexDisplay.textContent = currentIndex.toLocaleString("en-US");
 
       const set = nthCombination(40, 6, currentIndex);
       output.textContent = set.join("  •  ");
     });
 
-    // ---------------------------------------------------------
-    // Reset button — restart spinner
-    // ---------------------------------------------------------
     resetBtn.addEventListener("click", () => {
       if (running) return;
-
-      output.textContent = "— — — — — —";
       running = true;
       spin();
     });
 
-    // ---------------------------------------------------------
-    // Manual index retrieval
-    // Allows user to type any index and get the exact set
-    // ---------------------------------------------------------
     manualBtn.addEventListener("click", () => {
       const value = parseInt(manualInput.value);
 
@@ -228,7 +209,6 @@
         return;
       }
 
-      // Stop spinner if running
       running = false;
 
       const set = nthCombination(40, 6, value);
