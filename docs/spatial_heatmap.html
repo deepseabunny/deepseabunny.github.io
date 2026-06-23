@@ -1,286 +1,463 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<title>Isometric Warehouse – Forklift A* Pathfinding + Tooltip</title>
-<style>
-    body {
-        background: #111827;
-        color: #e5e7eb;
-        font-family: system-ui, sans-serif;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-        margin: 0;
-    }
+    <meta charset="UTF-8">
+    <title>1:1 Digital Warehouse – A* Pathfinding Model</title>
 
-    .warehouse-wrapper {
-        perspective: 1600px;
-    }
+    <style>
+        /* ------------------------------
+       GLOBAL PAGE STYLING
+       ------------------------------ */
+        body {
+            background: #111827;
+            /* Dark warehouse UI theme */
+            color: #e5e7eb;
+            font-family: system-ui, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
 
-    .warehouse {
-        width: 1200px;
-        height: 900px;
-        transform: rotateX(60deg) rotateZ(-45deg);
-        transform-style: preserve-3d;
-        display: grid;
-        grid-template-columns: repeat(40, 1fr);
-        grid-auto-rows: 1fr;
-        gap: 2px;
-    }
+        /* ------------------------------
+       DESCRIPTION PANEL AT TOP
+       ------------------------------ */
+        .description {
+            padding: 20px;
+            background: #0f172a;
+            border-bottom: 2px solid #1e293b;
+            font-size: 15px;
+            line-height: 1.5;
+        }
 
-    .cell {
-        position: relative;
-        width: 100%;
-        padding-top: 100%;
-        border-radius: 1px;
-        box-shadow: 0 0 0 1px #0f172a;
-        transition: transform 0.15s ease, background 0.15s ease;
-        cursor: pointer;
-    }
+        /* ------------------------------
+       HELP ICON (A* INSTRUCTIONS)
+       ------------------------------ */
+        .help-icon {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 28px;
+            height: 28px;
+            background: #1e293b;
+            /* Dark grey */
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+            z-index: 9999;
+        }
 
-    .cell:hover {
-        transform: translateZ(8px);
-    }
+        .help-tooltip {
+            position: fixed;
+            top: 60px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            width: 240px;
+            display: none;
+            z-index: 9999;
+            line-height: 1.4;
+        }
 
-    .aisle { background: #4ade80; }
+        /* ------------------------------
+       WAREHOUSE GRID WRAPPER
+       ------------------------------ */
+        .warehouse-wrapper {
+            perspective: 1600px;
+            /* Enables isometric 3D effect */
+            display: flex;
+            justify-content: center;
+            padding: 30px 0;
+        }
 
-    .level-0 { background: #1e293b; }
-    .level-1 { background: #22c55e; }
-    .level-2 { background: #eab308; }
-    .level-3 { background: #f97316; }
-    .level-4 { background: #ef4444; }
+        /* ------------------------------
+       ISOMETRIC WAREHOUSE GRID
+       ------------------------------ */
+        .warehouse {
+            width: 1200px;
+            height: 900px;
+            transform: rotateX(60deg) rotateZ(-45deg);
+            /* Isometric projection */
+            transform-style: preserve-3d;
+            display: grid;
+            grid-template-columns: repeat(40, 1fr);
+            /* 40 columns */
+            grid-auto-rows: 1fr;
+            /* Auto rows */
+            gap: 2px;
+        }
 
-    .path { background: #38bdf8 !important; }
-    .start { background: #22c55e !important; box-shadow: 0 0 0 2px #16a34a; }
-    .end { background: #f97316 !important; box-shadow: 0 0 0 2px #ea580c; }
+        /* ------------------------------
+       INDIVIDUAL GRID CELLS
+       ------------------------------ */
+        .cell {
+            position: relative;
+            width: 100%;
+            padding-top: 100%;
+            /* Makes each cell a square */
+            border-radius: 1px;
+            box-shadow: 0 0 0 1px #0f172a;
+            transition: transform 0.15s ease, background 0.15s ease;
+            cursor: pointer;
+        }
 
-    /* Tooltip */
-    #tooltip {
-        position: fixed;
-        background: rgba(0,0,0,0.85);
-        color: #fff;
-        padding: 6px 10px;
-        border-radius: 4px;
-        font-size: 12px;
-        pointer-events: none;
-        z-index: 9999;
-        display: none;
-        white-space: nowrap;
-    }
-</style>
+        .cell:hover {
+            transform: translateZ(8px);
+            /* Lift effect on hover */
+        }
+
+        /* ------------------------------
+       AISLES (NOW DARK GREY)
+       ------------------------------ */
+        .aisle {
+            background: #374151;
+            /* Dark grey aisle color */
+        }
+
+        /* ------------------------------
+       HEATMAP COLORS FOR RACKS
+       ------------------------------ */
+        .level-0 {
+            background: #1e293b;
+        }
+
+        .level-1 {
+            background: #22c55e;
+        }
+
+        .level-2 {
+            background: #eab308;
+        }
+
+        .level-3 {
+            background: #f97316;
+        }
+
+        .level-4 {
+            background: #ef4444;
+        }
+
+        /* ------------------------------
+       A* PATH COLORS
+       ------------------------------ */
+        .path {
+            background: #38bdf8 !important;
+        }
+
+        /* Blue path */
+        .start {
+            background: #22c55e !important;
+            box-shadow: 0 0 0 2px #16a34a;
+        }
+
+        .end {
+            background: #f97316 !important;
+            box-shadow: 0 0 0 2px #ea580c;
+        }
+
+        /* ------------------------------
+       HOVER TOOLTIP FOR CELLS
+       ------------------------------ */
+        #tooltip {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.85);
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 9999;
+            display: none;
+            white-space: nowrap;
+        }
+    </style>
 </head>
+
 <body>
 
-<div class="warehouse-wrapper">
-    <div class="warehouse" id="warehouse-grid"></div>
-</div>
+    <!-- -----------------------------------------
+     SYSTEM DESCRIPTION PANEL
+     ----------------------------------------- -->
+    <div class="description">
+        <strong>1:1 Digital Warehouse Model</strong><br><br>
+        A 1:1 digital warehouse model built for an e‑commerce operation, designed to visually represent the full storage
+        layout and surface key operational metrics.
+        The system displays precise item locations, item velocity (pick frequency), and detailed product information,
+        enabling faster decision‑making and improved inventory flow.
+        It also incorporates an A*‑based routing engine, allowing operators to visualize optimal travel paths through
+        aisles and cross‑aisles for more efficient navigation.
+    </div>
 
-<div id="tooltip"></div>
+    <!-- HELP ICON -->
+    <div class="help-icon" id="help-icon">?</div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-$(function () {
+    <!-- HELP TOOLTIP -->
+    <div class="help-tooltip" id="help-tooltip">
+        <strong>A* Forklift Routing</strong><br><br>
+        • Click any <span style="color:#4ade80">aisle cell</span> to set the <strong>Start</strong> point.<br>
+        • Click another aisle cell to set the <strong>End</strong> point.<br>
+        • The system computes the <strong>optimal A*</strong> route.<br>
+        • Click again to reset and choose a new Start.
+    </div>
 
-    const rows = 30;
-    const cols = 40;
+    <!-- WAREHOUSE GRID -->
+    <div class="warehouse-wrapper">
+        <div class="warehouse" id="warehouse-grid"></div>
+    </div>
 
-    const aisleEveryX = 6;
-    const crossEveryY = 5;
+    <!-- HOVER TOOLTIP -->
+    <div id="tooltip"></div>
 
-    const $grid = $('#warehouse-grid');
-    const $tooltip = $('#tooltip');
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-    const grid = [];
+    <script>
+        $(function () {
 
-    // Build grid
-    for (let r = 0; r < rows; r++) {
-        grid[r] = [];
-        for (let c = 0; c < cols; c++) {
+            /* -----------------------------------------
+               GRID CONFIGURATION
+               ----------------------------------------- */
+            const rows = 30;
+            const cols = 40;
 
-            const isAisle = (c % aisleEveryX === 0) || (r % crossEveryY === 0);
+            const aisleEveryX = 6;  // Vertical aisles
+            const crossEveryY = 5;  // Horizontal aisles
 
-            const $cell = $('<div>')
-                .addClass('cell')
-                .attr('data-row', r)
-                .attr('data-col', c);
+            const $grid = $('#warehouse-grid');
+            const $tooltip = $('#tooltip');
 
-            if (isAisle) {
-                $cell.addClass('aisle');
-                $cell.attr('data-type', 'Aisle');
-                $cell.attr('data-level', '-');
-            } else {
-                const dist = Math.abs(r - rows/2) + Math.abs(c - cols/2);
-                let level = 4 - Math.min(4, Math.floor(dist / 4));
-                if (level < 0) level = 0;
+            const grid = [];
 
-                $cell.addClass(`level-${level}`);
-                $cell.attr('data-type', 'Rack');
-                $cell.attr('data-level', level);
-            }
+            /* -----------------------------------------
+               BUILD THE WAREHOUSE GRID
+               ----------------------------------------- */
+            for (let r = 0; r < rows; r++) {
+                grid[r] = [];
 
-            grid[r][c] = {
-                walkable: isAisle,
-                $el: $cell
-            };
+                for (let c = 0; c < cols; c++) {
 
-            // Tooltip events
-            $cell.on('mouseenter', function () {
-                const type = $(this).data('type');
-                const row = $(this).data('row');
-                const col = $(this).data('col');
-                const level = $(this).data('level');
+                    // Determine if this cell is an aisle
+                    const isAisle = (c % aisleEveryX === 0) || (r % crossEveryY === 0);
 
-                $tooltip.html(
-                    `<strong>${type}</strong><br>
+                    // Create cell element
+                    const $cell = $('<div>')
+                        .addClass('cell')
+                        .attr('data-row', r)
+                        .attr('data-col', c);
+
+                    if (isAisle) {
+                        // Aisle cell
+                        $cell.addClass('aisle');
+                        $cell.attr('data-type', 'Aisle');
+                        $cell.attr('data-level', '-');
+                    } else {
+                        // Rack cell with heatmap level
+                        const dist = Math.abs(r - rows / 2) + Math.abs(c - cols / 2);
+                        let level = 4 - Math.min(4, Math.floor(dist / 4));
+                        if (level < 0) level = 0;
+
+                        $cell.addClass(`level-${level}`);
+                        $cell.attr('data-type', 'Rack');
+                        $cell.attr('data-level', level);
+                    }
+
+                    // Store cell in grid
+                    grid[r][c] = {
+                        walkable: isAisle, // Only aisles are walkable for A*
+                        $el: $cell
+                    };
+
+                    /* -----------------------------------------
+                       TOOLTIP EVENTS
+                       ----------------------------------------- */
+                    $cell.on('mouseenter', function () {
+                        const type = $(this).data('type');
+                        const row = $(this).data('row');
+                        const col = $(this).data('col');
+                        const level = $(this).data('level');
+
+                        $tooltip.html(
+                            `<strong>${type}</strong><br>
                      Row: ${row}<br>
                      Col: ${col}<br>
                      Level: ${level}`
-                );
-                $tooltip.show();
-            });
+                        );
+                        $tooltip.show();
+                    });
 
-            $cell.on('mousemove', function (e) {
-                $tooltip.css({
-                    top: e.clientY + 15 + 'px',
-                    left: e.clientX + 15 + 'px'
-                });
-            });
+                    $cell.on('mousemove', function (e) {
+                        $tooltip.css({
+                            top: e.clientY + 15 + 'px',
+                            left: e.clientX + 15 + 'px'
+                        });
+                    });
 
-            $cell.on('mouseleave', function () {
-                $tooltip.hide();
-            });
+                    $cell.on('mouseleave', function () {
+                        $tooltip.hide();
+                    });
 
-            $grid.append($cell);
-        }
-    }
-
-    // ---------- A* PATHFINDING ----------
-
-    function heuristic(a, b) {
-        return Math.abs(a.r - b.r) + Math.abs(a.c - b.c);
-    }
-
-    function neighbors(n) {
-        const dirs = [
-            {dr: -1, dc: 0},
-            {dr: 1, dc: 0},
-            {dr: 0, dc: -1},
-            {dr: 0, dc: 1}
-        ];
-        const out = [];
-        for (const d of dirs) {
-            const nr = n.r + d.dr;
-            const nc = n.c + d.dc;
-            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
-                if (grid[nr][nc].walkable) out.push({r: nr, c: nc});
-            }
-        }
-        return out;
-    }
-
-    function key(n) { return `${n.r},${n.c}` }
-
-    function aStar(start, end) {
-        const open = [start];
-        const came = {};
-        const g = {};
-        const f = {};
-
-        g[key(start)] = 0;
-        f[key(start)] = heuristic(start, end);
-
-        while (open.length) {
-            let current = open[0];
-            let idx = 0;
-
-            for (let i = 1; i < open.length; i++) {
-                if ((f[key(open[i])] ?? Infinity) < (f[key(current)] ?? Infinity)) {
-                    current = open[i];
-                    idx = i;
+                    $grid.append($cell);
                 }
             }
 
-            if (current.r === end.r && current.c === end.c) {
-                const path = [];
-                let ck = key(current);
-                while (came[ck]) {
-                    const [rr, cc] = ck.split(',').map(Number);
-                    path.push({r: rr, c: cc});
-                    ck = came[ck];
-                }
-                path.push(start);
-                return path.reverse();
+            /* -----------------------------------------
+               A* PATHFINDING IMPLEMENTATION
+               ----------------------------------------- */
+            function heuristic(a, b) {
+                return Math.abs(a.r - b.r) + Math.abs(a.c - b.c);
             }
 
-            open.splice(idx, 1);
+            function neighbors(n) {
+                const dirs = [
+                    { dr: -1, dc: 0 },
+                    { dr: 1, dc: 0 },
+                    { dr: 0, dc: -1 },
+                    { dr: 0, dc: 1 }
+                ];
+                const out = [];
 
-            for (const nb of neighbors(current)) {
-                const tentative = (g[key(current)] ?? Infinity) + 1;
-                if (tentative < (g[key(nb)] ?? Infinity)) {
-                    came[key(nb)] = key(current);
-                    g[key(nb)] = tentative;
-                    f[key(nb)] = tentative + heuristic(nb, end);
-                    if (!open.some(n => n.r === nb.r && n.c === nb.c)) {
-                        open.push(nb);
+                for (const d of dirs) {
+                    const nr = n.r + d.dr;
+                    const nc = n.c + d.dc;
+
+                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                        if (grid[nr][nc].walkable) out.push({ r: nr, c: nc });
                     }
                 }
+                return out;
             }
-        }
 
-        return null;
-    }
+            function key(n) { return `${n.r},${n.c}` }
 
-    // ---------- CLICK INTERACTION ----------
+            function aStar(start, end) {
+                const open = [start];
+                const came = {};
+                const g = {};
+                const f = {};
 
-    let start = null;
-    let end = null;
+                g[key(start)] = 0;
+                f[key(start)] = heuristic(start, end);
 
-    function clearPath() {
-        $('.path').removeClass('path');
-        $('.start').removeClass('start');
-        $('.end').removeClass('end');
-    }
+                while (open.length) {
+                    let current = open[0];
+                    let idx = 0;
 
-    $('.cell').on('click', function () {
-        const r = parseInt($(this).data('row'));
-        const c = parseInt($(this).data('col'));
+                    // Find lowest f-score
+                    for (let i = 1; i < open.length; i++) {
+                        if ((f[key(open[i])] ?? Infinity) < (f[key(current)] ?? Infinity)) {
+                            current = open[i];
+                            idx = i;
+                        }
+                    }
 
-        if (!grid[r][c].walkable) return;
+                    // Reached destination
+                    if (current.r === end.r && current.c === end.c) {
+                        const path = [];
+                        let ck = key(current);
 
-        if (!start) {
-            clearPath();
-            start = {r, c};
-            end = null;
-            grid[r][c].$el.addClass('start');
-            return;
-        }
+                        while (came[ck]) {
+                            const [rr, cc] = ck.split(',').map(Number);
+                            path.push({ r: rr, c: cc });
+                            ck = came[ck];
+                        }
 
-        if (!end) {
-            end = {r, c};
-            grid[r][c].$el.addClass('end');
+                        path.push(start);
+                        return path.reverse();
+                    }
 
-            const path = aStar(start, end);
-            if (path) {
-                for (const p of path) {
-                    if (!(p.r === start.r && p.c === start.c) &&
-                        !(p.r === end.r && p.c === end.c)) {
-                        grid[p.r][p.c].$el.addClass('path');
+                    open.splice(idx, 1);
+
+                    for (const nb of neighbors(current)) {
+                        const tentative = (g[key(current)] ?? Infinity) + 1;
+
+                        if (tentative < (g[key(nb)] ?? Infinity)) {
+                            came[key(nb)] = key(current);
+                            g[key(nb)] = tentative;
+                            f[key(nb)] = tentative + heuristic(nb, end);
+
+                            if (!open.some(n => n.r === nb.r && n.c === nb.c)) {
+                                open.push(nb);
+                            }
+                        }
                     }
                 }
+
+                return null;
             }
-            return;
-        }
 
-        clearPath();
-        start = {r, c};
-        end = null;
-        grid[r][c].$el.addClass('start');
-    });
+            /* -----------------------------------------
+               CLICK INTERACTION FOR A*
+               ----------------------------------------- */
+            let start = null;
+            let end = null;
 
-});
-</script>
+            function clearPath() {
+                $('.path').removeClass('path');
+                $('.start').removeClass('start');
+                $('.end').removeClass('end');
+            }
+
+            $('.cell').on('click', function () {
+                const r = parseInt($(this).data('row'));
+                const c = parseInt($(this).data('col'));
+
+                // Only aisles are walkable
+                if (!grid[r][c].walkable) return;
+
+                // First click → Start
+                if (!start) {
+                    clearPath();
+                    start = { r, c };
+                    end = null;
+                    grid[r][c].$el.addClass('start');
+                    return;
+                }
+
+                // Second click → End
+                if (!end) {
+                    end = { r, c };
+                    grid[r][c].$el.addClass('end');
+
+                    const path = aStar(start, end);
+
+                    if (path) {
+                        for (const p of path) {
+                            if (!(p.r === start.r && p.c === start.c) &&
+                                !(p.r === end.r && p.c === end.c)) {
+                                grid[p.r][p.c].$el.addClass('path');
+                            }
+                        }
+                    }
+                    return;
+                }
+
+                // Third click → Reset and set new Start
+                clearPath();
+                start = { r, c };
+                end = null;
+                grid[r][c].$el.addClass('start');
+            });
+
+            /* -----------------------------------------
+               HELP ICON BEHAVIOR
+               ----------------------------------------- */
+            $('#help-icon').on('mouseenter', function () {
+                $('#help-tooltip').fadeIn(150);
+            });
+
+            $('#help-icon').on('mouseleave', function () {
+                $('#help-tooltip').fadeOut(150);
+            });
+
+        });
+    </script>
 
 </body>
+
 </html>
