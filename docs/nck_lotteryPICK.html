@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Lexicographic Lottery 6 from 40</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #111827;
+      color: #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .panel {
+      background: #1f2937;
+      padding: 24px 32px;
+      border-radius: 12px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      text-align: center;
+      width: 360px;
+    }
+    h1 {
+      margin-top: 0;
+      margin-bottom: 12px;
+      font-size: 20px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #93c5fd;
+    }
+    .buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin: 16px 0;
+    }
+    button {
+      padding: 8px 18px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
+    }
+    #generateBtn {
+      background: #22c55e;
+      color: #022c22;
+      box-shadow: 0 0 12px rgba(34,197,94,0.5);
+    }
+    #generateBtn:hover {
+      background: #16a34a;
+      transform: translateY(-1px);
+      box-shadow: 0 0 18px rgba(34,197,94,0.7);
+    }
+    #resetBtn {
+      background: #3b82f6;
+      color: #e5e7eb;
+      box-shadow: 0 0 12px rgba(59,130,246,0.5);
+    }
+    #resetBtn:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+      box-shadow: 0 0 18px rgba(59,130,246,0.7);
+    }
+    #manualBtn {
+      background: #fbbf24;
+      color: #1f2937;
+      box-shadow: 0 0 12px rgba(251,191,36,0.5);
+      margin-top: 10px;
+    }
+    #manualBtn:hover {
+      background: #f59e0b;
+      transform: translateY(-1px);
+      box-shadow: 0 0 18px rgba(251,191,36,0.7);
+    }
+    #output {
+      margin-top: 10px;
+      font-size: 18px;
+      letter-spacing: 0.08em;
+    }
+    .label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: #9ca3af;
+      margin-bottom: 4px;
+    }
+    .index {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+      color: #6ee7b7;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 8px;
+      border-radius: 6px;
+      border: none;
+      font-size: 14px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h1>6 from 40 • Lexicographic</h1>
+
+    <div class="label">Current index</div>
+    <div id="indexDisplay" class="index">spinning…</div>
+
+    <div class="buttons">
+      <button id="generateBtn">Generate</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+
+    <!-- NEW: Manual index input -->
+    <div class="label">Enter index (0 – 3,838,379)</div>
+    <input id="manualIndex" type="number" min="0" max="3838379" placeholder="Enter index…" />
+    <button id="manualBtn">Retrieve Set</button>
+
+    <div class="label">Resulting set</div>
+    <div id="output">— — — — — —</div>
+  </div>
+
+  <script>
+    // Total combinations: C(40,6)
+    const TOTAL = 3838380;
+
+    let running = true;       // controls spinner loop
+    let currentIndex = 0;     // current spinning index
+
+    // DOM references
+    const indexDisplay = document.getElementById("indexDisplay");
+    const output = document.getElementById("output");
+    const generateBtn = document.getElementById("generateBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const manualBtn = document.getElementById("manualBtn");
+    const manualInput = document.getElementById("manualIndex");
+
+    // ---------------------------------------------------------
+    // nCk helper — used by lexicographic generator
+    // ---------------------------------------------------------
+    function combinations(n, k) {
+      if (k > n) return 0;
+      let r = 1;
+      for (let i = 1; i <= k; i++) {
+        r = r * (n - i + 1) / i;
+      }
+      return r;
+    }
+
+    // ---------------------------------------------------------
+    // nthCombination(n, k, index)
+    // Returns the exact lexicographic combination at "index"
+    // ---------------------------------------------------------
+    function nthCombination(n, k, index) {
+      const result = [];
+      let remaining = k;
+      let start = 1;
+
+      while (remaining > 0) {
+        for (let num = start; num <= n; num++) {
+          const count = combinations(n - num, remaining - 1);
+
+          if (index < count) {
+            result.push(num);
+            start = num + 1;
+            remaining--;
+            break;
+          }
+          index -= count;
+        }
+      }
+      return result;
+    }
+
+    // ---------------------------------------------------------
+    // Spinner loop — updates index every animation frame
+    // ---------------------------------------------------------
+    function spin() {
+      if (!running) return;
+
+      currentIndex = Math.floor(Math.random() * TOTAL);
+      indexDisplay.textContent = currentIndex.toLocaleString("en-US");
+
+      requestAnimationFrame(spin);
+    }
+
+    // Start spinning immediately
+    spin();
+
+    // ---------------------------------------------------------
+    // Generate button — freeze spinner + output set
+    // ---------------------------------------------------------
+    generateBtn.addEventListener("click", () => {
+      if (!running) return;
+      running = false;
+
+      const set = nthCombination(40, 6, currentIndex);
+      output.textContent = set.join("  •  ");
+    });
+
+    // ---------------------------------------------------------
+    // Reset button — restart spinner
+    // ---------------------------------------------------------
+    resetBtn.addEventListener("click", () => {
+      if (running) return;
+
+      output.textContent = "— — — — — —";
+      running = true;
+      spin();
+    });
+
+    // ---------------------------------------------------------
+    // Manual index retrieval
+    // Allows user to type any index and get the exact set
+    // ---------------------------------------------------------
+    manualBtn.addEventListener("click", () => {
+      const value = parseInt(manualInput.value);
+
+      if (isNaN(value) || value < 0 || value >= TOTAL) {
+        output.textContent = "Invalid index";
+        return;
+      }
+
+      // Stop spinner if running
+      running = false;
+
+      const set = nthCombination(40, 6, value);
+      output.textContent = set.join("  •  ");
+      indexDisplay.textContent = value.toLocaleString("en-US");
+    });
+  </script>
+</body>
+</html>
