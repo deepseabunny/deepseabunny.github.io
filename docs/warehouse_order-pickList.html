@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Warehouse/OrderPicker_Generator</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <!--
+    Teaching-level CSS notes:
+    - Keep styles simple and self-contained so you can read them quickly.
+    - .cell is the grid tile. .arrow uses ::after to overlay a directional glyph.
+    - High-contrast arrow color and bold weight make arrows visible on any background.
+  -->
+  <style>
+    :root{
+      --cell-size:30px;
+      --arrow-color:#0d47a1; /* deep navy for high contrast */
+    }
+
+    body { font-family: Arial, Helvetica, sans-serif; background:#f4f4f4; margin:0; }
+    header { background:#222; color:#fff; padding:12px 18px; }
+    header h1 { margin:0; font-size:18px; }
+
+    main { display:flex; flex-wrap:wrap; gap:18px; padding:18px; }
+    .panel {
+      background:#fff; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.08);
+      padding:12px; min-width:300px; flex:1 1 320px;
+    }
+    .panel h2 { margin:0 0 8px 0; font-size:14px; border-bottom:1px solid #eee; padding-bottom:6px; }
+
+    label { display:block; margin-top:8px; font-size:13px; color:#333; }
+    input { width:100%; padding:6px 8px; margin-top:6px; border-radius:6px; border:1px solid #ccc; font-size:13px; }
+    button {
+      margin-top:10px; padding:8px 12px; border-radius:6px; border:none; background:#0078d4; color:#fff; cursor:pointer;
+    }
+    button:disabled { background:#aaa; cursor:not-allowed; }
+
+    .warning { font-size:12px; color:#b85c00; margin-top:6px; display:none; }
+
+    /* Warehouse grid */
+    .warehouse-map { display:grid; gap:6px; margin-top:10px; }
+    .cell {
+      width:var(--cell-size); height:var(--cell-size);
+      background:#e8e8e8; border-radius:6px; display:flex; align-items:center; justify-content:center;
+      font-size:11px; color:#333; position:relative; user-select:none;
+    }
+    .start { background:#4caf50 !important; color:#fff; }
+    .order-item { background:#ff9800 !important; color:#fff; }
+    .path-step { outline:2px solid var(--arrow-color); }
+
+    /* Arrow overlay: uses data-arrow attribute to show glyph */
+    .cell.arrow::after {
+      content: attr(data-arrow);
+      position:absolute;
+      font-size:20px;
+      font-weight:800;
+      color:var(--arrow-color);
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
+      pointer-events:none;
+      line-height:1;
+    }
+
+    .order-list { font-size:13px; margin-top:8px; }
+    .order-list ol { padding-left:18px; margin:6px 0; }
+    .coord { color:#666; font-size:11px; margin-left:6px; }
+
+    /* Spinner overlay (blocks UI while TSP runs) */
+    #spinnerOverlay {
+      position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+      background:rgba(0,0,0,0.45); z-index:9999;
+    }
+    .spinner {
+      width:64px; height:64px; border-radius:50%;
+      border:8px solid #ddd; border-top:8px solid #0078d4; animation:spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Warehouse TSP</h1>
+  </header>
+
+  <!-- Spinner overlay shown while heavy computation runs -->
+  <div id="spinnerOverlay"><div class="spinner" aria-hidden="true"></div></div>
+
+  <main>
+    <!-- Panel: Warehouse configuration -->
+    <section class="panel" id="panel-dataset">
+      <h2>1. Warehouse Dataset (teaching notes)</h2>
+      <label>Aisles (rows)</label>
+      <input id="aisles" type="number" value="10" min="1">
+
+      <div id="warnAisles" class="warning">Large aisle count may slow rendering.</div>
+
+      <label>Racks per aisle (columns)</label>
+      <input id="racks" type="number" value="10" min="1">
+
+      <div id="warnRacks" class="warning">Large rack count may slow rendering.</div>
+
+      <label>Products per rack (approx)</label>
+      <input id="productsPerRack" type="number" value="3" min="1">
+
+      <!-- Generate warehouse builds an in-memory grid and product index -->
+      <button id="generateWarehouse">Generate Warehouse</button>
+      <div id="datasetSummary" style="margin-top:8px; font-size:13px; color:#333;"></div>
+
+      <!-- Teaching comment:
+           - The warehouse is a 2D array: warehouse[aisle][rack].
+           - productIndex maps productId -> {aisle, rack} for quick lookup.
+      -->
+    </section>
+
+    <!-- Panel: Create chaotic order -->
+    <section class="panel" id="panel-order">
+      <h2>2. Chaotic Order (teaching notes)</h2>
+      <label>Order size (number of picks)</label>
+      <input id="orderSize" type="number" value="8" min="1">
+      <div id="warnOrder" class="warning">Large orders may take longer to optimize.</div>
+
+      <!-- Generate chaotic order picks random products from productIndex -->
+      <button id="generateOrder" disabled>Generate Chaotic Order</button>
+
+      <!-- Chaotic order list prints product id + coordinates -->
+      <div id="chaoticOrderDisplay" class="order-list"></div>
+    </section>
+
+    <!-- Panel: Mapping & optimization -->
+    <section class="panel" id="panel-opt">
+      <h2>3. Mapping & Optimization (teaching notes)</h2>
+      <label>Start position (aisle,rack) — enter "0,0" for top-left</label>
+      <input id="startPosition" type="text" value="0,0">
+
+      <!-- Run Held–Karp TSP (exact) — expensive for large orders -->
+      <button id="mapAndOptimize" disabled>Run Full TSP Optimization</button>
+
+      <div id="mappedOrderDisplay" class="order-list"></div>
+      <div id="optimizedOrderDisplay" class="order-list"></div>
+      <div id="distanceMetrics" class="order-list"></div>
+
+      <!-- Teaching comment:
+           - Mapped order shows the chaotic picks with coordinates.
+           - Optimized order shows the TSP sequence (start excluded in list).
+           - Distance metric is closed-loop: start -> picks -> start.
+      -->
+    </section>
+
+    <!-- Panel: Warehouse map -->
+    <section class="panel" id="panel-map">
+      <h2>4. Warehouse Map (teaching notes)</h2>
+
+      <!-- Legend -->
+      <div style="margin-bottom:8px;">
+        <span style="display:inline-block;padding:4px 8px;background:#4caf50;color:#fff;border-radius:6px;margin-right:8px;font-size:12px;">Start</span>
+        <span style="display:inline-block;padding:4px 8px;background:#ff9800;color:#fff;border-radius:6px;margin-right:8px;font-size:12px;">Item</span>
+        <span style="display:inline-block;padding:4px 8px;border:2px solid var(--arrow-color);border-radius:6px;font-size:12px;">Path</span>
+      </div>
+
+      <!-- Grid container -->
+      <div id="warehouseMap" class="warehouse-map" aria-hidden="false"></div>
+
+      <!-- Teaching comment:
+           - Each .cell has id "cell-<aisle>-<rack>" so we can target it directly.
+           - Arrows are placed on the "from" cell (the pick cell or start) and point to the next coordinate.
+           - The final arrow is placed on the last pick and points back to the start.
+      -->
+    </section>
+  </main>
+
+  <!--
+    Teaching-level JavaScript notes (high-level):
+    - generateWarehouseData builds warehouse[][] and productIndex.
+    - generateRandomOrder picks random product IDs from productIndex.
+    - optimizePathTSP implements Held–Karp dynamic programming for exact TSP.
+    - renderWarehouseMap draws the grid and then calls addArrowsToPath.
+    - addArrowsToPath places one arrow per "from" cell in the sequence:
+        full = [start, pick1, pick2, ..., pickN, start]
+      For each segment full[i] -> full[i+1], we draw the arrow on full[i].
+    - This guarantees cardinality: Start -> pick1 -> ... -> pickN -> Start.
+  -->
+  <script>
+    /* ===========================
+       Soft thresholds (inline hints)
+       =========================== */
+    const THRESHOLD_ORDER = 12;
+    const THRESHOLD_AISLES = 20;
+    const THRESHOLD_RACKS = 20;
+
+    /* ===========================
+       Data structures
+       =========================== */
+    let warehouse = [];        // 2D array: warehouse[aisle][rack] = {aisle, rack, products:[]}
+    let productIndex = {};     // productId -> {aisle, rack}
+    let chaoticOrder = [];     // array of productId strings
+
+    /* ===========================
+       Utility helpers
+       =========================== */
+
+    // Create a readable product id (random)
+    function randomProductId() {
+      const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      return letters[Math.floor(Math.random()*26)] + (1000 + Math.floor(Math.random()*9000));
+    }
+
+    // Manhattan distance between two coords {aisle, rack}
+    function manhattan(a, b) {
+      return Math.abs(a.aisle - b.aisle) + Math.abs(a.rack - b.rack);
+    }
+
+    /* ===========================
+       Warehouse generation
+       =========================== */
+
+    // Build warehouse grid and productIndex
+    function generateWarehouseData(aisles, racks, productsPerRack) {
+      warehouse = [];
+      productIndex = {};
+
+      for (let a = 0; a < aisles; a++) {
+        const row = [];
+        for (let r = 0; r < racks; r++) {
+          const products = [];
+          // small randomization of products per rack
+          const count = Math.max(1, productsPerRack + Math.round(Math.random() - 0.5));
+          for (let i = 0; i < count; i++) {
+            const pid = randomProductId();
+            products.push(pid);
+            productIndex[pid] = { aisle: a, rack: r };
+          }
+          row.push({ aisle: a, rack: r, products });
+        }
+        warehouse.push(row);
+      }
+    }
+
+    // Pick random products for an order
+    function generateRandomOrder(size) {
+      const all = Object.keys(productIndex);
+      if (all.length === 0) return [];
+      return Array.from({length: size}, () => all[Math.floor(Math.random()*all.length)]);
+    }
+
+    /* ===========================
+       Held–Karp TSP (exact)
+       - This is teaching-level: clear, not optimized for huge N.
+       - Complexity: O(n^2 * 2^n) time, O(n * 2^n) memory.
+       =========================== */
+    function optimizePathTSP(start, items) {
+      // nodes[0] is start, nodes[1..n] are items
+      const nodes = [{ coord: start, product: null }];
+      items.forEach(p => nodes.push({ coord: productIndex[p], product: p }));
+
+      const size = nodes.length; // 1 + items.length
+      // distance matrix
+      const dist = Array.from({length:size}, () => Array(size).fill(0));
+      for (let i=0;i<size;i++){
+        for (let j=0;j<size;j++){
+          dist[i][j] = manhattan(nodes[i].coord, nodes[j].coord);
+        }
+      }
+
+      // memoization map: key = mask + ',' + pos
+      const memo = new Map();
+
+      function tsp(mask, pos) {
+        const key = mask + "," + pos;
+        if (memo.has(key)) return memo.get(key);
+
+        // all visited: return cost to go back to start
+        if (mask === (1<<size)-1) {
+          return dist[pos][0];
+        }
+
+        let best = Infinity;
+        for (let nxt = 1; nxt < size; nxt++) {
+          if (!(mask & (1<<nxt))) {
+            const cost = dist[pos][nxt] + tsp(mask | (1<<nxt), nxt);
+            if (cost < best) best = cost;
+          }
+        }
+
+        memo.set(key, best);
+        return best;
+      }
+
+      // Reconstruct path greedily using tsp() results
+      function buildPath() {
+        let mask = 1; // start visited
+        let pos = 0;  // at start
+        const route = [];
+
+        while (mask !== (1<<size)-1) {
+          let bestNext = -1;
+          let bestCost = Infinity;
+          for (let nxt = 1; nxt < size; nxt++) {
+            if (!(mask & (1<<nxt))) {
+              const cost = dist[pos][nxt] + tsp(mask | (1<<nxt), nxt);
+              if (cost < bestCost) {
+                bestCost = cost;
+                bestNext = nxt;
+              }
+            }
+          }
+          route.push(bestNext);
+          mask |= (1<<bestNext);
+          pos = bestNext;
+        }
+
+        // finally return to start (0)
+        route.push(0);
+        return route;
+      }
+
+      const route = buildPath();
+
+      // convert route indices to {product, coord} excluding the final 0 (return)
+      const finalPath = [];
+      for (let idx of route) {
+        if (idx === 0) continue; // skip start marker in the returned list
+        finalPath.push({
+          product: nodes[idx].product,
+          coord: nodes[idx].coord
+        });
+      }
+      return finalPath;
+    }
+
+    /* ===========================
+       Rendering helpers
+       =========================== */
+
+    // Render an order list (teaching: items are objects {product, coord})
+    function renderOrderList(container, title, items) {
+      let html = `<strong>${title}:</strong>`;
+      if (!items || items.length === 0) {
+        html += `<div style="margin-top:6px;color:#666;font-size:13px;">(none)</div>`;
+      } else {
+        html += `<ol>`;
+        items.forEach(it => {
+          html += `<li>${it.product} <span class="coord">(A${it.coord.aisle},R${it.coord.rack})</span></li>`;
+        });
+        html += `</ol>`;
+      }
+      $(container).html(html);
+    }
+
+    // Draw the warehouse grid and mark start, items, and path steps
+    function renderWarehouseMap(aisles, racks, start, orderItems, path) {
+      const $map = $("#warehouseMap");
+      $map.empty();
+
+      // set CSS grid columns to match racks (columns)
+      $map.css("grid-template-columns", `repeat(${racks}, var(--cell-size))`);
+
+      // clear any previous arrow attributes (defensive)
+      $(".cell").removeClass("arrow").removeAttr("data-arrow");
+
+      // Build a set of product ids for quick membership test
+      const itemSet = new Set(orderItems);
+
+      // pathCoords used to mark path-step styling
+      const pathCoords = path.map(p => `${p.coord.aisle}-${p.coord.rack}`);
+
+      // Create each cell with id "cell-<aisle>-<rack>"
+      for (let a = 0; a < aisles; a++) {
+        for (let r = 0; r < racks; r++) {
+          const id = `cell-${a}-${r}`;
+          const $c = $("<div>").addClass("cell").attr("id", id).text(`${a},${r}`);
+
+          // mark start cell visually
+          if (a === start.aisle && r === start.rack) $c.addClass("start");
+
+          // mark cells that contain any of the order products
+          if (warehouse[a] && warehouse[a][r] && warehouse[a][r].products.some(p => itemSet.has(p))) {
+            $c.addClass("order-item");
+          }
+
+          // mark cells that are part of the optimized path (for emphasis)
+          if (pathCoords.includes(`${a}-${r}`)) $c.addClass("path-step");
+
+          $map.append($c);
+        }
+      }
+
+      // After the grid is drawn, place arrows (one arrow per "from" cell)
+      addArrowsToPath(path, start);
+    }
+
+    /* ===========================
+       Arrow placement (teaching-level fix)
+       - We place the arrow on the "from" cell for each segment in:
+         full = [start, pick1, pick2, ..., pickN, start]
+       - This guarantees cardinality: Start -> pick1 -> ... -> pickN -> Start
+       - The final arrow is placed on the last pick and points to the start.
+       =========================== */
+    function addArrowsToPath(path, start) {
+      // Build full sequence: start -> picks -> start
+      const full = [{ coord: start }, ...path, { coord: start }];
+
+      // Clear old arrows (defensive)
+      $(".cell").removeClass("arrow").removeAttr("data-arrow");
+
+      // For each segment full[i] -> full[i+1], draw arrow on full[i]
+      for (let i = 0; i < full.length - 1; i++) {
+        const from = full[i].coord;
+        const to   = full[i + 1].coord;
+
+        // target the "from" cell (this is the pick cell or the start)
+        const cell = document.getElementById(`cell-${from.aisle}-${from.rack}`);
+        if (!cell) continue; // defensive: cell might be off-grid if inputs are inconsistent
+
+        let arrow = "";
+
+        // cardinal directions only (choose the dominant axis if both differ)
+        if (to.aisle < from.aisle) arrow = "↑";
+        else if (to.aisle > from.aisle) arrow = "↓";
+        else if (to.rack < from.rack) arrow = "←";
+        else if (to.rack > from.rack) arrow = "→";
+        else arrow = "•"; // same cell (rare) — show a dot
+
+        // Apply arrow glyph to the cell via data-arrow attribute
+        cell.classList.add("arrow");
+        cell.setAttribute("data-arrow", arrow);
+      }
+    }
+
+    // Compute closed-loop distance: start -> picks -> start
+    function computeDistance(start, seq) {
+      let total = 0;
+      let cur = start;
+      seq.forEach(it => {
+        total += manhattan(cur, it.coord);
+        cur = it.coord;
+      });
+      total += manhattan(cur, start);
+      return total;
+    }
+
+    /* ===========================
+       Inline warning handlers (no popups)
+       - Show subtle inline hints when user exceeds thresholds.
+       =========================== */
+    $("#aisles").on("input", function() {
+      $("#warnAisles").toggle(+this.value > THRESHOLD_AISLES);
+    });
+    $("#racks").on("input", function() {
+      $("#warnRacks").toggle(+this.value > THRESHOLD_RACKS);
+    });
+    $("#orderSize").on("input", function() {
+      $("#warnOrder").toggle(+this.value > THRESHOLD_ORDER);
+    });
+
+    /* ===========================
+       UI wiring and main flow
+       - Keep UI actions small and synchronous where possible.
+       - Heavy TSP work runs after a short await to allow spinner to render.
+       =========================== */
+    $(function(){
+
+      // Generate warehouse button
+      $("#generateWarehouse").click(()=>{
+        lockButtons();
+
+        const aisles = Math.max(1, Math.floor(+$("#aisles").val() || 0));
+        const racks  = Math.max(1, Math.floor(+$("#racks").val() || 0));
+        const ppr    = Math.max(1, Math.floor(+$("#productsPerRack").val() || 1));
+
+        generateWarehouseData(aisles, racks, ppr);
+
+        $("#datasetSummary").text(`Warehouse: ${aisles} aisles × ${racks} racks = ${aisles*racks} cells. Products indexed: ${Object.keys(productIndex).length}.`);
+
+        // enable order generation now that products exist
+        $("#generateOrder").prop("disabled", false);
+
+        // render an empty map with start at 0,0 so user sees grid immediately
+        renderWarehouseMap(aisles, racks, {aisle:0, rack:0}, [], []);
+
+        unlockButtons();
+      });
+
+      // Generate chaotic order button
+      $("#generateOrder").click(()=>{
+        lockButtons();
+
+        const size = Math.max(1, Math.floor(+$("#orderSize").val() || 0));
+        chaoticOrder = generateRandomOrder(size);
+
+        // Normalize chaotic order into objects for rendering
+        const mapped = chaoticOrder.map(p => ({ product: p, coord: productIndex[p] }));
+        renderOrderList("#chaoticOrderDisplay", "Chaotic Order", mapped);
+
+        // enable optimization
+        $("#mapAndOptimize").prop("disabled", false);
+
+        // also show the map with items highlighted (no arrows yet)
+        renderWarehouseMap(warehouse.length, warehouse[0].length, {aisle:0, rack:0}, chaoticOrder, []);
+
+        unlockButtons();
+      });
+
+      // Map & optimize button (runs TSP)
+      $("#mapAndOptimize").click(async ()=>{
+        lockButtons();
+        showSpinner();
+
+        // parse start position (defensive parsing)
+        const sp = $("#startPosition").val().split(",").map(s => Number(s.trim()));
+        const start = { aisle: Number.isFinite(sp[0]) ? sp[0] : 0, rack: Number.isFinite(sp[1]) ? sp[1] : 0 };
+
+        // show mapped chaotic order (product + coords)
+        const mapped = chaoticOrder.map(p => ({ product: p, coord: productIndex[p] }));
+        renderOrderList("#mappedOrderDisplay", "Mapped Order", mapped);
+
+        // allow spinner to paint before heavy compute
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        // run exact TSP (may be slow for large orders)
+        const optimized = optimizePathTSP(start, chaoticOrder);
+
+        // render optimized order list
+        const optimizedMapped = optimized.map(o => ({ product: o.product, coord: o.coord }));
+        renderOrderList("#optimizedOrderDisplay", "Optimized TSP Order", optimizedMapped);
+
+        // compute and display closed-loop distance
+        const dist = computeDistance(start, optimized);
+        $("#distanceMetrics").html(`<strong>Total closed-loop distance:</strong> ${dist} steps`);
+
+        // draw map with arrows and path-step highlights
+        renderWarehouseMap(warehouse.length, warehouse[0].length, start, chaoticOrder, optimized);
+
+        hideSpinner();
+        unlockButtons();
+      });
+
+      // small helpers to lock/unlock all buttons (prevent double-click)
+      function lockButtons() { $("button").prop("disabled", true); }
+      function unlockButtons() { $("button").prop("disabled", false); }
+
+      // spinner helpers
+      function showSpinner() { $("#spinnerOverlay").fadeIn(120); }
+      function hideSpinner() { $("#spinnerOverlay").fadeOut(120); }
+
+      // initialize inline warnings visibility based on defaults
+      $("#aisles").trigger("input");
+      $("#racks").trigger("input");
+      $("#orderSize").trigger("input");
+    });
+  </script>
+</body>
+</html>
