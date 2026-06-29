@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Local IoT + RAG Logistics Guide (Chroma)</title>
+  <style>
+    body { font-family: Inter, Roboto, Arial, sans-serif; line-height:1.6; margin: 24px; color:#111; background:#f7f8fb; }
+    header { background:#0b5fff; color:white; padding:20px; border-radius:8px; margin-bottom:18px; }
+    h1,h2,h3 { margin:0 0 12px 0; }
+    h2 { color:#0b5fff; }
+    .card { background:white; border-radius:8px; padding:18px; margin-bottom:14px; box-shadow:0 6px 18px rgba(12,20,40,0.06); }
+    pre { background:#0f1724; color:#e6eef8; padding:12px; border-radius:6px; overflow:auto; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace; }
+    .kbd { background:#eef2ff; border-radius:4px; padding:2px 6px; font-weight:600; color:#0b5fff; }
+    ul { margin:8px 0 12px 20px; }
+    .note { background:#fff8e6; border-left:4px solid #ffb020; padding:10px; border-radius:6px; }
+    .success { background:#ecfdf5; border-left:4px solid #10b981; padding:10px; border-radius:6px; }
+    footer { margin-top:18px; color:#6b7280; font-size:0.95rem; }
+    .muted { color:#6b7280; font-size:0.95rem; }
+    .btn { display:inline-block; background:#0b5fff; color:white; padding:8px 12px; border-radius:6px; text-decoration:none; }
+    table { border-collapse:collapse; width:100%; margin:8px 0 12px 0; }
+    th, td { text-align:left; padding:8px; border-bottom:1px solid #eef2f7; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Local IoT + RAG Logistics Guide (Chroma)</h1>
+    <p class="muted">Prototype: Mock IoT telemetry → Detention detection → RAG retrieval (Chroma) → Agent recommendations</p>
+  </header>
+
+  <section class="card">
+    <h2>What this guide builds</h2>
+    <ul>
+      <li><strong>Mock telemetry generator</strong> (Python asyncio) that simulates trucks arriving, waiting, and loading.</li>
+      <li><strong>Detention detector</strong> — a stateful stream processor that emits <code>detention_started</code> events.</li>
+      <li><strong>RAG ingestion</strong> — chunk contracts/SOPs and store embeddings in <strong>Chroma</strong>.</li>
+      <li><strong>RAG agent</strong> — retrieve relevant clauses and call an LLM to produce structured JSON recommendations.</li>
+      <li>All components run locally with an in‑process queue (no external broker required).</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>Project layout</h2>
+    <pre class="mono">
+iot_rag_logistics/
+├─ requirements.txt
+├─ README.md
+├─ data/
+│  ├─ contracts/
+│  │  └─ contract_778.txt
+├─ src/
+│  ├─ mock_generator.py
+│  ├─ detector.py
+│  ├─ rag_ingest.py
+│  ├─ rag_agent.py
+│  └─ main.py
+    </pre>
+  </section>
+
+  <section class="card">
+    <h2>Requirements</h2>
+    <p>Use Python 3.10+. Create a virtual environment and install:</p>
+    <pre class="mono">
+# requirements.txt
+python-dotenv
+chroma-db
+sentence-transformers
+openai
+uvicorn
+fastapi
+aiohttp
+    </pre>
+    <p class="note"><strong>Note:</strong> You can swap OpenAI for a local LLM later; the code is modular.</p>
+  </section>
+
+  <section class="card">
+    <h2>Step 1 — Mock telemetry generator</h2>
+    <p>Save as <code>src/mock_generator.py</code>.</p>
+    <pre class="mono">
+# src/mock_generator.py
+import asyncio
+import random
+import time
+import uuid
+
+async def truck_simulator(out_queue: asyncio.Queue, truck_id: str, stop_id: str):
+    arrival_ts = time.time()
+    await out_queue.put({
+        "event_type": "arrival",
+        "truck_id": truck_id,
+        "stop_id": stop_id,
+        "timestamp": arrival_ts
+    })
+    # simulate variable delay before check-in
+    await asyncio.sleep(random.uniform(1, 5))
+    await out_queue.put({
+        "event_type": "checkin",
+        "truck_id": truck_id,
+        "stop_id": stop_id,
+        "timestamp": time.time()
+    })
+    # simulate waiting for dock assignment (random)
+    wait_for_dock = random.uniform(30, 300)  # seconds
+    start = time.time()
+    while time.time() - start < wait_for_dock:
+        await asyncio.sleep(random.uniform(5, 20))
+        await out_queue.put({
+            "event_type": "status",
+            "truck_id": truck_id,
+            "stop_id": stop_id,
+            "status": "waiting_for_dock",
+            "timestamp": time.time()
+        })
+    # simulate dock assigned and loading start
+    await out_queue.put({
+        "event_type": "dock_assigned",
+        "truck_id": truck_id,
+        "stop_id": stop_id,
+        "dock_id": f"dock-{random.randint(1,10)}",
+        "timestamp": time.time()
+    })
+    await asyncio.sleep(random.uniform(2, 6))
+    await out_queue.put({
+        "event_type": "loading_start",
+        "truck_id": truck_id,
+        "stop_id": stop_id,
+        "timestamp": time.time()
+    })
+
+async def start_generators(out_queue: asyncio.Queue, n=5):
+    tasks = []
+    for i in range(n):
+        truck_id = f"TRK-{str(uuid.uuid4())[:8]}"
+        stop_id = "WH-12"
+        tasks.append(asyncio.create_task(truck_simulator(out_queue, truck_id, stop_id)))
+        await asyncio.sleep(0.5)
+    await asyncio.gather(*tasks)
+    </pre>
+  </section>
+
+  <section class="card">
+    <h2>Step 2 — Detention detector</h2>
+    <p>Save as <code>src/detector.py</code>. This keeps a per‑truck state machine and emits detention events when free time is exceeded.</p>
+    <pre class="mono">
+# src/detector.py
+import asyncio
+import time
+from typing import Dict
+
+class DetentionDetector:
+    def __init__(self, free_time_seconds=120):
+        self.free_time = free_time_seconds
+        self.state: Dict[str, dict] = {}  # truck_id -> {arrival_ts, checkin_ts, dock_assigned, loading_started}
+
+    async def run(self, in_queue: asyncio.Queue, out_queue: asyncio.Queue):
+        while True:
+            ev = await in_queue.get()
+            t = ev.get("truck_id")
+            now = ev.get("timestamp", time.time())
+            if t not in self.state:
+                self.state[t] = {}
+            s = self.state[t]
+
+            if ev["event_type"] == "arrival":
+                s["arrival_ts"] = now
+                s["stop_id"] = ev.get("stop_id")
+            elif ev["event_type"] == "checkin":
+                s["checkin_ts"] = now
+            elif ev["event_type"] == "dock_assigned":
+                s["dock_assigned"] = now
+            elif ev["event_type"] == "loading_start":
+                s["loading_started"] = now
+
+            # compute detention
+            arrival = s.get("arrival_ts")
+            loading = s.get("loading_started")
+            if arrival and not loading:
+                waited = time.time() - arrival
+                if waited > self.free_time:
+                    # emit detention event
+                    detention_event = {
+                        "event_type": "detention_started",
+                        "truck_id": t,
+                        "stop_id": s.get("stop_id"),
+                        "arrival_ts": arrival,
+                        "minutes_waiting": int(waited / 60),
+                        "reason": "no_loading_started",
+                        "detected_at": time.time()
+                    }
+                    await out_queue.put(detention_event)
+            in_queue.task_done()
+    </pre>
+  </section>
+
+  <section class="card">
+    <h2>Step 3 — RAG ingestion into Chroma</h2>
+    <p>Save as <code>src/rag_ingest.py</code>. This chunks contract text, embeds with <code>sentence-transformers</code>, and writes to Chroma.</p>
+    <pre class="mono">
+# src/rag_ingest.py
+from sentence_transformers import SentenceTransformer
+import chromadb
+from chromadb.config import Settings
+import os
+import glob
+
+MODEL_NAME = "all-MiniLM-L6-v2"
+
+def chunk_text(text, max_chars=800):
+    paragraphs = text.split("\n\n")
+    chunks = []
+    current = ""
+    for p in paragraphs:
+        if len(current) + len(p) > max_chars:
+            if current:
+                chunks.append(current.strip())
+            current = p
+        else:
+            current += "\n\n" + p
+    if current:
+        chunks.append(current.strip())
+    return chunks
+
+def ingest_contracts(data_dir="data/contracts", chroma_dir=".chromadb"):
+    model = SentenceTransformer(MODEL_NAME)
+    client = chromadb.Client(Settings(chroma_db_impl="duckdb+parquet", persist_directory=chroma_dir))
+    collection = client.get_or_create_collection(name="logistics_docs")
+    files = glob.glob(os.path.join(data_dir, "*.txt"))
+    for f in files:
+        with open(f, "r", encoding="utf-8") as fh:
+            text = fh.read()
+        chunks = chunk_text(text)
+        ids = []
+        texts = []
+        metadatas = []
+        for i, c in enumerate(chunks):
+            ids.append(f"{os.path.basename(f)}-chunk-{i}")
+            texts.append(c)
+            metadatas.append({"source": os.path.basename(f), "section_index": i})
+        embs = model.encode(texts, show_progress_bar=False).tolist()
+        collection.add(ids=ids, documents=texts, metadatas=metadatas, embeddings=embs)
+    client.persist()
+    print("Ingest complete.")
+    </pre>
+  </section>
+
+  <section class="card">
+    <h2>Step 4 — RAG agent (retrieval + LLM)</h2>
+    <p>Save as <code>src/rag_agent.py</code>. This retrieves top chunks and calls an LLM to produce structured JSON output.</p>
+    <pre class="mono">
+# src/rag_agent.py
+import chromadb
+from chromadb.config import Settings
+from sentence_transformers import SentenceTransformer
+import os
+import openai
+import json
+
+MODEL_NAME = "all-MiniLM-L6-v2"
+
+class RAGAgent:
+    def __init__(self, chroma_dir=".chromadb", openai_api_key=None):
+        self.client = chromadb.Client(Settings(chroma_db_impl="duckdb+parquet", persist_directory=chroma_dir))
+        self.collection = self.client.get_collection("logistics_docs")
+        self.embed_model = SentenceTransformer(MODEL_NAME)
+        if openai_api_key:
+            openai.api_key = openai_api_key
+
+    def retrieve(self, query_text, top_k=4):
+        q_emb = self.embed_model.encode([query_text])[0].tolist()
+        results = self.collection.query(query_embeddings=[q_emb], n_results=top_k)
+        docs = []
+        for doc, meta, score in zip(results["documents"][0], results["metadatas"][0], results["distances"][0]):
+            docs.append({"text": doc, "metadata": meta, "score": score})
+        return docs
+
+    def build_prompt(self, event, docs):
+        ctx = "\n\n---\n\n".join([d["text"] for d in docs])
+        prompt = f"""
+You are a logistics operations assistant. Use ONLY the context below to answer the questions.
+
+Context:
+{ctx}
+
+Event:
+{json.dumps(event, indent=2)}
+
+Questions:
+1) Is detention billable now? If so, why and what clause supports it.
+2) Estimate detention cost so far (use a simple rule: $50 per hour).
+3) Who should be notified and recommended actions.
+Return a JSON object with keys: detention_billable (bool), reason, estimated_cost_usd (number), notifications (list), actions (list).
+"""
+        return prompt
+
+    def call_llm(self, prompt):
+        # Default: OpenAI completion. Swap for local LLM if desired.
+        resp = openai.ChatCompletion.create(
+            model="gpt-4o-mini",
+            messages=[{"role":"system","content":"You are a JSON-output assistant."},
+                      {"role":"user","content":prompt}],
+            temperature=0
+        )
+        return resp["choices"][0]["message"]["content"]
+
+    def analyze_event(self, event):
+        q = f"detention for truck {event['truck_id']} at {event['stop_id']} waiting {event['minutes_waiting']} minutes"
+        docs = self.retrieve(q)
+        prompt = self.build_prompt(event, docs)
+        llm_out = self.call_llm(prompt)
+        try:
+            parsed = json.loads(llm_out)
+        except Exception:
+            parsed = {"raw": llm_out}
+        return parsed
+    </pre>
+    <p class="note">Replace the model name with your available model or adapt <code>call_llm</code> to a local LLM endpoint.</p>
+  </section>
+
+  <section class="card">
+    <h2>Step 5 — Main orchestration</h2>
+    <p>Save as <code>src/main.py</code>. This wires generator → detector → RAG agent and prints results.</p>
+    <pre class="mono">
+# src/main.py
+import asyncio
+from mock_generator import start_generators
+from detector import DetentionDetector
+from rag_ingest import ingest_contracts
+from rag_agent import RAGAgent
+import os
+import dotenv
+
+dotenv.load_dotenv()
+
+async def main():
+    # ensure contracts ingested
+    ingest_contracts(data_dir="data/contracts", chroma_dir=".chromadb")
+
+    telemetry_q = asyncio.Queue()
+    detention_q = asyncio.Queue()
+
+    detector = DetentionDetector(free_time_seconds=120)
+    rag = RAGAgent(chroma_dir=".chromadb", openai_api_key=os.getenv("OPENAI_API_KEY"))
+
+    # start detector loop
+    detector_task = asyncio.create_task(detector.run(telemetry_q, detention_q))
+    # start generators
+    gen_task = asyncio.create_task(start_generators(telemetry_q, n=6))
+
+    async def rag_consumer():
+        while True:
+            ev = await detention_q.get()
+            print("RAG processing event:", ev)
+            result = rag.analyze_event(ev)
+            print("RAG result:", result)
+            detention_q.task_done()
+
+    rag_task = asyncio.create_task(rag_consumer())
+
+    await gen_task
+    await telemetry_q.join()
+    await asyncio.sleep(2)
+    detector_task.cancel()
+    rag_task.cancel()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+    </pre>
+  </section>
+
+  <section class="card">
+    <h2>Step 6 — Sample contract</h2>
+    <p>Create <code>data/contracts/contract_778.txt</code> with a clause like:</p>
+    <pre class="mono">
+Contract CONTRACT-778
+Detention
+Detention charges begin after 120 minutes of free time at consignee. Detention is billed at $50 per hour pro-rated to the nearest 15 minutes. Exceptions: weather, force majeure, or documented warehouse delays.
+Notification: Carrier must notify customer logistics contact within 90 minutes of arrival if loading has not started.
+    </pre>
+  </section>
+
+  <section class="card">
+    <h2>Step 7 — Run locally</h2>
+    <ol>
+      <li>Create and activate a virtual environment:
+        <pre class="mono">python -m venv .venv
+source .venv/bin/activate</pre>
+      </li>
+      <li>Install dependencies:
+        <pre class="mono">pip install -r requirements.txt</pre>
+      </li>
+      <li>Set <code>OPENAI_API_KEY</code> in a <code>.env</code> file if using OpenAI, or modify <code>rag_agent.call_llm</code> to call a local LLM.</li>
+      <li>Populate <code>data/contracts/contract_778.txt</code>.</li>
+      <li>Run:
+        <pre class="mono">python src/main.py</pre>
+      </li>
+    </ol>
+    <p class="success"><strong>Result:</strong> The console will show simulated telemetry, any <code>detention_started</code> events, and the RAG agent’s structured recommendations.</p>
+  </section>
+
+  <section class="card">
+    <h2>Troubleshooting & improvements</h2>
+    <ul>
+      <li><strong>Chroma persistence:</strong> If you re-run ingestion, either remove <code>.chromadb</code> or use a new collection name.</li>
+      <li><strong>Embedding model:</strong> Use a larger model for better retrieval quality if needed.</li>
+      <li><strong>Parse numeric rates:</strong> Improve cost estimation by parsing numeric rates from contract chunks instead of fixed $50/hr.</li>
+      <li><strong>Human approval UI:</strong> Add a small FastAPI + React UI to approve billing lines before sending to billing.</li>
+      <li><strong>Local LLM:</strong> Replace OpenAI calls with a local LLM endpoint for offline use.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p class="muted">If you want, I can generate the full project files (all source files, requirements, and sample contract) packaged so you can run this locally. I can also swap OpenAI for a local LLM integration if you prefer.</p>
+  </footer>
+</body>
+</html>
