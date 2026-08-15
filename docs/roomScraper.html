@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>roomScraper README</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; line-height: 1.5; margin: 24px; color: #111; background: #f7f8fb; }
+    .container { max-width: 980px; margin: 0 auto; background: #fff; padding: 28px; border-radius: 10px; box-shadow: 0 6px 24px rgba(20,30,60,0.08); }
+    h1 { margin-top: 0; font-size: 28px; }
+    h2 { margin-bottom: 8px; font-size: 18px; color: #0b5cff; }
+    pre { background: #0b1220; color: #e6eef8; padding: 12px; border-radius: 6px; overflow: auto; font-size: 13px; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace; }
+    .section { margin-bottom: 18px; }
+    .kbd { background:#eef2ff; border-radius:4px; padding:2px 6px; font-size:13px; border:1px solid #e0e7ff; }
+    .tsv { white-space: pre; background:#f3f6ff; padding:10px; border-radius:6px; border:1px solid #e6eef8; }
+    .btn { display:inline-block; background:#0b5cff; color:#fff; padding:8px 12px; border-radius:6px; text-decoration:none; font-weight:600; }
+    details { margin-top:8px; margin-bottom:12px; }
+    summary { cursor:pointer; font-weight:600; }
+    table { border-collapse: collapse; width:100%; }
+    table th, table td { border: 1px solid #e6eef8; padding:8px; text-align:left; }
+    footer { margin-top: 20px; color:#666; font-size:13px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>roomScraper README</h1>
+
+    <div class="section">
+      <h2>Short description</h2>
+      <p>
+        A Playwright-based scraper that scrolls Booking.com search results, extracts <strong>property name</strong> and <strong>rate</strong>, deduplicates entries,
+        and writes copy-paste friendly output (TSV + Markdown + CSV). Designed to handle lazy-loading via an initial continuous scroll and controlled scroll passes with DOM + network idle detection.
+      </p>
+    </div>
+
+    <div class="section">
+      <h2>Prerequisites</h2>
+      <ul>
+        <li>Node.js (v16+ recommended)</li>
+        <li>Install Playwright: <span class="kbd">npm install playwright</span></li>
+        <li>Install browser binaries: <span class="kbd">npx playwright install</span></li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>Files produced</h2>
+      <ul>
+        <li><strong>mesa_prices.jsonl</strong> — one JSON object per line (minimal: <code>{ "name": "...", "price": "..." }</code>)</li>
+        <li><strong>mesa_prices.csv</strong> — CSV with header <code>name,price</code></li>
+        <li><strong>mesa_prices_summary.json</strong> — run summary and basic stats</li>
+        <li>Console output: <strong>TSV</strong> (tab-separated) and <strong>Markdown table</strong> for quick copy/paste</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>Quick install and run</h2>
+      <pre><code># install playwright and browsers
+npm install playwright
+npx playwright install
+
+# headless (default)
+MAX_PROPERTIES=100 CONCURRENCY=4 node roomScraper.mjs
+
+# headful (visible browser) with slow motion for debugging
+HEADFUL=1 SLOWMO=80 MAX_PROPERTIES=100 node roomScraper.mjs
+</code></pre>
+    </div>
+
+    <div class="section">
+      <h2>Environment variables (defaults)</h2>
+      <table>
+        <thead><tr><th>Variable</th><th>Default</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>MAX_PROPERTIES</td><td>100</td><td>How many unique properties to collect</td></tr>
+          <tr><td>CONCURRENCY</td><td>4</td><td>Parallel card parsing / worker pages</td></tr>
+          <tr><td>CITY</td><td>Mesa, Arizona</td><td>Search location</td></tr>
+          <tr><td>HEADFUL</td><td>0</td><td>Set 1 to run visible browser</td></tr>
+          <tr><td>KEEP_OPEN</td><td>0</td><td>Set 1 to leave browser open after run</td></tr>
+          <tr><td>IGNORE_CHECKPOINT</td><td>0</td><td>Set 1 to ignore checkpoint.json</td></tr>
+          <tr><td>MAX_SCROLL_PASSES</td><td>5</td><td>Controlled scroll passes after initial continuous scroll</td></tr>
+          <tr><td>SLOWMO</td><td>60</td><td>ms per action when HEADFUL</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>What it does (high level)</h2>
+      <ol>
+        <li>Open Booking search results for the configured city and dates (today → tomorrow).</li>
+        <li>Initial continuous scroll for 10 seconds to trigger lazy-loading of many results.</li>
+        <li>Controlled scroll passes (up to <code>MAX_SCROLL_PASSES</code>) that:
+          <ul>
+            <li>Scroll to the last visible card</li>
+            <li>Click any “Load more / Show more” controls if present</li>
+            <li>Wait for DOM mutations and network activity to become idle before scraping</li>
+          </ul>
+        </li>
+        <li>Parse visible property cards and extract <strong>name</strong> and <strong>price</strong>.</li>
+        <li>Deduplicate by stable key: <code>hotelId</code> → <code>href</code> → normalized <code>name</code>.</li>
+        <li>Stream results to <code>mesa_prices.jsonl</code> and append to <code>mesa_prices.csv</code>. Print TSV and Markdown table to console for easy copy/paste.</li>
+      </ol>
+    </div>
+
+    <div class="section">
+      <h2>Output format (copy-paste friendly)</h2>
+      <p><strong>TSV</strong> (paste into spreadsheet): <code>name[TAB]price</code></p>
+      <div class="tsv">
+name    price
+SureStay Plus by Best Western Mesa Superstition Springs $67
+Holiday Inn Express & Suites Phoenix - Mesa West by IHG $99
+      </div>
+
+      <p><strong>Markdown</strong> (for README or notes):</p>
+      <pre><code>| name | price |
+| --- | --- |
+| SureStay Plus by Best Western Mesa Superstition Springs | $67 |
+| Holiday Inn Express & Suites Phoenix - Mesa West by IHG | $99 |</code></pre>
+    </div>
+
+    <div class="section">
+      <h2>Troubleshooting tips</h2>
+      <ul>
+        <li><strong>Too few results</strong>: run with <span class="kbd">HEADFUL=1</span> and <span class="kbd">SLOWMO=80</span> to watch the page; increase <span class="kbd">MAX_SCROLL_PASSES</span> or the initial continuous scroll duration.</li>
+        <li><strong>Duplicates</strong>: the script dedupes by ID/href/name; inspect <code>mesa_prices.jsonl</code> to see name variations and consider normalizing further.</li>
+        <li><strong>No prices captured</strong>: network JSON capture may miss some offers; the script falls back to reading card text and then to opening property pages. Try headful mode to observe dynamic loading or increase worker timeouts.</li>
+        <li><strong>Checkpointing</strong>: <code>checkpoint.json</code> stores <code>{ collected, scrollPosition }</code>. Use <span class="kbd">IGNORE_CHECKPOINT=1</span> to start fresh.</li>
+        <li><strong>Rate limiting / Captcha</strong>: reduce concurrency, add longer delays, or use proxies if you hit anti-bot measures.</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>Notes and best practices</h2>
+      <ul>
+        <li>Run short, respectful scraping sessions. Avoid aggressive scraping that may violate site terms or trigger rate limits.</li>
+        <li>For reproducible results, run with the same <code>CITY</code>, <code>MAX_PROPERTIES</code>, and <code>CONCURRENCY</code> settings.</li>
+        <li>Use <span class="kbd">KEEP_OPEN=1</span> to leave the browser open for manual inspection after a run.</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>License</h2>
+      <p>Add your preferred license (e.g., MIT) to the repo. This README does not include a license by default.</p>
+    </div>
+
+    <div class="section">
+      <h2>roomScraper.mjs (collapsible)</h2>
+      <p>Click to expand the full script. You can copy it into <code>roomScraper.mjs</code>.</p>
+
+      <details>
+        <summary>Show roomScraper.mjs</summary>
+        <pre><code>// Paste the full roomScraper.mjs script here.
+        // (For brevity in this preview, the script is omitted. Replace this comment with the full script.)
+        </code></pre>
+      </details>
+    </div>
+
+    <div class="section">
+      <h2>Download</h2>
+      <p>
+        The file is ready to save as <code>README.html</code>. If you want, you can add a direct download link here after generating the file on your machine or via a task runner.
+      </p>
+      <p><a class="btn" href="#" onclick="alert('Save this page as README.html from your browser to download.'); return false;">Save as README.html</a></p>
+    </div>
+
+    <footer>
+      <p>Generated README for <strong>roomScraper</strong>. Edit the content or embed the full <code>roomScraper.mjs</code> script into the collapsible block above.</p>
+    </footer>
+  </div>
+</body>
+</html>
