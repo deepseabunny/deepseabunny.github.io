@@ -7,6 +7,7 @@
 // - Uses network JSON capture + small worker pool fallback for missing prices
 // - Streams unique results to mesa_prices.jsonl and writes mesa_prices_summary.json
 // - State notifications included; supports HEADFUL=1, KEEP_OPEN=1, IGNORE_CHECKPOINT=1
+// - Colorized terminal output, spinner, progress line, and highlights lowest/highest rates
 //
 // Usage:
 //   npm install playwright
@@ -15,6 +16,51 @@
 
 import fs from "fs";
 import { chromium } from "playwright";
+import readline from "readline";
+
+/* ===== Terminal color helpers (ANSI) ===== */
+const ANSI = {
+  reset: "\u001b[0m",
+  bold: "\u001b[1m",
+  dim: "\u001b[2m",
+  red: "\u001b[31m",
+  green: "\u001b[32m",
+  yellow: "\u001b[33m",
+  blue: "\u001b[34m",
+  magenta: "\u001b[35m",
+  cyan: "\u001b[36m",
+  white: "\u001b[37m",
+  gray: "\u001b[90m"
+};
+function color(text, code) { return `${code}${text}${ANSI.reset}`; }
+function bold(text) { return `${ANSI.bold}${text}${ANSI.reset}`; }
+
+/* ===== Simple spinner and progress line ===== */
+const spinnerFrames = ["⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠇","⠏"];
+let spinnerIndex = 0;
+let spinnerTimer = null;
+function startSpinner(prefix = "") {
+  if (spinnerTimer) return;
+  spinnerTimer = setInterval(() => {
+    const frame = spinnerFrames[spinnerIndex % spinnerFrames.length];
+    spinnerIndex++;
+    readline.clearLine(process.stdout, 0);
+    readline.cursorTo(process.stdout, 0);
+    process.stdout.write(`${color(frame, ANSI.cyan)} ${prefix}`);
+  }, 80);
+}
+function stopSpinner() {
+  if (!spinnerTimer) return;
+  clearInterval(spinnerTimer);
+  spinnerTimer = null;
+  readline.clearLine(process.stdout, 0);
+  readline.cursorTo(process.stdout, 0);
+}
+function writeProgressLine(text) {
+  readline.clearLine(process.stdout, 0);
+  readline.cursorTo(process.stdout, 0);
+  process.stdout.write(text);
+}
 
 /* ===== Config ===== */
 const MAX_PROPERTIES = Number(process.env.MAX_PROPERTIES || 100);
@@ -65,24 +111,24 @@ async function safeNavigate(page, url, opts = {}) {
   const baseTimeout = opts.timeout ?? 30000;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      console.log(`STATE: navigating (attempt ${attempt}) -> ${url}`);
+      console.log(color(`STATE: navigating (attempt ${attempt}) -> ${url}`, ANSI.gray));
       const response = await page.goto(url, { waitUntil: "networkidle", timeout: baseTimeout * attempt });
-      if (response) console.log(`STATE: navigation response ${response.status()}`);
+      if (response) console.log(color(`STATE: navigation response ${response.status()}`, ANSI.gray));
       return response;
     } catch (err) {
-      console.warn(`STATE: navigation attempt ${attempt} failed: ${err.message}`);
+      console.warn(color(`STATE: navigation attempt ${attempt} failed: ${err.message}`, ANSI.yellow));
       if (attempt === maxAttempts) {
         try {
           const stamp = Date.now();
           await page.screenshot({ path: `debug_nav_failed_${stamp}.png`, fullPage: true }).catch(()=>{});
           const html = await page.content().catch(()=>null);
           if (html) fs.writeFileSync(`debug_nav_failed_${stamp}.html`, html);
-          console.error("STATE: saved debug artifacts for failed navigation");
+          console.error(color("STATE: saved debug artifacts for failed navigation", ANSI.red));
         } catch (e) {}
         throw err;
       }
       const backoff = 500 * attempt + Math.random() * 300;
-      console.log(`STATE: retrying in ${Math.round(backoff)}ms`);
+      console.log(color(`STATE: retrying in ${Math.round(backoff)}ms`, ANSI.dim));
       await sleep(backoff);
     }
   }
@@ -163,7 +209,7 @@ async function expandResults(page, cardSelector) {
     try {
       const btn = await page.$(sel);
       if (btn) {
-        console.log('STATE: clicking load-more button', sel);
+        console.log(color('STATE: clicking load-more button ' + sel, ANSI.dim));
         await Promise.all([
           page.waitForResponse(r => r.status() === 200, { timeout: 5000 }).catch(()=>null),
           btn.click().catch(()=>null)
@@ -180,19 +226,21 @@ async function expandResults(page, cardSelector) {
 */
 async function continuousScroll(page, durationMs = 10000, step = 800, interval = 200) {
   const start = Date.now();
-  console.log(`STATE: starting continuous scroll for ${Math.round(durationMs/1000)}s`);
+  console.log(color(`STATE: starting continuous scroll for ${Math.round(durationMs/1000)}s`, ANSI.dim));
+  startSpinner(color("initial continuous scroll...", ANSI.cyan));
   while (Date.now() - start < durationMs) {
     await page.evaluate((s) => window.scrollBy(0, s), step).catch(()=>null);
     await page.waitForTimeout(interval);
   }
+  stopSpinner();
   // small pause and return to top for stable extraction
   await page.waitForTimeout(300);
-  console.log("STATE: continuous scroll complete");
+  console.log(color("STATE: continuous scroll complete", ANSI.green));
 }
 
 /* ===== Main ===== */
 async function run() {
-  console.log(`STATE: starting scraper (target ${MAX_PROPERTIES} unique properties)`);
+  console.log(bold(color(`STATE: starting scraper (target ${MAX_PROPERTIES} unique properties)`, ANSI.blue)));
   const launchOptions = { headless: !HEADFUL, args: ["--no-sandbox", "--disable-setuid-sandbox"] };
   if (HEADFUL) launchOptions.slowMo = Number(process.env.SLOWMO || 60);
 
@@ -241,13 +289,13 @@ async function run() {
     } catch (e) {}
   });
 
-  console.log("STATE: opening Booking homepage");
+  console.log(color("STATE: opening Booking homepage", ANSI.dim));
   await page.goto("https://www.booking.com/", { waitUntil: "domcontentloaded" }).catch(()=>null);
   try {
     const accept = page.locator('button:has-text("Accept")');
     if (await accept.isVisible({ timeout: 3000 })) {
       await accept.click();
-      console.log("STATE: accepted cookies");
+      console.log(color("STATE: accepted cookies", ANSI.dim));
     }
   } catch (e) {}
 
@@ -258,16 +306,16 @@ async function run() {
   if (fs.existsSync(checkpointFile) && !IGNORE_CHECKPOINT) {
     try {
       checkpoint = JSON.parse(fs.readFileSync(checkpointFile, "utf8"));
-      console.log("STATE: resuming from checkpoint", checkpoint);
+      console.log(color("STATE: resuming from checkpoint " + JSON.stringify(checkpoint), ANSI.dim));
     } catch (e) {
-      console.log("STATE: failed to read checkpoint — starting fresh");
+      console.log(color("STATE: failed to read checkpoint — starting fresh", ANSI.yellow));
       checkpoint = { collected: 0, scrollPosition: 0 };
     }
   } else if (IGNORE_CHECKPOINT && fs.existsSync(checkpointFile)) {
-    console.log("STATE: IGNORE_CHECKPOINT set — ignoring existing checkpoint");
+    console.log(color("STATE: IGNORE_CHECKPOINT set — ignoring existing checkpoint", ANSI.yellow));
     checkpoint = { collected: 0, scrollPosition: 0 };
   } else {
-    console.log("STATE: starting fresh (no checkpoint)");
+    console.log(color("STATE: starting fresh (no checkpoint)", ANSI.dim));
   }
 
   // ensure collected is defined before loop
@@ -290,7 +338,7 @@ async function run() {
     const w = workers[nextWorker];
     nextWorker = (nextWorker + 1) % workers.length;
     try {
-      console.log(`STATE: fallback fetch price -> ${href}`);
+      console.log(color(`STATE: fallback fetch price -> ${href}`, ANSI.dim));
       await safeNavigate(w.page, href, { retries: 2, timeout: 20000 }).catch(()=>null);
       const selectors = [
         '.bui-price-display__value',
@@ -305,7 +353,7 @@ async function run() {
           if (el) {
             const txt = (await el.innerText()).trim();
             if (txt) {
-              console.log("STATE: fallback price found via selector");
+              console.log(color("STATE: fallback price found via selector", ANSI.green));
               return txt;
             }
           }
@@ -317,16 +365,16 @@ async function run() {
           try {
             const obj = JSON.parse(j);
             if (obj && obj.offers && obj.offers.price) {
-              console.log("STATE: fallback price found via JSON-LD");
+              console.log(color("STATE: fallback price found via JSON-LD", ANSI.green));
               return `${obj.offers.price} ${obj.offers.priceCurrency || ""}`;
             }
           } catch (e) {}
         }
       } catch (e) {}
-      console.log("STATE: fallback price not found");
+      console.log(color("STATE: fallback price not found", ANSI.yellow));
       return null;
     } catch (e) {
-      console.warn("STATE: fallback fetch error", e.message);
+      console.warn(color("STATE: fallback fetch error " + (e && e.message ? e.message : e), ANSI.red));
       return null;
     }
   }
@@ -354,7 +402,7 @@ async function run() {
     }
   } catch (e) {}
 
-  console.log("STATE: beginning initial continuous scroll (10s) to force lazy-loading");
+  console.log(color("STATE: beginning initial continuous scroll (10s) to force lazy-loading", ANSI.dim));
   // initial continuous scroll for 10 seconds as requested
   await continuousScroll(page, 10000, 900, 180);
 
@@ -367,19 +415,19 @@ async function run() {
     } catch (e) {}
   }
   if (!chosenSelector) {
-    console.warn("STATE: no property card selector matched after initial scroll; aborting.");
+    console.warn(color("STATE: no property card selector matched after initial scroll; aborting.", ANSI.red));
     for (const w of workers) try { await w.page.close(); } catch (e) {}
     await browser.close();
     process.exit(1);
   }
-  console.log(`STATE: using card selector: ${chosenSelector}`);
+  console.log(color(`STATE: using card selector: ${chosenSelector}`, ANSI.dim));
 
-  console.log("STATE: beginning controlled scroll passes (post-initial-scroll)");
+  console.log(color("STATE: beginning controlled scroll passes (post-initial-scroll)", ANSI.dim));
   // Scroll passes until we collect enough unique properties or reach safety caps
   let totalScrollPasses = 0;
   while (collected < MAX_PROPERTIES && totalScrollPasses < MAX_SCROLL_PASSES) {
     totalScrollPasses++;
-    console.log(`STATE: scroll pass ${totalScrollPasses} (collected ${collected}/${MAX_PROPERTIES})`);
+    console.log(color(`STATE: scroll pass ${totalScrollPasses} (collected ${collected}/${MAX_PROPERTIES})`, ANSI.magenta));
 
     // expand results (scroll to last card and click load-more if present)
     await expandResults(page, chosenSelector);
@@ -387,12 +435,12 @@ async function run() {
     // wait for DOM + network to settle
     const settled = await waitForDomAndNetworkIdle(page, { domIdleMs: 900, networkIdleMs: 900, maxWait: 12000 });
     if (!settled) {
-      console.log('STATE: page did not settle within timeout; continuing to next pass');
+      console.log(color('STATE: page did not settle within timeout; continuing to next pass', ANSI.yellow));
     }
 
     // re-evaluate visible cards and process them
     const cards = await page.$$(chosenSelector);
-    console.log(`STATE: found ${cards.length} visible cards after pass ${totalScrollPasses}`);
+    console.log(color(`STATE: found ${cards.length} visible cards after pass ${totalScrollPasses}`, ANSI.dim));
 
     // parse cards in chunks
     for (let i = 0; i < cards.length && collected < MAX_PROPERTIES; i += CONCURRENCY) {
@@ -404,12 +452,12 @@ async function run() {
           let name = "Unknown";
           for (const s of nameSel) {
             const el = c.querySelector(s);
-            if (el && el.innerText.trim()) { name = el.innerText.trim(); break; }
+            if (el && el.innerText && el.innerText.trim()) { name = el.innerText.trim(); break; }
           }
           let price = null;
           for (const s of priceSel) {
             const el = c.querySelector(s);
-            if (el && el.innerText.trim()) { price = el.innerText.trim(); break; }
+            if (el && el.innerText && el.innerText.trim()) { price = el.innerText.trim(); break; }
           }
           const linkEl = c.querySelector('a[href*="/hotel/"], a[href*="booking.com/"]');
           const href = linkEl ? linkEl.href : null;
@@ -422,10 +470,18 @@ async function run() {
         if (info.hotelId) keyCandidates.push(String(info.hotelId));
         if (info.href) keyCandidates.push(String(info.href));
         if (info.name) keyCandidates.push(normalizeName(info.name));
-        const key = keyCandidates.find(k => k && k.length > 0) || null;
-        if (!key) return;
+        let key = keyCandidates.find(k => k && k.length > 0) || null;
+        if (!key) {
+          // generate fallback key so visible cards are not silently skipped
+          const fallback = `fallback:${Buffer.from((info.name||"") + "|" + (info.href||"")).toString('base64').slice(0,12)}:${Date.now().toString(36).slice(-4)}`;
+          console.log(color("INFO: generated fallback key for card", ANSI.dim), { name: info.name, href: info.href, fallback });
+          key = fallback;
+        }
 
-        if (seenKeys.has(key)) return;
+        if (seenKeys.has(key)) {
+          // skip duplicates
+          return;
+        }
 
         // resolve price: network map -> card -> fallback
         let price = null;
@@ -450,7 +506,7 @@ async function run() {
         outStream.write(JSON.stringify(out) + "\n");
         results.push(out);
         collected++;
-        console.log(`STATE: recorded unique property #${out.index} (${out.name})`);
+        console.log(color(`STATE: recorded unique property #${out.index} (${out.name})`, ANSI.green));
       }));
       await sleep(30 + Math.random() * 120);
     }
@@ -458,7 +514,7 @@ async function run() {
     // checkpoint: save collected count and current scroll position
     const scrollY = await page.evaluate(() => window.scrollY).catch(()=>0);
     fs.writeFileSync(checkpointFile, JSON.stringify({ collected, scrollPosition: scrollY }, null, 2));
-    console.log(`STATE: checkpoint saved (collected=${collected}, scrollY=${scrollY})`);
+    console.log(color(`STATE: checkpoint saved (collected=${collected}, scrollY=${scrollY})`, ANSI.dim));
 
     // small delay before next scroll pass
     await sleep(300 + Math.random() * 400);
@@ -471,27 +527,48 @@ async function run() {
 
   outStream.end();
   fs.writeFileSync(checkpointFile, JSON.stringify({ collected, scrollPosition: await page.evaluate(() => window.scrollY).catch(()=>0) }, null, 2));
-  console.log("STATE: fetch phase complete");
+  console.log(color("STATE: fetch phase complete", ANSI.green));
 
   // presentation phase
   results.sort((a, b) => a.index - b.index);
-  console.log("\n=== Scraped Properties (unique) ===\n");
-  for (const r of results) {
-    console.log(`${r.index}. ${r.name} — ${r.price} — source: ${r.source}`);
-  }
 
-  const numericPrices = results
+  // compute numeric prices and find min/max
+  const numericEntries = results
     .map(r => ({ ...r, numeric: parsePriceToNumber(r.price) }))
     .filter(r => typeof r.numeric === "number" && !Number.isNaN(r.numeric));
-  const numbers = numericPrices.map(r => r.numeric);
-  const stats = computeStats(numbers);
+  const priceNumbers = numericEntries.map(e => e.numeric);
+  const stats = computeStats(priceNumbers);
+  const minPrice = stats ? stats.min : null;
+  const maxPrice = stats ? stats.max : null;
+
+  console.log("\n" + bold(color("=== Scraped Properties (unique) ===", ANSI.blue)) + "\n");
+  for (const r of results) {
+    const numeric = parsePriceToNumber(r.price);
+    let line = `${r.index}. ${r.name} — ${r.price} — source: ${r.source}`;
+    if (typeof numeric === "number" && !Number.isNaN(numeric)) {
+      if (minPrice !== null && numeric === minPrice) {
+        // highlight lowest rate (green + bold)
+        line = color(bold(line), ANSI.green);
+      } else if (maxPrice !== null && numeric === maxPrice) {
+        // highlight highest rate (red + bold)
+        line = color(bold(line), ANSI.red);
+      } else {
+        line = color(line, ANSI.white);
+      }
+    } else {
+      line = color(line, ANSI.white);
+    }
+    console.log(line);
+  }
 
   if (stats) {
-    console.log("\n=== Statistics ===");
-    console.log(`Count: ${stats.count}  Sum: $${Math.round(stats.sum)}  Average: $${Math.round(stats.average*100)/100}  Median: $${Math.round(stats.median*100)/100}  Min: $${stats.min}  Max: $${stats.max}`);
-    console.log(`Below average: ${stats.below}  Above average: ${stats.above}`);
+    console.log("\n" + bold(color("=== Statistics ===", ANSI.blue)));
+    console.log(color(`Count: ${stats.count}  Sum: $${Math.round(stats.sum)}  Average: $${Math.round(stats.average*100)/100}  Median: $${Math.round(stats.median*100)/100}  Min: $${stats.min}  Max: $${stats.max}`, ANSI.cyan));
+    console.log(color(`Below average: ${stats.below}  Above average: ${stats.above}`, ANSI.dim));
+    // also print a short legend for highlights
+    console.log("\n" + color("Legend:", ANSI.dim) + " " + color("Lowest rate", ANSI.green) + ", " + color("Highest rate", ANSI.red));
   } else {
-    console.log("\nNo numeric prices found to compute statistics.");
+    console.log("\n" + color("No numeric prices found to compute statistics.", ANSI.yellow));
   }
 
   fs.writeFileSync("mesa_prices_summary.json", JSON.stringify({
@@ -510,19 +587,20 @@ async function run() {
       above: stats.above
     } : null
   }, null, 2));
-  console.log("\nSTATE: saved mesa_prices_summary.json and mesa_prices.jsonl");
+  console.log("\n" + color("STATE: saved mesa_prices_summary.json and mesa_prices.jsonl", ANSI.green));
 
   if (KEEP_OPEN || HEADFUL) {
-    console.log("STATE: KEEP_OPEN or HEADFUL set — leaving browser open for inspection.");
+    console.log(color("STATE: KEEP_OPEN or HEADFUL set — leaving browser open for inspection.", ANSI.yellow));
     return browser;
   }
 
   await browser.close();
-  console.log("STATE: scraper finished");
+  console.log(color("STATE: scraper finished", ANSI.green));
   return null;
 }
 
 run().catch(err => {
-  console.error("STATE: fatal error:", err && err.stack ? err.stack : err);
+  stopSpinner();
+  console.error(color("STATE: fatal error:", ANSI.red), err && err.stack ? err.stack : err);
   process.exit(1);
 });
