@@ -1,173 +1,153 @@
 // roomScraper.mjs
-// Booking.com scraper: initial continuous scroll for 10 seconds on page load, then capture data.
-// - Collects up to MAX_PROPERTIES unique properties (default 100)
-// - Initial continuous scroll for 10 seconds to force lazy-loading on page load
-// - Then uses controlled scroll passes (max MAX_SCROLL_PASSES) with DOM+network idle detection
-// - Deduplicates by hotelId, href, normalized name
-// - Uses network JSON capture + small worker pool fallback for missing prices
-// - Streams unique results to mesa_prices.jsonl and writes mesa_prices_summary.json
-// - State notifications included; supports HEADFUL=1, KEEP_OPEN=1, IGNORE_CHECKPOINT=1
-// - Colorized terminal output, spinner, progress line, and highlights lowest/highest rates
-//
-// Usage:
-//   npm install playwright
-//   npx playwright install
-//   MAX_PROPERTIES=100 CONCURRENCY=4 HEADFUL=1 node roomScraper.mjs
-
 import fs from "fs";
 import { chromium } from "playwright";
 import readline from "readline";
 
-/* ===== Terminal color helpers (ANSI) ===== */
-const ANSI = {
-  reset: "\u001b[0m",
-  bold: "\u001b[1m",
-  dim: "\u001b[2m",
-  red: "\u001b[31m",
-  green: "\u001b[32m",
-  yellow: "\u001b[33m",
-  blue: "\u001b[34m",
-  magenta: "\u001b[35m",
-  cyan: "\u001b[36m",
-  white: "\u001b[37m",
-  gray: "\u001b[90m"
+// ── ANSI ──────────────────────────────────────────────────────────────────────
+var A = {
+  reset:"\x1b[0m", bold:"\x1b[1m", dim:"\x1b[2m",
+  red:"\x1b[31m",  green:"\x1b[32m", yellow:"\x1b[33m",
+  blue:"\x1b[34m", cyan:"\x1b[36m",  white:"\x1b[37m", gray:"\x1b[90m"
 };
-function color(text, code) { return `${code}${text}${ANSI.reset}`; }
-function bold(text) { return `${ANSI.bold}${text}${ANSI.reset}`; }
+function col(txt, code) { return code + txt + A.reset; }
+function bld(txt)       { return A.bold + txt + A.reset; }
+function dim(txt)       { return A.dim  + txt + A.reset; }
 
-/* ===== Simple spinner and progress line ===== */
-const spinnerFrames = ["⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠇","⠏"];
-let spinnerIndex = 0;
-let spinnerTimer = null;
-function startSpinner(prefix = "") {
-  if (spinnerTimer) return;
-  spinnerTimer = setInterval(() => {
-    const frame = spinnerFrames[spinnerIndex % spinnerFrames.length];
-    spinnerIndex++;
+// ── Spinner ───────────────────────────────────────────────────────────────────
+var FRAMES = ["⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠇","⠏"];
+var _si = 0, _st = null;
+function spinStart(lbl) {
+  if (_st) return;
+  _st = setInterval(function() {
     readline.clearLine(process.stdout, 0);
     readline.cursorTo(process.stdout, 0);
-    process.stdout.write(`${color(frame, ANSI.cyan)} ${prefix}`);
+    process.stdout.write(col(FRAMES[_si++ % FRAMES.length], A.cyan) + " " + lbl);
   }, 80);
 }
-function stopSpinner() {
-  if (!spinnerTimer) return;
-  clearInterval(spinnerTimer);
-  spinnerTimer = null;
+function spinStop() {
+  if (!_st) return;
+  clearInterval(_st); _st = null;
   readline.clearLine(process.stdout, 0);
   readline.cursorTo(process.stdout, 0);
 }
-function writeProgressLine(text) {
-  readline.clearLine(process.stdout, 0);
-  readline.cursorTo(process.stdout, 0);
-  process.stdout.write(text);
+
+// ── Config ────────────────────────────────────────────────────────────────────
+var MAX_PROPS    = Number(process.env.MAX_PROPERTIES  || 100);
+var CONCURRENCY  = Math.max(1, Number(process.env.CONCURRENCY || 4));
+var CITY         = process.env.CITY || "Mesa, Arizona";
+var KEEP_OPEN    = !!process.env.KEEP_OPEN;
+var IGNORE_CKP   = !!process.env.IGNORE_CHECKPOINT;
+var HEADFUL      = !!process.env.HEADFUL;
+var SLOWMO       = Number(process.env.SLOWMO || 60);
+var PAGE_SIZE    = Number(process.env.PAGE_SIZE || 25);
+
+// ── Pure helpers ──────────────────────────────────────────────────────────────
+function sleep(ms)    { return new Promise(function(r){ setTimeout(r, ms); }); }
+function isoDate(d)   { return d.toISOString().slice(0, 10); }
+function addDays(d,n) { var x = new Date(d); x.setDate(x.getDate()+n); return x; }
+function normName(s) {
+  return (s||"").toLowerCase().replace(/\s+/g," ").replace(/[^\w\s-]/g,"").trim();
 }
 
-/* ===== Config ===== */
-const MAX_PROPERTIES = Number(process.env.MAX_PROPERTIES || 100);
-const CONCURRENCY = Math.max(1, Number(process.env.CONCURRENCY || 4));
-const CITY = process.env.CITY || "Mesa, Arizona";
-const KEEP_OPEN = !!process.env.KEEP_OPEN;
-const IGNORE_CHECKPOINT = !!process.env.IGNORE_CHECKPOINT;
-const HEADFUL = !!process.env.HEADFUL;
-const MAX_SCROLL_PASSES = Number(process.env.MAX_SCROLL_PASSES || 5);
-
-/* ===== Helpers ===== */
-function isoDateString(d) { return d.toISOString().slice(0, 10); }
-function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-function normalizeName(name) {
-  if (!name) return "";
-  return name.toLowerCase().replace(/\s+/g, " ").replace(/[^\w\s-]/g, "").trim();
-}
-function parsePriceToNumber(priceStr) {
-  if (!priceStr) return null;
-  const cleaned = priceStr.replace(/[^0-9.,]/g, "").trim();
-  if (!cleaned) return null;
-  if (cleaned.includes(",") && cleaned.includes(".")) return Number(cleaned.replace(/,/g, ""));
-  if (cleaned.includes(",") && !cleaned.includes(".")) {
-    const parts = cleaned.split(",");
-    if (parts[1] && parts[1].length === 2) return Number(cleaned.replace(",", "."));
-    return Number(cleaned.replace(/,/g, ""));
+function parsePrice(raw) {
+  if (!raw) return null;
+  var s = raw.replace(/[^0-9.,]/g,"").trim();
+  if (!s) return null;
+  var hasC = s.indexOf(",") !== -1;
+  var hasD = s.indexOf(".") !== -1;
+  if (hasC && hasD) {
+    return s.lastIndexOf(",") > s.lastIndexOf(".")
+      ? Number(s.replace(/\./g,"").replace(",","."))
+      : Number(s.replace(/,/g,""));
   }
-  return Number(cleaned);
-}
-function computeStats(numbers) {
-  const n = numbers.length;
-  if (n === 0) return null;
-  const sum = numbers.reduce((a, b) => a + b, 0);
-  const avg = sum / n;
-  const sorted = [...numbers].sort((a, b) => a - b);
-  const median = (n % 2 === 1) ? sorted[(n - 1) / 2] : (sorted[n/2 - 1] + sorted[n/2]) / 2;
-  const min = sorted[0];
-  const max = sorted[sorted.length - 1];
-  const below = numbers.filter(x => x < avg).length;
-  const above = numbers.filter(x => x > avg).length;
-  return { count: n, sum, average: avg, median, min, max, below, above };
+  if (hasC) {
+    var p = s.split(",");
+    return (p.length === 2 && p[1].length === 2)
+      ? Number(s.replace(",","."))
+      : Number(s.replace(/,/g,""));
+  }
+  if (hasD) {
+    var p2 = s.split(".");
+    return (p2.length === 2 && p2[1].length === 2)
+      ? Number(s)
+      : Number(s.replace(/\./g,""));
+  }
+  return Number(s);
 }
 
-/* ===== Navigation helper with debug artifacts ===== */
-async function safeNavigate(page, url, opts = {}) {
-  const maxAttempts = opts.retries ?? 3;
-  const baseTimeout = opts.timeout ?? 30000;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+function calcStats(nums) {
+  var n = nums.length;
+  if (!n) return null;
+  var sum = nums.reduce(function(a,b){ return a+b; }, 0);
+  var avg = sum / n;
+  var sorted = nums.slice().sort(function(a,b){ return a-b; });
+  var med = n%2 ? sorted[(n-1)/2] : (sorted[n/2-1]+sorted[n/2])/2;
+  return {
+    count: n, sum: sum, avg: avg, med: med,
+    min: sorted[0], max: sorted[n-1],
+    below: nums.filter(function(x){ return x < avg; }).length,
+    above: nums.filter(function(x){ return x > avg; }).length
+  };
+}
+
+// ── Cookie consent ────────────────────────────────────────────────────────────
+async function acceptCookies(page) {
+  try {
+    var btn = page.locator("button:has-text(\"Accept\")");
+    if (await btn.isVisible({ timeout: 2500 })) {
+      await btn.click();
+      console.log("STATE: accepted cookies");
+    }
+  } catch(e) {}
+}
+
+// ── Safe navigation ───────────────────────────────────────────────────────────
+async function nav(page, url, opts) {
+  var retries = (opts && opts.retries) || 3;
+  var timeout = (opts && opts.timeout) || 30000;
+  for (var i = 1; i <= retries; i++) {
     try {
-      console.log(color(`STATE: navigating (attempt ${attempt}) -> ${url}`, ANSI.gray));
-      const response = await page.goto(url, { waitUntil: "networkidle", timeout: baseTimeout * attempt });
-      if (response) console.log(color(`STATE: navigation response ${response.status()}`, ANSI.gray));
-      return response;
-    } catch (err) {
-      console.warn(color(`STATE: navigation attempt ${attempt} failed: ${err.message}`, ANSI.yellow));
-      if (attempt === maxAttempts) {
-        try {
-          const stamp = Date.now();
-          await page.screenshot({ path: `debug_nav_failed_${stamp}.png`, fullPage: true }).catch(()=>{});
-          const html = await page.content().catch(()=>null);
-          if (html) fs.writeFileSync(`debug_nav_failed_${stamp}.html`, html);
-          console.error(color("STATE: saved debug artifacts for failed navigation", ANSI.red));
-        } catch (e) {}
+      console.log(col("STATE: navigating (attempt " + i + ") -> " + url, A.gray));
+      var res = await page.goto(url, { waitUntil:"networkidle", timeout: timeout * i });
+      console.log(col("STATE: navigation response " + (res ? res.status() : "?"), A.gray));
+      return res;
+    } catch(err) {
+      console.warn(col("STATE: attempt " + i + " failed: " + err.message, A.yellow));
+      if (i === retries) {
+        var ts = Date.now();
+        await page.screenshot({ path:"debug_" + ts + ".png", fullPage:true }).catch(function(){});
+        var html = await page.content().catch(function(){ return null; });
+        if (html) fs.writeFileSync("debug_" + ts + ".html", html);
         throw err;
       }
-      const backoff = 500 * attempt + Math.random() * 300;
-      console.log(color(`STATE: retrying in ${Math.round(backoff)}ms`, ANSI.dim));
-      await sleep(backoff);
+      var wait = 500 * i + Math.random() * 300;
+      console.log(col("STATE: retrying in " + Math.round(wait) + "ms", A.dim));
+      await sleep(wait);
     }
   }
 }
 
-/* ===== DOM + Network idle watcher =====
-   Waits until DOM mutations and network activity are both idle for short windows.
-*/
-async function waitForDomAndNetworkIdle(page, {
-  domIdleMs = 800,
-  networkIdleMs = 800,
-  maxWait = 12000
-} = {}) {
-  const start = Date.now();
-  let inflight = 0;
-  let lastNetworkActivity = Date.now();
-
-  const onRequest = () => { inflight++; lastNetworkActivity = Date.now(); };
-  const onRequestFinished = () => { inflight = Math.max(0, inflight - 1); lastNetworkActivity = Date.now(); };
-
-  page.on('request', onRequest);
-  page.on('requestfinished', onRequestFinished);
-  page.on('requestfailed', onRequestFinished);
-
-  // set up a MutationObserver in page context to update window.__lastDomChange
-  await page.evaluate(() => {
-    window.__lastDomChange = Date.now();
-    if (window.__domObserver) window.__domObserver.disconnect();
-    window.__domObserver = new MutationObserver(() => { window.__lastDomChange = Date.now(); });
-    window.__domObserver.observe(document, { childList: true, subtree: true });
+// ── DOM + network idle ────────────────────────────────────────────────────────
+async function waitIdle(page, opts) {
+  var domMs = (opts && opts.domMs) || 800;
+  var netMs = (opts && opts.netMs) || 800;
+  var maxMs = (opts && opts.maxMs) || 12000;
+  var t0 = Date.now(), inflight = 0, lastNet = Date.now();
+  function onReq()  { inflight++; lastNet = Date.now(); }
+  function onDone() { inflight = Math.max(0, inflight-1); lastNet = Date.now(); }
+  page.on("request",         onReq);
+  page.on("requestfinished", onDone);
+  page.on("requestfailed",   onDone);
+  await page.evaluate(function() {
+    window.__ldc = Date.now();
+    if (window.__mobs) window.__mobs.disconnect();
+    window.__mobs = new MutationObserver(function(){ window.__ldc = Date.now(); });
+    window.__mobs.observe(document, { childList:true, subtree:true });
   });
-
   try {
-    while (Date.now() - start < maxWait) {
-      const pageLastDom = await page.evaluate(() => window.__lastDomChange).catch(() => Date.now());
-      const domIdle = (Date.now() - pageLastDom) >= domIdleMs;
-      const networkIdle = (Date.now() - lastNetworkActivity) >= networkIdleMs && inflight === 0;
-
-      if (domIdle && networkIdle) {
+    while (Date.now()-t0 < maxMs) {
+      var ldc = await page.evaluate(function(){ return window.__ldc; }).catch(function(){ return Date.now(); });
+      if ((Date.now()-ldc) >= domMs && (Date.now()-lastNet) >= netMs && inflight === 0) {
         await page.waitForTimeout(150);
         return true;
       }
@@ -175,432 +155,462 @@ async function waitForDomAndNetworkIdle(page, {
     }
     return false;
   } finally {
-    page.removeListener('request', onRequest);
-    page.removeListener('requestfinished', onRequestFinished);
-    page.removeListener('requestfailed', onRequestFinished);
-    await page.evaluate(() => { try { if (window.__domObserver) { window.__domObserver.disconnect(); window.__domObserver = null; } } catch(e){} });
+    page.removeListener("request",         onReq);
+    page.removeListener("requestfinished", onDone);
+    page.removeListener("requestfailed",   onDone);
+    await page.evaluate(function() {
+      try { if (window.__mobs) { window.__mobs.disconnect(); window.__mobs = null; } } catch(e) {}
+    }).catch(function(){});
   }
 }
 
-/* ===== Scroll-to-last-card and click load-more if present ===== */
-async function expandResults(page, cardSelector) {
-  // scroll to last visible card to trigger lazy load
-  try {
-    const lastCard = await page.$(`${cardSelector}:last-of-type`);
-    if (lastCard) {
-      await lastCard.scrollIntoViewIfNeeded();
-      await page.waitForTimeout(300);
-    } else {
-      await page.evaluate(() => window.scrollBy(0, window.innerHeight));
-      await page.waitForTimeout(300);
-    }
-  } catch (e) {}
+// ── Continuous scroll ─────────────────────────────────────────────────────────
+async function continuousScroll(page, ms, step, tick) {
+  ms   = ms   || 10000;
+  step = step || 900;
+  tick = tick || 180;
+  var t0 = Date.now();
+  console.log("STATE: continuous scroll starting (" + Math.round(ms/1000) + "s)");
+  spinStart(col("scrolling...", A.cyan));
+  while (Date.now()-t0 < ms) {
+    await page.evaluate(function(s){ window.scrollBy(0,s); }, step).catch(function(){});
+    await page.waitForTimeout(tick);
+  }
+  spinStop();
+  await page.waitForTimeout(300);
+  await page.evaluate(function(){ window.scrollTo(0,0); }).catch(function(){});
+  console.log("STATE: continuous scroll done — reset to top");
+}
 
-  // try common "load more" controls
-  const loadMoreSelectors = [
-    'button:has-text("Show more")',
-    'button:has-text("Load more")',
-    'a:has-text("Show more")',
-    'a:has-text("Load more")',
-    'button[aria-label*="Show more"]',
-    'button[aria-label*="Load more"]'
+// ── Scroll page + click load-more ─────────────────────────────────────────────
+async function scrollPage(page) {
+  for (var i = 0; i < 5; i++) {
+    await page.evaluate(function(){ window.scrollBy(0, window.innerHeight * 1.5); });
+    await page.waitForTimeout(350);
+  }
+  var btns = [
+    "button:has-text(\"Show more\")", "button:has-text(\"Load more\")",
+    "a:has-text(\"Show more\")",      "a:has-text(\"Load more\")"
   ];
-  for (const sel of loadMoreSelectors) {
+  for (var j = 0; j < btns.length; j++) {
     try {
-      const btn = await page.$(sel);
+      var btn = await page.$(btns[j]);
       if (btn) {
-        console.log(color('STATE: clicking load-more button ' + sel, ANSI.dim));
+        console.log(col("STATE: clicking load-more: " + btns[j], A.dim));
         await Promise.all([
-          page.waitForResponse(r => r.status() === 200, { timeout: 5000 }).catch(()=>null),
-          btn.click().catch(()=>null)
+          page.waitForResponse(function(r){ return r.status()===200; }, { timeout:5000 }).catch(function(){ return null; }),
+          btn.click().catch(function(){ return null; })
         ]);
-        await page.waitForTimeout(300);
+        await page.waitForTimeout(400);
         break;
       }
-    } catch (e) {}
+    } catch(e) {}
   }
 }
 
-/* ===== Initial continuous scroll helper =====
-   Scrolls down repeatedly for a fixed duration (ms) to force initial lazy-loading.
-*/
-async function continuousScroll(page, durationMs = 10000, step = 800, interval = 200) {
-  const start = Date.now();
-  console.log(color(`STATE: starting continuous scroll for ${Math.round(durationMs/1000)}s`, ANSI.dim));
-  startSpinner(color("initial continuous scroll...", ANSI.cyan));
-  while (Date.now() - start < durationMs) {
-    await page.evaluate((s) => window.scrollBy(0, s), step).catch(()=>null);
-    await page.waitForTimeout(interval);
-  }
-  stopSpinner();
-  // small pause and return to top for stable extraction
-  await page.waitForTimeout(300);
-  console.log(color("STATE: continuous scroll complete", ANSI.green));
+// ── Worker pool ───────────────────────────────────────────────────────────────
+function Pool(pages) {
+  this._free = pages.slice();
+  this._q    = [];
 }
-
-/* ===== Main ===== */
-async function run() {
-  console.log(bold(color(`STATE: starting scraper (target ${MAX_PROPERTIES} unique properties)`, ANSI.blue)));
-  const launchOptions = { headless: !HEADFUL, args: ["--no-sandbox", "--disable-setuid-sandbox"] };
-  if (HEADFUL) launchOptions.slowMo = Number(process.env.SLOWMO || 60);
-
-  const browser = await chromium.launch(launchOptions);
-  const context = await browser.newContext({
-    userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
-    viewport: { width: 1280, height: 900 }
+Pool.prototype.get = function() {
+  var self = this;
+  return new Promise(function(res) {
+    if (self._free.length) res(self._free.shift());
+    else self._q.push(res);
   });
-  await context.setExtraHTTPHeaders({ "accept-language": "en-US,en;q=0.9" });
-  const page = await context.newPage();
-  page.setDefaultNavigationTimeout(60000);
-  globalThis._debugPage = page;
+};
+Pool.prototype.put = function(pg) {
+  if (this._q.length) this._q.shift()(pg);
+  else this._free.push(pg);
+};
+Pool.prototype.run = async function(fn) {
+  var pg = await this.get();
+  try   { return await fn(pg); }
+  finally { this.put(pg); }
+};
+Pool.prototype.closeAll = async function() {
+  for (var i = 0; i < this._free.length; i++) {
+    await this._free[i].close().catch(function(){});
+  }
+};
 
-  // priceMap: hotelId or href -> price string (populated from network JSON)
-  const priceMap = new Map();
-
-  // capture JSON responses that may contain price info
-  page.on("response", async (response) => {
-    try {
-      const url = response.url();
-      if (!url.includes("booking.com")) return;
-      const headers = response.headers();
-      const ct = headers["content-type"] || headers["Content-Type"] || "";
-      if (!ct.includes("application/json")) return;
-      const text = await response.text().catch(() => null);
-      if (!text) return;
-      if (!text.includes('"price"') && !text.includes('"min_price"') && !text.includes('"offers"')) return;
-      let obj;
-      try { obj = JSON.parse(text); } catch (e) { return; }
-      const lists = obj.results || obj.result || obj.properties || obj.hotels || obj.items;
-      if (Array.isArray(lists)) {
-        for (const it of lists) {
-          const id = it.hotel_id || it.id || it.property_id || it.hotelId || it.hotel_id_raw;
-          const href = it.url || it.hotel_url || it.link;
-          const price = it.price || it.min_price || it.price_with_currency || (it.offers && it.offers[0] && it.offers[0].price);
-          if (id && price) priceMap.set(String(id), String(price));
-          if (href && price) priceMap.set(String(href), String(price));
-        }
-      } else {
-        if (obj.offers && Array.isArray(obj.offers)) {
-          for (const o of obj.offers) {
-            if (o.price && o.url) priceMap.set(String(o.url), String(o.price));
-          }
-        }
-      }
-    } catch (e) {}
-  });
-
-  console.log(color("STATE: opening Booking homepage", ANSI.dim));
-  await page.goto("https://www.booking.com/", { waitUntil: "domcontentloaded" }).catch(()=>null);
+// ── Extract card info ─────────────────────────────────────────────────────────
+async function cardInfo(card) {
   try {
-    const accept = page.locator('button:has-text("Accept")');
-    if (await accept.isVisible({ timeout: 3000 })) {
-      await accept.click();
-      console.log(color("STATE: accepted cookies", ANSI.dim));
-    }
-  } catch (e) {}
-
-  // outputs and checkpoint
-  const outStream = fs.createWriteStream("mesa_prices.jsonl", { flags: "a" });
-  const checkpointFile = "checkpoint.json";
-  let checkpoint = { collected: 0, scrollPosition: 0 };
-  if (fs.existsSync(checkpointFile) && !IGNORE_CHECKPOINT) {
-    try {
-      checkpoint = JSON.parse(fs.readFileSync(checkpointFile, "utf8"));
-      console.log(color("STATE: resuming from checkpoint " + JSON.stringify(checkpoint), ANSI.dim));
-    } catch (e) {
-      console.log(color("STATE: failed to read checkpoint — starting fresh", ANSI.yellow));
-      checkpoint = { collected: 0, scrollPosition: 0 };
-    }
-  } else if (IGNORE_CHECKPOINT && fs.existsSync(checkpointFile)) {
-    console.log(color("STATE: IGNORE_CHECKPOINT set — ignoring existing checkpoint", ANSI.yellow));
-    checkpoint = { collected: 0, scrollPosition: 0 };
-  } else {
-    console.log(color("STATE: starting fresh (no checkpoint)", ANSI.dim));
-  }
-
-  // ensure collected is defined before loop
-  let collected = checkpoint && typeof checkpoint.collected === "number" ? checkpoint.collected : 0;
-  const results = [];
-  const seenKeys = new Set();
-
-  // worker pool for fallback navigation (used by fallbackFetchPrice)
-  const workers = [];
-  const workerCount = Math.max(1, Math.min(CONCURRENCY, 6));
-  for (let i = 0; i < workerCount; i++) {
-    const wpage = await context.newPage();
-    wpage.setDefaultNavigationTimeout(45000);
-    workers.push({ page: wpage, id: i });
-  }
-  let nextWorker = 0;
-
-  // fallbackFetchPrice uses worker pages to open property pages and extract price
-  async function fallbackFetchPrice(href) {
-    const w = workers[nextWorker];
-    nextWorker = (nextWorker + 1) % workers.length;
-    try {
-      console.log(color(`STATE: fallback fetch price -> ${href}`, ANSI.dim));
-      await safeNavigate(w.page, href, { retries: 2, timeout: 20000 }).catch(()=>null);
-      const selectors = [
-        '.bui-price-display__value',
-        '.hp__hotel-price .prco-valign-middle-helper',
-        '.hprt-price-price-standard',
-        '.prco-inline-block-maker-helper',
-        '.roomstable .price'
-      ];
-      for (const s of selectors) {
-        try {
-          const el = await w.page.waitForSelector(s, { timeout: 3000 });
-          if (el) {
-            const txt = (await el.innerText()).trim();
-            if (txt) {
-              console.log(color("STATE: fallback price found via selector", ANSI.green));
-              return txt;
-            }
-          }
-        } catch (e) {}
+    return await card.evaluate(function(el) {
+      function pick(root, sels) {
+        for (var i = 0; i < sels.length; i++) {
+          var n = root.querySelector(sels[i]);
+          if (n && n.innerText && n.innerText.trim()) return n.innerText.trim();
+        }
+        return null;
       }
+      var name = pick(el, [
+        "[data-testid=\"title\"]", ".sr-hotel__name", ".fcab3ed991", "h3", "h2"
+      ]) || "Unknown";
+      var price = pick(el, [
+        "[data-testid=\"price-and-discounted-price\"]",
+        ".bui-price-display__value",
+        ".prco-inline-block-maker-helper",
+        ".price_total", ".sr_price", ".price"
+      ]);
+      var linkEl  = el.querySelector("a[href*=\"/hotel/\"],a[href*=\"booking.com/\"]");
+      var href    = linkEl ? linkEl.href : null;
+      var hotelId = el.getAttribute("data-hotelid")
+                 || el.getAttribute("data-hotel-id")
+                 || (el.dataset && el.dataset.hotelId)
+                 || null;
+      return { name:name, price:price, href:href, hotelId:hotelId };
+    });
+  } catch(e) { return null; }
+}
+
+// ── Fallback price ────────────────────────────────────────────────────────────
+function makeFallback(pool) {
+  return async function fallback(href) {
+    return pool.run(async function(pg) {
       try {
-        const jsonld = await w.page.$$eval('script[type="application/ld+json"]', nodes => nodes.map(n => n.innerText));
-        for (const j of jsonld) {
+        console.log("STATE: fallback fetch -> " + href);
+        await nav(pg, href, { retries:2, timeout:20000 }).catch(function(){});
+        var doms = [
+          ".bui-price-display__value",
+          ".hp__hotel-price .prco-valign-middle-helper",
+          ".hprt-price-price-standard",
+          ".prco-inline-block-maker-helper",
+          ".roomstable .price"
+        ];
+        for (var i = 0; i < doms.length; i++) {
           try {
-            const obj = JSON.parse(j);
-            if (obj && obj.offers && obj.offers.price) {
-              console.log(color("STATE: fallback price found via JSON-LD", ANSI.green));
-              return `${obj.offers.price} ${obj.offers.priceCurrency || ""}`;
-            }
-          } catch (e) {}
+            var el  = await pg.waitForSelector(doms[i], { timeout:3000 });
+            var txt = (await el.innerText()).trim();
+            if (txt) { console.log("STATE: fallback price via selector"); return txt; }
+          } catch(e) {}
         }
-      } catch (e) {}
-      console.log(color("STATE: fallback price not found", ANSI.yellow));
-      return null;
-    } catch (e) {
-      console.warn(color("STATE: fallback fetch error " + (e && e.message ? e.message : e), ANSI.red));
-      return null;
+        var blocks = await pg.$$eval(
+          "script[type=\"application/ld+json\"]",
+          function(ns){ return ns.map(function(n){ return n.innerText; }); }
+        ).catch(function(){ return []; });
+        for (var j = 0; j < blocks.length; j++) {
+          try {
+            var obj = JSON.parse(blocks[j]);
+            if (obj && obj.offers && obj.offers.price) {
+              return (obj.offers.price + " " + (obj.offers.priceCurrency || "")).trim();
+            }
+          } catch(e) {}
+        }
+        return null;
+      } catch(e) {
+        console.warn("STATE: fallback error: " + e.message);
+        return null;
+      }
+    });
+  };
+}
+
+// ── Process visible cards ─────────────────────────────────────────────────────
+async function processCards(opts) {
+  var page      = opts.page;
+  var sel       = opts.sel;
+  var priceMap  = opts.priceMap;
+  var seenKeys  = opts.seenKeys;
+  var results   = opts.results;
+  var collected = opts.collected;
+  var fallback  = opts.fallback;
+  var outStream = opts.outStream;
+
+  var cards = await page.$$(sel);
+  console.log("STATE: found " + cards.length + " visible cards");
+
+  for (var i = 0; i < cards.length; i += CONCURRENCY) {
+    if (collected >= MAX_PROPS) break;
+
+    var chunk = cards.slice(i, i + CONCURRENCY);
+    var batch = await Promise.all(chunk.map(async function(card) {
+      if (collected >= MAX_PROPS) return null;
+      var info = await cardInfo(card);
+      if (!info) return null;
+
+      var keys = [];
+      if (info.hotelId) keys.push(String(info.hotelId));
+      if (info.href)    keys.push(String(info.href));
+      if (info.name)    keys.push(normName(info.name));
+      keys = keys.filter(function(k){ return !!k; });
+
+      if (!keys.length) return null;
+      for (var ki = 0; ki < keys.length; ki++) {
+        if (seenKeys.has(keys[ki])) return null;
+      }
+
+      var price = null, src = "not-found";
+      if (info.hotelId && priceMap.has(String(info.hotelId))) {
+        price = priceMap.get(String(info.hotelId)); src = "network-json";
+      } else if (info.href && priceMap.has(String(info.href))) {
+        price = priceMap.get(String(info.href)); src = "network-json";
+      } else if (info.price && info.price !== "N/A") {
+        price = info.price; src = "card-dom";
+      } else if (info.href) {
+        price = await fallback(info.href);
+        src   = price ? "fallback-nav" : "not-found";
+      }
+
+      return { keys:keys, info:info, price:price, src:src };
+    }));
+
+    // Apply serially
+    for (var bi = 0; bi < batch.length; bi++) {
+      var item = batch[bi];
+      if (!item || collected >= MAX_PROPS) continue;
+      var dup = false;
+      for (var ki2 = 0; ki2 < item.keys.length; ki2++) {
+        if (seenKeys.has(item.keys[ki2])) { dup = true; break; }
+      }
+      if (dup) continue;
+
+      for (var ki3 = 0; ki3 < item.keys.length; ki3++) seenKeys.add(item.keys[ki3]);
+
+      var row = {
+        index: results.length + 1,
+        name:  item.info.name,
+        price: item.price || "N/A",
+        src:   item.src,
+        href:  item.info.href || null,
+        key:   item.keys[0]
+      };
+      outStream.write(JSON.stringify(row) + "\n");
+      results.push(row);
+      collected++;
+      console.log("STATE: #" + row.index + " " + row.name + " [" + row.src + "]");
     }
+
+    await sleep(30 + Math.random() * 100);
+  }
+  return collected;
+}
+
+// ── Build search URL ──────────────────────────────────────────────────────────
+function buildUrl(city, checkin, checkout, offset) {
+  return "https://www.booking.com/searchresults.html?" +
+    new URLSearchParams({
+      ss: city, checkin: checkin, checkout: checkout,
+      group_adults: "2", offset: String(offset || 0)
+    }).toString();
+}
+
+// ── MAIN ──────────────────────────────────────────────────────────────────────
+async function main() {
+  console.log("STATE: scraper starting — target " + MAX_PROPS + " properties");
+
+  var launchOpts = { headless: !HEADFUL, args:["--no-sandbox","--disable-setuid-sandbox"] };
+  if (HEADFUL) launchOpts.slowMo = SLOWMO;
+
+  var browser = await chromium.launch(launchOpts);
+  var ctx = await browser.newContext({
+    userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
+    viewport:  { width:1280, height:900 }
+  });
+  await ctx.setExtraHTTPHeaders({ "accept-language":"en-US,en;q=0.9" });
+
+  var page = await ctx.newPage();
+  page.setDefaultNavigationTimeout(60000);
+
+  // Network price capture
+  var priceMap = new Map();
+  page.on("response", async function(res) {
+    try {
+      if (res.url().indexOf("booking.com") === -1) return;
+      var ct = res.headers()["content-type"] || "";
+      if (ct.indexOf("application/json") === -1) return;
+      var txt = await res.text().catch(function(){ return null; });
+      if (!txt) return;
+      if (txt.indexOf('"price"') === -1 && txt.indexOf('"min_price"') === -1 && txt.indexOf('"offers"') === -1) return;
+      var obj; try { obj = JSON.parse(txt); } catch(e) { return; }
+      var list = obj.results || obj.result || obj.properties || obj.hotels || obj.items;
+      if (Array.isArray(list)) {
+        list.forEach(function(it) {
+          var id    = it.hotel_id || it.id || it.property_id || it.hotelId;
+          var href  = it.url || it.hotel_url || it.link;
+          var price = it.price || it.min_price || it.price_with_currency ||
+                      (it.offers && it.offers[0] && it.offers[0].price);
+          if (id    && price) priceMap.set(String(id),   String(price));
+          if (href  && price) priceMap.set(String(href), String(price));
+        });
+      } else if (Array.isArray(obj.offers)) {
+        obj.offers.forEach(function(o) {
+          if (o.price && o.url) priceMap.set(String(o.url), String(o.price));
+        });
+      }
+    } catch(e) {}
+  });
+
+  // Homepage
+  console.log("STATE: opening Booking.com homepage");
+  await page.goto("https://www.booking.com/", { waitUntil:"domcontentloaded" }).catch(function(){});
+  await acceptCookies(page);
+
+  // Output + checkpoint
+  var outStream = fs.createWriteStream("mesa_prices.jsonl", { flags:"a" });
+  var CKP_FILE  = "checkpoint.json";
+  var ckp = { collected:0, offset:0 };
+  if (fs.existsSync(CKP_FILE) && !IGNORE_CKP) {
+    try { ckp = JSON.parse(fs.readFileSync(CKP_FILE,"utf8")); console.log("STATE: resuming from checkpoint — collected=" + ckp.collected + " offset=" + ckp.offset); }
+    catch(e) { console.log("STATE: bad checkpoint — starting fresh"); }
+  } else {
+    console.log(IGNORE_CKP ? "STATE: ignoring checkpoint" : "STATE: starting fresh");
   }
 
-  // selectors to find property cards
-  const resultsSelectors = [
-    '[data-testid="property-card"]',
-    '.sr_property_block',
-    '.sr_item',
-    '.sr_item_content'
+  var collected = ckp.collected || 0;
+  var offset    = ckp.offset    || 0;
+  var results   = [];
+  var seenKeys  = new Set();
+
+  // Worker pool
+  var workerPages = [];
+  var wCount = Math.min(CONCURRENCY, 6);
+  for (var wi = 0; wi < wCount; wi++) {
+    var wp = await ctx.newPage();
+    wp.setDefaultNavigationTimeout(45000);
+    workerPages.push(wp);
+  }
+  var pool     = new Pool(workerPages);
+  var fallback = makeFallback(pool);
+
+  // Card selectors
+  var SELECTORS = [
+    "[data-testid=\"property-card\"]",
+    ".sr_property_block", ".sr_item", ".sr_item_content"
   ];
-  let chosenSelector = null;
 
-  // Navigate to search results page (no offset)
-  const CHECKIN = isoDateString(new Date());
-  const CHECKOUT = isoDateString(addDays(new Date(), 1));
-  const searchUrl = `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(CITY)}&checkin=${CHECKIN}&checkout=${CHECKOUT}&group_adults=2`;
-  await safeNavigate(page, searchUrl, { retries: 3, timeout: 30000 }).catch(()=>null);
+  var CHECKIN  = isoDate(new Date());
+  var CHECKOUT = isoDate(addDays(new Date(), 1));
 
-  // accept cookies again if needed
-  try {
-    const accept = page.locator('button:has-text("Accept")');
-    if (await accept.isVisible({ timeout: 2000 })) {
-      await accept.click();
-    }
-  } catch (e) {}
+  // First page
+  await nav(page, buildUrl(CITY, CHECKIN, CHECKOUT, offset), { retries:3, timeout:30000 }).catch(function(){});
+  await acceptCookies(page);
 
-  console.log(color("STATE: beginning initial continuous scroll (10s) to force lazy-loading", ANSI.dim));
-  // initial continuous scroll for 10 seconds as requested
+  console.log("STATE: initial 10s continuous scroll to trigger lazy-loading");
   await continuousScroll(page, 10000, 900, 180);
 
-  // find a working card selector
-  for (const sel of resultsSelectors) {
-    try {
-      await page.waitForSelector(sel, { timeout: 5000 });
-      chosenSelector = sel;
-      break;
-    } catch (e) {}
+  var sel = null;
+  for (var si = 0; si < SELECTORS.length; si++) {
+    try { await page.waitForSelector(SELECTORS[si], { timeout:5000 }); sel = SELECTORS[si]; break; }
+    catch(e) {}
   }
-  if (!chosenSelector) {
-    console.warn(color("STATE: no property card selector matched after initial scroll; aborting.", ANSI.red));
-    for (const w of workers) try { await w.page.close(); } catch (e) {}
-    await browser.close();
-    process.exit(1);
+  if (!sel) {
+    console.error(col("STATE: no card selector found — aborting", A.red));
+    await pool.closeAll(); await browser.close(); process.exit(1);
   }
-  console.log(color(`STATE: using card selector: ${chosenSelector}`, ANSI.dim));
+  console.log("STATE: card selector: " + sel);
 
-  console.log(color("STATE: beginning controlled scroll passes (post-initial-scroll)", ANSI.dim));
-  // Scroll passes until we collect enough unique properties or reach safety caps
-  let totalScrollPasses = 0;
-  while (collected < MAX_PROPERTIES && totalScrollPasses < MAX_SCROLL_PASSES) {
-    totalScrollPasses++;
-    console.log(color(`STATE: scroll pass ${totalScrollPasses} (collected ${collected}/${MAX_PROPERTIES})`, ANSI.magenta));
+  // Pagination loop
+  var pageNum     = 0;
+  var emptyStreak = 0;
 
-    // expand results (scroll to last card and click load-more if present)
-    await expandResults(page, chosenSelector);
+  while (collected < MAX_PROPS) {
+    pageNum++;
+    console.log("STATE: page " + pageNum + " | offset " + offset + " | collected " + collected + "/" + MAX_PROPS);
 
-    // wait for DOM + network to settle
-    const settled = await waitForDomAndNetworkIdle(page, { domIdleMs: 900, networkIdleMs: 900, maxWait: 12000 });
-    if (!settled) {
-      console.log(color('STATE: page did not settle within timeout; continuing to next pass', ANSI.yellow));
+    if (pageNum > 1) {
+      await nav(page, buildUrl(CITY, CHECKIN, CHECKOUT, offset), { retries:3 }).catch(function(){});
+      await acceptCookies(page);
+      await waitIdle(page);
     }
 
-    // re-evaluate visible cards and process them
-    const cards = await page.$$(chosenSelector);
-    console.log(color(`STATE: found ${cards.length} visible cards after pass ${totalScrollPasses}`, ANSI.dim));
+    await scrollPage(page);
+    await waitIdle(page, { domMs:800, netMs:800, maxMs:10000 });
 
-    // parse cards in chunks
-    for (let i = 0; i < cards.length && collected < MAX_PROPERTIES; i += CONCURRENCY) {
-      const chunk = cards.slice(i, i + CONCURRENCY);
-      await Promise.all(chunk.map(async (card) => {
-        const info = await card.evaluate((c) => {
-          const nameSel = ['[data-testid="title"]', '.sr-hotel__name', '.fcab3ed991', 'h3, h2'];
-          const priceSel = ['[data-testid="price-and-discounted-price"]', '.bui-price-display__value', '.prco-inline-block-maker-helper', '.price, .price_total, .sr_price', '.fcab3ed991'];
-          let name = "Unknown";
-          for (const s of nameSel) {
-            const el = c.querySelector(s);
-            if (el && el.innerText && el.innerText.trim()) { name = el.innerText.trim(); break; }
-          }
-          let price = null;
-          for (const s of priceSel) {
-            const el = c.querySelector(s);
-            if (el && el.innerText && el.innerText.trim()) { price = el.innerText.trim(); break; }
-          }
-          const linkEl = c.querySelector('a[href*="/hotel/"], a[href*="booking.com/"]');
-          const href = linkEl ? linkEl.href : null;
-          const hotelId = c.getAttribute && (c.getAttribute('data-hotelid') || c.getAttribute('data-hotel-id') || (c.dataset && c.dataset.hotelId));
-          return { name, price, href, hotelId };
-        });
+    var before = collected;
+    collected = await processCards({
+      page:page, sel:sel, priceMap:priceMap, seenKeys:seenKeys,
+      results:results, collected:collected, fallback:fallback, outStream:outStream
+    });
+    var added = collected - before;
 
-        // build dedupe key
-        const keyCandidates = [];
-        if (info.hotelId) keyCandidates.push(String(info.hotelId));
-        if (info.href) keyCandidates.push(String(info.href));
-        if (info.name) keyCandidates.push(normalizeName(info.name));
-        let key = keyCandidates.find(k => k && k.length > 0) || null;
-        if (!key) {
-          // generate fallback key so visible cards are not silently skipped
-          const fallback = `fallback:${Buffer.from((info.name||"") + "|" + (info.href||"")).toString('base64').slice(0,12)}:${Date.now().toString(36).slice(-4)}`;
-          console.log(color("INFO: generated fallback key for card", ANSI.dim), { name: info.name, href: info.href, fallback });
-          key = fallback;
-        }
+    console.log("STATE: page " + pageNum + " added " + added + " new properties");
+    fs.writeFileSync(CKP_FILE, JSON.stringify({ collected:collected, offset:offset }, null, 2));
+    console.log("STATE: checkpoint saved (collected=" + collected + ", offset=" + offset + ")");
 
-        if (seenKeys.has(key)) {
-          // skip duplicates
-          return;
-        }
-
-        // resolve price: network map -> card -> fallback
-        let price = null;
-        if (info.hotelId && priceMap.has(String(info.hotelId))) price = priceMap.get(String(info.hotelId));
-        if (!price && info.href && priceMap.has(String(info.href))) price = priceMap.get(String(info.href));
-        if (!price && info.price && info.price !== "N/A") price = info.price;
-        if (!price && info.href) {
-          price = await fallbackFetchPrice(info.href);
-        }
-
-        // record unique
-        seenKeys.add(key);
-        const out = {
-          index: results.length + 1,
-          name: info.name,
-          price: price || "N/A",
-          source: price ? "network" : (info.price ? "card" : (info.href ? "property" : "no-link")),
-          href: info.href || null,
-          dedupeKey: key
-        };
-
-        outStream.write(JSON.stringify(out) + "\n");
-        results.push(out);
-        collected++;
-        console.log(color(`STATE: recorded unique property #${out.index} (${out.name})`, ANSI.green));
-      }));
-      await sleep(30 + Math.random() * 120);
-    }
-
-    // checkpoint: save collected count and current scroll position
-    const scrollY = await page.evaluate(() => window.scrollY).catch(()=>0);
-    fs.writeFileSync(checkpointFile, JSON.stringify({ collected, scrollPosition: scrollY }, null, 2));
-    console.log(color(`STATE: checkpoint saved (collected=${collected}, scrollY=${scrollY})`, ANSI.dim));
-
-    // small delay before next scroll pass
-    await sleep(300 + Math.random() * 400);
-  } // end scroll loop
-
-  // close worker pages
-  for (const w of workers) {
-    try { await w.page.close(); } catch (e) {}
-  }
-
-  outStream.end();
-  fs.writeFileSync(checkpointFile, JSON.stringify({ collected, scrollPosition: await page.evaluate(() => window.scrollY).catch(()=>0) }, null, 2));
-  console.log(color("STATE: fetch phase complete", ANSI.green));
-
-  // presentation phase
-  results.sort((a, b) => a.index - b.index);
-
-  // compute numeric prices and find min/max
-  const numericEntries = results
-    .map(r => ({ ...r, numeric: parsePriceToNumber(r.price) }))
-    .filter(r => typeof r.numeric === "number" && !Number.isNaN(r.numeric));
-  const priceNumbers = numericEntries.map(e => e.numeric);
-  const stats = computeStats(priceNumbers);
-  const minPrice = stats ? stats.min : null;
-  const maxPrice = stats ? stats.max : null;
-
-  console.log("\n" + bold(color("=== Scraped Properties (unique) ===", ANSI.blue)) + "\n");
-  for (const r of results) {
-    const numeric = parsePriceToNumber(r.price);
-    let line = `${r.index}. ${r.name} — ${r.price} — source: ${r.source}`;
-    if (typeof numeric === "number" && !Number.isNaN(numeric)) {
-      if (minPrice !== null && numeric === minPrice) {
-        // highlight lowest rate (green + bold)
-        line = color(bold(line), ANSI.green);
-      } else if (maxPrice !== null && numeric === maxPrice) {
-        // highlight highest rate (red + bold)
-        line = color(bold(line), ANSI.red);
-      } else {
-        line = color(line, ANSI.white);
-      }
+    if (added === 0) {
+      emptyStreak++;
+      if (emptyStreak >= 2) { console.log("STATE: 2 empty pages in a row — stopping"); break; }
     } else {
-      line = color(line, ANSI.white);
+      emptyStreak = 0;
+    }
+
+    offset += PAGE_SIZE;
+    await sleep(500 + Math.random() * 500);
+  }
+
+  // Teardown
+  await pool.closeAll();
+  outStream.end();
+  fs.writeFileSync(CKP_FILE, JSON.stringify({ collected:collected, offset:offset }, null, 2));
+  console.log("STATE: fetch complete");
+
+  // ── Display results ───────────────────────────────────────────────────────
+  results.sort(function(a,b){ return a.index - b.index; });
+
+  var nums = [];
+  for (var ri = 0; ri < results.length; ri++) {
+    var n = parsePrice(results[ri].price);
+    if (typeof n === "number" && !isNaN(n)) nums.push(n);
+  }
+  var st   = calcStats(nums);
+  var minP = st ? st.min : null;
+  var maxP = st ? st.max : null;
+
+  console.log("\n" + bld(col("=== Scraped Properties ===", A.blue)) + "\n");
+
+  for (var ri2 = 0; ri2 < results.length; ri2++) {
+    var r    = results[ri2];
+    var n2   = parsePrice(r.price);
+    var raw  = r.index + ". " + r.name + " \u2014 " + r.price + " \u2014 source: " + r.src;
+    var line;
+    if (typeof n2 === "number" && !isNaN(n2)) {
+      if      (minP !== null && n2 === minP) line = col(bld(raw), A.green);
+      else if (maxP !== null && n2 === maxP) line = col(bld(raw), A.red);
+      else                                   line = col(raw, A.white);
+    } else {
+      line = col(raw, A.white);
     }
     console.log(line);
   }
 
-  if (stats) {
-    console.log("\n" + bold(color("=== Statistics ===", ANSI.blue)));
-    console.log(color(`Count: ${stats.count}  Sum: $${Math.round(stats.sum)}  Average: $${Math.round(stats.average*100)/100}  Median: $${Math.round(stats.median*100)/100}  Min: $${stats.min}  Max: $${stats.max}`, ANSI.cyan));
-    console.log(color(`Below average: ${stats.below}  Above average: ${stats.above}`, ANSI.dim));
-    // also print a short legend for highlights
-    console.log("\n" + color("Legend:", ANSI.dim) + " " + color("Lowest rate", ANSI.green) + ", " + color("Highest rate", ANSI.red));
+  if (st) {
+    console.log("\n" + bld(col("=== Statistics ===", A.blue)));
+    console.log(col(
+      "Count: " + st.count +
+      "  Sum: \$" + Math.round(st.sum) +
+      "  Average: \$" + st.avg.toFixed(2) +
+      "  Median: \$" + st.med.toFixed(2) +
+      "  Min: \$" + st.min +
+      "  Max: \$" + st.max,
+      A.cyan
+    ));
+    console.log(dim("Below average: " + st.below + "  Above average: " + st.above));
+    console.log("\n" + dim("Legend: ") + col("Lowest rate", A.green) + dim(", ") + col("Highest rate", A.red));
   } else {
-    console.log("\n" + color("No numeric prices found to compute statistics.", ANSI.yellow));
+    console.log(col("No numeric prices found.", A.yellow));
   }
 
-  fs.writeFileSync("mesa_prices_summary.json", JSON.stringify({
-    city: CITY,
-    checkin: isoDateString(new Date()),
-    checkout: isoDateString(addDays(new Date(), 1)),
-    collected,
-    stats: stats ? {
-      count: stats.count,
-      sum: Math.round(stats.sum),
-      average: Math.round(stats.average*100)/100,
-      median: Math.round(stats.median*100)/100,
-      min: stats.min,
-      max: stats.max,
-      below: stats.below,
-      above: stats.above
+  var summary = {
+    city:CITY, checkin:CHECKIN, checkout:CHECKOUT, collected:collected,
+    stats: st ? {
+      count:st.count, sum:Math.round(st.sum),
+      average:st.avg.toFixed(2), median:st.med.toFixed(2),
+      min:st.min, max:st.max, below:st.below, above:st.above
     } : null
-  }, null, 2));
-  console.log("\n" + color("STATE: saved mesa_prices_summary.json and mesa_prices.jsonl", ANSI.green));
+  };
+  fs.writeFileSync("mesa_prices_summary.json", JSON.stringify(summary, null, 2));
+  console.log("\nSTATE: saved mesa_prices_summary.json + mesa_prices.jsonl");
 
-  if (KEEP_OPEN || HEADFUL) {
-    console.log(color("STATE: KEEP_OPEN or HEADFUL set — leaving browser open for inspection.", ANSI.yellow));
-    return browser;
-  }
-
+  if (KEEP_OPEN || HEADFUL) { console.log("STATE: leaving browser open"); return; }
   await browser.close();
-  console.log(color("STATE: scraper finished", ANSI.green));
-  return null;
+  console.log("STATE: done");
 }
 
-run().catch(err => {
-  stopSpinner();
-  console.error(color("STATE: fatal error:", ANSI.red), err && err.stack ? err.stack : err);
+main().catch(function(err) {
+  spinStop();
+  console.error("STATE: fatal: " + (err && err.stack ? err.stack : String(err)));
   process.exit(1);
 });
