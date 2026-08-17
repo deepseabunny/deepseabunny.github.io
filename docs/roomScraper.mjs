@@ -1,5 +1,4 @@
 // roomScraper.mjs
-import fs from "fs";
 import { chromium } from "playwright";
 import readline from "readline";
 
@@ -33,11 +32,10 @@ function spinStop() {
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
-var MAX_PROPS   = Number(process.env.MAX_PROPERTIES || 100);
+var MAX_PROPS   = Number(process.env.MAX_PROPERTIES || 500);
 var CONCURRENCY = Math.max(1, Number(process.env.CONCURRENCY || 4));
-var CITY        = process.env.CITY || "Mesa, Arizona";
+var CITY        = process.env.CITY || "Phoenix, Arizona";
 var KEEP_OPEN   = !!process.env.KEEP_OPEN;
-var IGNORE_CKP  = !!process.env.IGNORE_CHECKPOINT;
 var HEADFUL     = !!process.env.HEADFUL;
 var SLOWMO      = Number(process.env.SLOWMO || 60);
 var PAGE_SIZE   = Number(process.env.PAGE_SIZE || 25);
@@ -114,13 +112,7 @@ async function nav(page, url, opts) {
       return res;
     } catch(err) {
       console.warn(col("STATE: attempt " + i + " failed: " + err.message, A.yellow));
-      if (i === retries) {
-        var ts = Date.now();
-        await page.screenshot({ path:"debug_" + ts + ".png", fullPage:true }).catch(function(){});
-        var html = await page.content().catch(function(){ return null; });
-        if (html) fs.writeFileSync("debug_" + ts + ".html", html);
-        throw err;
-      }
+      if (i === retries) throw err;
       var wait = 500 * i + Math.random() * 300;
       console.log(col("STATE: retrying in " + Math.round(wait) + "ms", A.dim));
       await sleep(wait);
@@ -318,7 +310,6 @@ async function processCards(opts) {
   var results   = opts.results;
   var collected = opts.collected;
   var fallback  = opts.fallback;
-  var outStream = opts.outStream;
 
   var cards = await page.$$(sel);
   console.log("STATE: found " + cards.length + " visible cards");
@@ -377,7 +368,6 @@ async function processCards(opts) {
         href:  item.info.href || null,
         key:   item.keys[0]
       };
-      outStream.write(JSON.stringify(row) + "\n");
       results.push(row);
       collected++;
       console.log("STATE: #" + row.index + " " + row.name + " [" + row.src + "]");
@@ -448,21 +438,8 @@ async function main() {
   await page.goto("https://www.booking.com/", { waitUntil:"domcontentloaded" }).catch(function(){});
   await acceptCookies(page);
 
-  // Output + checkpoint
-  var outStream = fs.createWriteStream("mesa_prices.jsonl", { flags:"a" });
-  var CKP_FILE  = "checkpoint.json";
-  var ckp = { collected:0, offset:0 };
-  if (fs.existsSync(CKP_FILE) && !IGNORE_CKP) {
-    try {
-      ckp = JSON.parse(fs.readFileSync(CKP_FILE,"utf8"));
-      console.log("STATE: resuming from checkpoint — collected=" + ckp.collected + " offset=" + ckp.offset);
-    } catch(e) { console.log("STATE: bad checkpoint — starting fresh"); }
-  } else {
-    console.log(IGNORE_CKP ? "STATE: ignoring checkpoint" : "STATE: starting fresh");
-  }
-
-  var collected = ckp.collected || 0;
-  var offset    = ckp.offset    || 0;
+  var collected = 0;
+  var offset    = 0;
   var results   = [];
   var seenKeys  = new Set();
 
@@ -524,13 +501,11 @@ async function main() {
     var before = collected;
     collected = await processCards({
       page:page, sel:sel, priceMap:priceMap, seenKeys:seenKeys,
-      results:results, collected:collected, fallback:fallback, outStream:outStream
+      results:results, collected:collected, fallback:fallback
     });
     var added = collected - before;
 
     console.log("STATE: page " + pageNum + " added " + added + " new properties");
-    fs.writeFileSync(CKP_FILE, JSON.stringify({ collected:collected, offset:offset }, null, 2));
-    console.log("STATE: checkpoint saved (collected=" + collected + ", offset=" + offset + ")");
 
     if (added === 0) {
       emptyStreak++;
@@ -545,8 +520,6 @@ async function main() {
 
   // Teardown
   await pool.closeAll();
-  outStream.end();
-  fs.writeFileSync(CKP_FILE, JSON.stringify({ collected:collected, offset:offset }, null, 2));
   console.log("STATE: fetch complete");
 
   // ── Display results ───────────────────────────────────────────────────────
@@ -561,7 +534,6 @@ async function main() {
   var minP = st ? st.min : null;
   var maxP = st ? st.max : null;
 
-  // find longest name for column alignment
   var maxNameLen = 0;
   for (var ri2 = 0; ri2 < results.length; ri2++) {
     if (results[ri2].name.length > maxNameLen) maxNameLen = results[ri2].name.length;
@@ -576,8 +548,7 @@ async function main() {
     var n2   = parsePrice(r.price);
     var pad  = repeat(" ", maxNameLen - r.name.length + 2);
     var pnum = r.price.replace(/[^0-9.]/g, "");
-    var raw  = "  " + r.name + pad + "| \$" + pnum;
-
+    var raw  = "  " + r.index + ". " + r.name + pad + "| $" + pnum
     var line;
     if (typeof n2 === "number" && !isNaN(n2)) {
       if      (minP !== null && n2 === minP) line = col(bld(raw), A.green);
@@ -604,23 +575,6 @@ async function main() {
   } else {
     console.log(col("  No numeric prices found.", A.yellow));
   }
-
-  // Save summary
-  var summary = {
-    city:CITY, checkin:CHECKIN, checkout:CHECKOUT, collected:collected,
-    stats: st ? {
-      count:   st.count,
-      sum:     Math.round(st.sum),
-      average: st.avg.toFixed(2),
-      median:  st.med.toFixed(2),
-      min:     st.min,
-      max:     st.max,
-      below:   st.below,
-      above:   st.above
-    } : null
-  };
-  fs.writeFileSync("mesa_prices_summary.json", JSON.stringify(summary, null, 2));
-  console.log("\nSTATE: saved mesa_prices_summary.json + mesa_prices.jsonl");
 
   if (KEEP_OPEN || HEADFUL) { console.log("STATE: leaving browser open"); return; }
   await browser.close();
