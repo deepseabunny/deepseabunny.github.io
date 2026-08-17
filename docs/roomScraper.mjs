@@ -12,6 +12,7 @@ var A = {
 function col(txt, code) { return code + txt + A.reset; }
 function bld(txt)       { return A.bold + txt + A.reset; }
 function dim(txt)       { return A.dim  + txt + A.reset; }
+function repeat(ch, n)  { var s = ""; for (var i = 0; i < n; i++) s += ch; return s; }
 
 // ── Spinner ───────────────────────────────────────────────────────────────────
 var FRAMES = ["⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠇","⠏"];
@@ -32,14 +33,14 @@ function spinStop() {
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
-var MAX_PROPS    = Number(process.env.MAX_PROPERTIES  || 100);
-var CONCURRENCY  = Math.max(1, Number(process.env.CONCURRENCY || 4));
-var CITY         = process.env.CITY || "Mesa, Arizona";
-var KEEP_OPEN    = !!process.env.KEEP_OPEN;
-var IGNORE_CKP   = !!process.env.IGNORE_CHECKPOINT;
-var HEADFUL      = !!process.env.HEADFUL;
-var SLOWMO       = Number(process.env.SLOWMO || 60);
-var PAGE_SIZE    = Number(process.env.PAGE_SIZE || 25);
+var MAX_PROPS   = Number(process.env.MAX_PROPERTIES || 100);
+var CONCURRENCY = Math.max(1, Number(process.env.CONCURRENCY || 4));
+var CITY        = process.env.CITY || "Mesa, Arizona";
+var KEEP_OPEN   = !!process.env.KEEP_OPEN;
+var IGNORE_CKP  = !!process.env.IGNORE_CHECKPOINT;
+var HEADFUL     = !!process.env.HEADFUL;
+var SLOWMO      = Number(process.env.SLOWMO || 60);
+var PAGE_SIZE   = Number(process.env.PAGE_SIZE || 25);
 
 // ── Pure helpers ──────────────────────────────────────────────────────────────
 function sleep(ms)    { return new Promise(function(r){ setTimeout(r, ms); }); }
@@ -357,7 +358,6 @@ async function processCards(opts) {
       return { keys:keys, info:info, price:price, src:src };
     }));
 
-    // Apply serially
     for (var bi = 0; bi < batch.length; bi++) {
       var item = batch[bi];
       if (!item || collected >= MAX_PROPS) continue;
@@ -453,8 +453,10 @@ async function main() {
   var CKP_FILE  = "checkpoint.json";
   var ckp = { collected:0, offset:0 };
   if (fs.existsSync(CKP_FILE) && !IGNORE_CKP) {
-    try { ckp = JSON.parse(fs.readFileSync(CKP_FILE,"utf8")); console.log("STATE: resuming from checkpoint — collected=" + ckp.collected + " offset=" + ckp.offset); }
-    catch(e) { console.log("STATE: bad checkpoint — starting fresh"); }
+    try {
+      ckp = JSON.parse(fs.readFileSync(CKP_FILE,"utf8"));
+      console.log("STATE: resuming from checkpoint — collected=" + ckp.collected + " offset=" + ckp.offset);
+    } catch(e) { console.log("STATE: bad checkpoint — starting fresh"); }
   } else {
     console.log(IGNORE_CKP ? "STATE: ignoring checkpoint" : "STATE: starting fresh");
   }
@@ -559,12 +561,23 @@ async function main() {
   var minP = st ? st.min : null;
   var maxP = st ? st.max : null;
 
-  console.log("\n" + bld(col("=== Scraped Properties ===", A.blue)) + "\n");
-
+  // find longest name for column alignment
+  var maxNameLen = 0;
   for (var ri2 = 0; ri2 < results.length; ri2++) {
-    var r    = results[ri2];
+    if (results[ri2].name.length > maxNameLen) maxNameLen = results[ri2].name.length;
+  }
+  var divider = col(repeat("\u2500", maxNameLen + 18), A.gray);
+
+  console.log("\n" + bld(col("  Hotel / Motel", A.blue)) + repeat(" ", maxNameLen - 14) + bld(col("| Price / Night", A.blue)));
+  console.log(divider);
+
+  for (var ri3 = 0; ri3 < results.length; ri3++) {
+    var r    = results[ri3];
     var n2   = parsePrice(r.price);
-    var raw  = r.index + ". " + r.name + " \u2014 " + r.price + " \u2014 source: " + r.src;
+    var pad  = repeat(" ", maxNameLen - r.name.length + 2);
+    var pnum = r.price.replace(/[^0-9.]/g, "");
+    var raw  = "  " + r.name + pad + "| \$" + pnum;
+
     var line;
     if (typeof n2 === "number" && !isNaN(n2)) {
       if      (minP !== null && n2 === minP) line = col(bld(raw), A.green);
@@ -576,29 +589,34 @@ async function main() {
     console.log(line);
   }
 
+  console.log(divider);
+
   if (st) {
-    console.log("\n" + bld(col("=== Statistics ===", A.blue)));
     console.log(col(
-      "Count: " + st.count +
-      "  Sum: \$" + Math.round(st.sum) +
       "  Average: \$" + st.avg.toFixed(2) +
-      "  Median: \$" + st.med.toFixed(2) +
-      "  Min: \$" + st.min +
-      "  Max: \$" + st.max,
+      "   Median: \$" + st.med.toFixed(2) +
+      "   Min: \$"    + st.min +
+      "   Max: \$"    + st.max +
+      "   Count: "   + st.count,
       A.cyan
     ));
-    console.log(dim("Below average: " + st.below + "  Above average: " + st.above));
-    console.log("\n" + dim("Legend: ") + col("Lowest rate", A.green) + dim(", ") + col("Highest rate", A.red));
+    console.log(dim("  Legend: ") + col("lowest price", A.green) + dim("   ") + col("highest price", A.red));
   } else {
-    console.log(col("No numeric prices found.", A.yellow));
+    console.log(col("  No numeric prices found.", A.yellow));
   }
 
+  // Save summary
   var summary = {
     city:CITY, checkin:CHECKIN, checkout:CHECKOUT, collected:collected,
     stats: st ? {
-      count:st.count, sum:Math.round(st.sum),
-      average:st.avg.toFixed(2), median:st.med.toFixed(2),
-      min:st.min, max:st.max, below:st.below, above:st.above
+      count:   st.count,
+      sum:     Math.round(st.sum),
+      average: st.avg.toFixed(2),
+      median:  st.med.toFixed(2),
+      min:     st.min,
+      max:     st.max,
+      below:   st.below,
+      above:   st.above
     } : null
   };
   fs.writeFileSync("mesa_prices_summary.json", JSON.stringify(summary, null, 2));
