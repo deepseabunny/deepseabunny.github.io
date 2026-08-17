@@ -197,9 +197,9 @@ function spinStop() {
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
-var MAX_PROPS   = Number(process.env.MAX_PROPERTIES || 500);
+var MAX_PROPS   = Number(process.env.MAX_PROPERTIES || 444);
 var CONCURRENCY = Math.max(1, Number(process.env.CONCURRENCY || 4));
-var CITY        = process.env.CITY || "Phoenix, Arizona";
+var CITY        = process.env.CITY || "Mesa, Arizona";
 var KEEP_OPEN   = !!process.env.KEEP_OPEN;
 var HEADFUL     = !!process.env.HEADFUL;
 var SLOWMO      = Number(process.env.SLOWMO || 60);
@@ -209,32 +209,33 @@ var PAGE_SIZE   = Number(process.env.PAGE_SIZE || 25);
 function sleep(ms)    { return new Promise(function(r){ setTimeout(r, ms); }); }
 function isoDate(d)   { return d.toISOString().slice(0, 10); }
 function addDays(d,n) { var x = new Date(d); x.setDate(x.getDate()+n); return x; }
+
 function normName(s) {
-  return (s||"").toLowerCase().replace(/\s+/g," ").replace(/[^\w\s-]/g,"").trim();
+  return (s || "").toLowerCase().replace(/[^\w\s-]+/g, "").replace(/\s+/g, " ").trim();
 }
 
 function parsePrice(raw) {
   if (!raw) return null;
-  var s = raw.replace(/[^0-9.,]/g,"").trim();
+  var s = raw.replace(/[^0-9.,]/g, "").trim();
   if (!s) return null;
   var hasC = s.indexOf(",") !== -1;
   var hasD = s.indexOf(".") !== -1;
   if (hasC && hasD) {
     return s.lastIndexOf(",") > s.lastIndexOf(".")
-      ? Number(s.replace(/\./g,"").replace(",","."))
-      : Number(s.replace(/,/g,""));
+      ? Number(s.replace(/\./g, "").replace(",", "."))
+      : Number(s.replace(/,/g, ""));
   }
   if (hasC) {
     var p = s.split(",");
     return (p.length === 2 && p[1].length === 2)
-      ? Number(s.replace(",","."))
-      : Number(s.replace(/,/g,""));
+      ? Number(s.replace(",", "."))
+      : Number(s.replace(/,/g, ""));
   }
   if (hasD) {
     var p2 = s.split(".");
     return (p2.length === 2 && p2[1].length === 2)
       ? Number(s)
-      : Number(s.replace(/\./g,""));
+      : Number(s.replace(/\./g, ""));
   }
   return Number(s);
 }
@@ -254,12 +255,15 @@ function calcStats(nums) {
   };
 }
 
-// ── Cookie consent ────────────────────────────────────────────────────────────
+// ── Cookie consent — fires at most once ───────────────────────────────────────
+var _cookiesDone = false;
 async function acceptCookies(page) {
+  if (_cookiesDone) return;
   try {
     var btn = page.locator("button:has-text(\"Accept\")");
-    if (await btn.isVisible({ timeout: 2500 })) {
+    if (await btn.isVisible({ timeout: 1500 })) {
       await btn.click();
+      _cookiesDone = true;
       console.log("STATE: accepted cookies");
     }
   } catch(e) {}
@@ -272,8 +276,13 @@ async function nav(page, url, opts) {
   for (var i = 1; i <= retries; i++) {
     try {
       console.log(col("STATE: navigating (attempt " + i + ") -> " + url, A.gray));
-      var res = await page.goto(url, { waitUntil:"networkidle", timeout: timeout * i });
-      console.log(col("STATE: navigation response " + (res ? res.status() : "?"), A.gray));
+      var res = await page.goto(url, { waitUntil:"domcontentloaded", timeout: timeout * i });
+      var status = res ? res.status() : "?";
+      if (page.url().indexOf("chal_t") !== -1) {
+        console.log(col("STATE: bot challenge detected — waiting for redirect", A.yellow));
+        await page.waitForNavigation({ waitUntil:"domcontentloaded", timeout:15000 }).catch(function(){});
+      }
+      console.log(col("STATE: navigation response " + status, A.gray));
       return res;
     } catch(err) {
       console.warn(col("STATE: attempt " + i + " failed: " + err.message, A.yellow));
@@ -285,67 +294,135 @@ async function nav(page, url, opts) {
   }
 }
 
-// ── DOM + network idle ────────────────────────────────────────────────────────
-async function waitIdle(page, opts) {
-  var domMs = (opts && opts.domMs) || 800;
-  var netMs = (opts && opts.netMs) || 800;
-  var maxMs = (opts && opts.maxMs) || 12000;
-  var t0 = Date.now(), inflight = 0, lastNet = Date.now();
-  function onReq()  { inflight++; lastNet = Date.now(); }
-  function onDone() { inflight = Math.max(0, inflight-1); lastNet = Date.now(); }
-  page.on("request",         onReq);
-  page.on("requestfinished", onDone);
-  page.on("requestfailed",   onDone);
-  await page.evaluate(function() {
-    window.__ldc = Date.now();
-    if (window.__mobs) window.__mobs.disconnect();
-    window.__mobs = new MutationObserver(function(){ window.__ldc = Date.now(); });
-    window.__mobs.observe(document, { childList:true, subtree:true });
-  });
-  try {
-    while (Date.now()-t0 < maxMs) {
-      var ldc = await page.evaluate(function(){ return window.__ldc; }).catch(function(){ return Date.now(); });
-      if ((Date.now()-ldc) >= domMs && (Date.now()-lastNet) >= netMs && inflight === 0) {
-        await page.waitForTimeout(150);
-        return true;
+// ── waitIdle — Promise.race, listeners cleaned up ─────────────────────────────
+function waitIdle(page, opts) {
+  var domMs = (opts && opts.domMs) || 600;
+  var netMs = (opts && opts.netMs) || 600;
+  var maxMs = (opts && opts.maxMs) || 8000;
+
+  return Promise.race([
+    new Promise(function(resolve) {
+      var inflight = 0;
+      var domTimer = null, netTimer = null;
+      var settled  = false;
+
+      function done() {
+        if (settled) return;
+        settled = true;
+        clearTimeout(domTimer);
+        clearTimeout(netTimer);
+        page.removeListener("request",         onReq);
+        page.removeListener("requestfinished", onDone);
+        page.removeListener("requestfailed",   onDone);
+        resolve(true);
       }
-      await page.waitForTimeout(150);
-    }
-    return false;
-  } finally {
-    page.removeListener("request",         onReq);
-    page.removeListener("requestfinished", onDone);
-    page.removeListener("requestfailed",   onDone);
-    await page.evaluate(function() {
+      function checkIdle() { if (inflight === 0) done(); }
+      function resetDom()  { clearTimeout(domTimer); domTimer = setTimeout(checkIdle, domMs); }
+      function resetNet()  { clearTimeout(netTimer); netTimer = setTimeout(checkIdle, netMs); }
+      function onReq()     { inflight++; resetNet(); }
+      function onDone()    { inflight = Math.max(0, inflight-1); resetNet(); }
+
+      page.on("request",         onReq);
+      page.on("requestfinished", onDone);
+      page.on("requestfailed",   onDone);
+
+      page.evaluate(function() {
+        window.__ldc = Date.now();
+        if (window.__mobs) window.__mobs.disconnect();
+        window.__mobs = new MutationObserver(function(){ window.__ldc = Date.now(); });
+        window.__mobs.observe(document, { childList:true, subtree:true });
+      }).catch(function(){});
+
+      resetDom();
+      resetNet();
+    }),
+    sleep(maxMs).then(function(){ return false; })
+  ]).finally(function() {
+    page.evaluate(function() {
       try { if (window.__mobs) { window.__mobs.disconnect(); window.__mobs = null; } } catch(e) {}
     }).catch(function(){});
-  }
+  });
 }
 
-// ── Continuous scroll ─────────────────────────────────────────────────────────
-async function continuousScroll(page, ms, step, tick) {
-  ms   = ms   || 10000;
-  step = step || 900;
-  tick = tick || 180;
-  var t0 = Date.now();
-  console.log("STATE: continuous scroll starting (" + Math.round(ms/1000) + "s)");
+// ── Smart scroll ──────────────────────────────────────────────────────────────
+async function smartScroll(page, sel, opts) {
+  var maxMs    = (opts && opts.maxMs)    || 15000;
+  var step     = (opts && opts.step)     || 600;
+  var stableMs = (opts && opts.stableMs) || 3000;
+  var tick     = (opts && opts.tick)     || 200;
+
+  var t0          = Date.now();
+  var lastCount   = 0;
+  var stableSince = Date.now();
+  var atBottom    = false;
+
+  console.log("STATE: smart scroll starting");
   spinStart(col("scrolling...", A.cyan));
-  while (Date.now()-t0 < ms) {
-    await page.evaluate(function(s){ window.scrollBy(0,s); }, step).catch(function(){});
+
+  while (Date.now() - t0 < maxMs) {
+    var pos = await page.evaluate(function(s) {
+      window.scrollBy(0, s);
+      return {
+        scrollY: window.scrollY,
+        innerH:  window.innerHeight,
+        scrollH: document.documentElement.scrollHeight
+      };
+    }, step).catch(function(){ return null; });
+
     await page.waitForTimeout(tick);
+
+    var count = await page.$$eval(sel, function(els){ return els.length; })
+      .catch(function(){ return lastCount; });
+
+    if (count > lastCount) {
+      lastCount   = count;
+      stableSince = Date.now();
+      atBottom    = false;
+    }
+
+    if (pos && (pos.scrollY + pos.innerH >= pos.scrollH - 50)) {
+      if (!atBottom) {
+        atBottom = true;
+        spinStop();
+        console.log("STATE: reached page bottom (" + lastCount + " cards) — waiting for trailing batch");
+        spinStart(col("waiting for trailing batch...", A.cyan));
+        await page.waitForTimeout(stableMs);
+        var finalCount = await page.$$eval(sel, function(els){ return els.length; })
+          .catch(function(){ return lastCount; });
+        if (finalCount > lastCount) {
+          lastCount   = finalCount;
+          stableSince = Date.now();
+          atBottom    = false;
+          continue;
+        }
+        break;
+      }
+    }
+
+    if ((Date.now() - stableSince) >= stableMs && !atBottom) {
+      await page.evaluate(function(){
+        window.scrollTo(0, document.documentElement.scrollHeight);
+      }).catch(function(){});
+      await page.waitForTimeout(stableMs);
+      var afterJump = await page.$$eval(sel, function(els){ return els.length; })
+        .catch(function(){ return lastCount; });
+      if (afterJump > lastCount) {
+        lastCount   = afterJump;
+        stableSince = Date.now();
+      } else {
+        break;
+      }
+    }
   }
+
   spinStop();
-  await page.waitForTimeout(300);
-  await page.evaluate(function(){ window.scrollTo(0,0); }).catch(function(){});
-  console.log("STATE: continuous scroll done — reset to top");
+  await page.evaluate(function(){ window.scrollTo(0, 0); }).catch(function(){});
+  console.log("STATE: smart scroll done — " + lastCount + " cards visible, reset to top");
+  return lastCount;
 }
 
-// ── Scroll page + click load-more ─────────────────────────────────────────────
-async function scrollPage(page) {
-  for (var i = 0; i < 5; i++) {
-    await page.evaluate(function(){ window.scrollBy(0, window.innerHeight * 1.5); });
-    await page.waitForTimeout(350);
-  }
+// ── Click load-more if present ────────────────────────────────────────────────
+async function clickLoadMore(page) {
   var btns = [
     "button:has-text(\"Show more\")", "button:has-text(\"Load more\")",
     "a:has-text(\"Show more\")",      "a:has-text(\"Load more\")"
@@ -355,48 +432,54 @@ async function scrollPage(page) {
       var btn = await page.$(btns[j]);
       if (btn) {
         console.log(col("STATE: clicking load-more: " + btns[j], A.dim));
-        await Promise.all([
-          page.waitForResponse(function(r){ return r.status()===200; }, { timeout:5000 }).catch(function(){ return null; }),
-          btn.click().catch(function(){ return null; })
-        ]);
+        await btn.click().catch(function(){});
         await page.waitForTimeout(400);
-        break;
+        return true;
       }
     } catch(e) {}
   }
+  return false;
 }
 
-// ── Worker pool ───────────────────────────────────────────────────────────────
-function Pool(pages) {
-  this._free = pages.slice();
-  this._q    = [];
+// ── Lazy worker pool ──────────────────────────────────────────────────────────
+function LazyPool(ctx, maxSize, navTimeout) {
+  this._ctx        = ctx;
+  this._maxSize    = maxSize;
+  this._navTimeout = navTimeout || 45000;
+  this._free       = [];
+  this._q          = [];
+  this._total      = 0;
 }
-Pool.prototype.get = function() {
+LazyPool.prototype.get = async function() {
+  if (this._free.length) return this._free.shift();
+  if (this._total < this._maxSize) {
+    this._total++;
+    var wp = await this._ctx.newPage();
+    wp.setDefaultNavigationTimeout(this._navTimeout);
+    return wp;
+  }
   var self = this;
-  return new Promise(function(res) {
-    if (self._free.length) res(self._free.shift());
-    else self._q.push(res);
-  });
+  return new Promise(function(res){ self._q.push(res); });
 };
-Pool.prototype.put = function(pg) {
+LazyPool.prototype.put = function(pg) {
   if (this._q.length) this._q.shift()(pg);
   else this._free.push(pg);
 };
-Pool.prototype.run = async function(fn) {
+LazyPool.prototype.run = async function(fn) {
   var pg = await this.get();
   try   { return await fn(pg); }
   finally { this.put(pg); }
 };
-Pool.prototype.closeAll = async function() {
+LazyPool.prototype.closeAll = async function() {
   for (var i = 0; i < this._free.length; i++) {
     await this._free[i].close().catch(function(){});
   }
 };
 
-// ── Extract card info ─────────────────────────────────────────────────────────
-async function cardInfo(card) {
-  try {
-    return await card.evaluate(function(el) {
+// ── Batch card info — single \$$eval round-trip ────────────────────────────────
+async function batchCardInfo(page, sel) {
+  return page.$$eval(sel, function(cards) {
+    return cards.map(function(el) {
       function pick(root, sels) {
         for (var i = 0; i < sels.length; i++) {
           var n = root.querySelector(sels[i]);
@@ -421,7 +504,7 @@ async function cardInfo(card) {
                  || null;
       return { name:name, price:price, href:href, hotelId:hotelId };
     });
-  } catch(e) { return null; }
+  }).catch(function(){ return []; });
 }
 
 // ── Fallback price ────────────────────────────────────────────────────────────
@@ -466,6 +549,28 @@ function makeFallback(pool) {
   };
 }
 
+// ── Apply item to results ─────────────────────────────────────────────────────
+function applyItem(item, seenKeys, results, collected) {
+  for (var ki = 0; ki < item.keys.length; ki++) {
+    if (seenKeys.has(item.keys[ki])) return collected;
+  }
+  for (var ki2 = 0; ki2 < item.keys.length; ki2++) seenKeys.add(item.keys[ki2]);
+
+  var row = {
+    index:  results.length + 1,
+    name:   item.info.name,
+    price:  item.price || "N/A",
+    parsed: parsePrice(item.price),
+    src:    item.src,
+    href:   item.info.href || null,
+    key:    item.keys[0]
+  };
+  results.push(row);
+  collected++;
+  console.log("STATE: #" + row.index + " " + row.name + " [" + row.src + "]");
+  return collected;
+}
+
 // ── Process visible cards ─────────────────────────────────────────────────────
 async function processCards(opts) {
   var page      = opts.page;
@@ -476,70 +581,61 @@ async function processCards(opts) {
   var collected = opts.collected;
   var fallback  = opts.fallback;
 
-  var cards = await page.$$(sel);
-  console.log("STATE: found " + cards.length + " visible cards");
+  // single round-trip for all card data
+  var infos = await batchCardInfo(page, sel);
+  console.log("STATE: found " + infos.length + " visible cards");
 
-  for (var i = 0; i < cards.length; i += CONCURRENCY) {
+  var instant = [];
+  var slow    = [];
+
+  for (var i = 0; i < infos.length; i++) {
     if (collected >= MAX_PROPS) break;
+    var info = infos[i];
+    if (!info) continue;
 
-    var chunk = cards.slice(i, i + CONCURRENCY);
-    var batch = await Promise.all(chunk.map(async function(card) {
-      if (collected >= MAX_PROPS) return null;
-      var info = await cardInfo(card);
-      if (!info) return null;
+    var keys = [];
+    if (info.hotelId) keys.push(String(info.hotelId));
+    if (info.href)    keys.push(String(info.href));
+    if (info.name)    keys.push(normName(info.name));
+    keys = keys.filter(function(k){ return !!k; });
+    if (!keys.length) continue;
 
-      var keys = [];
-      if (info.hotelId) keys.push(String(info.hotelId));
-      if (info.href)    keys.push(String(info.href));
-      if (info.name)    keys.push(normName(info.name));
-      keys = keys.filter(function(k){ return !!k; });
+    var dup = false;
+    for (var ki = 0; ki < keys.length; ki++) {
+      if (seenKeys.has(keys[ki])) { dup = true; break; }
+    }
+    if (dup) continue;
 
-      if (!keys.length) return null;
-      for (var ki = 0; ki < keys.length; ki++) {
-        if (seenKeys.has(keys[ki])) return null;
-      }
-
-      var price = null, src = "not-found";
-      if (info.hotelId && priceMap.has(String(info.hotelId))) {
-        price = priceMap.get(String(info.hotelId)); src = "network-json";
-      } else if (info.href && priceMap.has(String(info.href))) {
-        price = priceMap.get(String(info.href)); src = "network-json";
-      } else if (info.price && info.price !== "N/A") {
-        price = info.price; src = "card-dom";
-      } else if (info.href) {
-        price = await fallback(info.href);
-        src   = price ? "fallback-nav" : "not-found";
-      }
-
-      return { keys:keys, info:info, price:price, src:src };
-    }));
-
-    for (var bi = 0; bi < batch.length; bi++) {
-      var item = batch[bi];
-      if (!item || collected >= MAX_PROPS) continue;
-      var dup = false;
-      for (var ki2 = 0; ki2 < item.keys.length; ki2++) {
-        if (seenKeys.has(item.keys[ki2])) { dup = true; break; }
-      }
-      if (dup) continue;
-
-      for (var ki3 = 0; ki3 < item.keys.length; ki3++) seenKeys.add(item.keys[ki3]);
-
-      var row = {
-        index: results.length + 1,
-        name:  item.info.name,
-        price: item.price || "N/A",
-        src:   item.src,
-        href:  item.info.href || null,
-        key:   item.keys[0]
-      };
-      results.push(row);
-      collected++;
-      console.log("STATE: #" + row.index + " " + row.name + " [" + row.src + "]");
+    var price = null, src = "not-found";
+    if (info.hotelId && priceMap.has(String(info.hotelId))) {
+      price = priceMap.get(String(info.hotelId)); src = "network-json";
+    } else if (info.href && priceMap.has(String(info.href))) {
+      price = priceMap.get(String(info.href)); src = "network-json";
+    } else if (info.price && info.price !== "N/A") {
+      price = info.price; src = "card-dom";
     }
 
-    await sleep(30 + Math.random() * 100);
+    var item = { keys:keys, info:info, price:price, src:src };
+    if (src === "not-found" && info.href) slow.push(item);
+    else instant.push(item);
   }
+
+  for (var ii = 0; ii < instant.length; ii++) {
+    if (collected >= MAX_PROPS) break;
+    collected = applyItem(instant[ii], seenKeys, results, collected);
+  }
+
+  if (slow.length) {
+    await Promise.all(slow.map(async function(item) {
+      item.price = await fallback(item.info.href);
+      item.src   = item.price ? "fallback-nav" : "not-found";
+    }));
+    for (var si = 0; si < slow.length; si++) {
+      if (collected >= MAX_PROPS) break;
+      collected = applyItem(slow[si], seenKeys, results, collected);
+    }
+  }
+
   return collected;
 }
 
@@ -560,6 +656,17 @@ async function main() {
   if (HEADFUL) launchOpts.slowMo = SLOWMO;
 
   var browser = await chromium.launch(launchOpts);
+
+  // ── Graceful shutdown ─────────────────────────────────────────────────────
+  async function shutdown(reason) {
+    spinStop();
+    console.log("\nSTATE: " + reason + " — closing browser");
+    await browser.close().catch(function(){});
+    process.exit(0);
+  }
+  process.on("SIGINT",  function(){ shutdown("SIGINT");  });
+  process.on("SIGTERM", function(){ shutdown("SIGTERM"); });
+
   var ctx = await browser.newContext({
     userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
     viewport:  { width:1280, height:900 }
@@ -569,7 +676,7 @@ async function main() {
   var page = await ctx.newPage();
   page.setDefaultNavigationTimeout(60000);
 
-  // Network price capture
+  // ── Network price capture ─────────────────────────────────────────────────
   var priceMap = new Map();
   page.on("response", async function(res) {
     try {
@@ -578,7 +685,9 @@ async function main() {
       if (ct.indexOf("application/json") === -1) return;
       var txt = await res.text().catch(function(){ return null; });
       if (!txt) return;
-      if (txt.indexOf('"price"') === -1 && txt.indexOf('"min_price"') === -1 && txt.indexOf('"offers"') === -1) return;
+      if (txt.indexOf('"price"')     === -1 &&
+          txt.indexOf('"min_price"') === -1 &&
+          txt.indexOf('"offers"')    === -1) return;
       var obj; try { obj = JSON.parse(txt); } catch(e) { return; }
       var list = obj.results || obj.result || obj.properties || obj.hotels || obj.items;
       if (Array.isArray(list)) {
@@ -598,28 +707,20 @@ async function main() {
     } catch(e) {}
   });
 
-  // Homepage
+  // ── Homepage — establish session cleanly ──────────────────────────────────
   console.log("STATE: opening Booking.com homepage");
   await page.goto("https://www.booking.com/", { waitUntil:"domcontentloaded" }).catch(function(){});
   await acceptCookies(page);
+  await sleep(1000 + Math.random() * 500);
 
   var collected = 0;
   var offset    = 0;
   var results   = [];
   var seenKeys  = new Set();
 
-  // Worker pool
-  var workerPages = [];
-  var wCount = Math.min(CONCURRENCY, 6);
-  for (var wi = 0; wi < wCount; wi++) {
-    var wp = await ctx.newPage();
-    wp.setDefaultNavigationTimeout(45000);
-    workerPages.push(wp);
-  }
-  var pool     = new Pool(workerPages);
+  var pool     = new LazyPool(ctx, Math.min(CONCURRENCY, 6), 45000);
   var fallback = makeFallback(pool);
 
-  // Card selectors
   var SELECTORS = [
     "[data-testid=\"property-card\"]",
     ".sr_property_block", ".sr_item", ".sr_item_content"
@@ -628,27 +729,33 @@ async function main() {
   var CHECKIN  = isoDate(new Date());
   var CHECKOUT = isoDate(addDays(new Date(), 1));
 
-  // First page
-  await nav(page, buildUrl(CITY, CHECKIN, CHECKOUT, offset), { retries:3, timeout:30000 }).catch(function(){});
+  // ── First search page ─────────────────────────────────────────────────────
+  await nav(page, buildUrl(CITY, CHECKIN, CHECKOUT, 0), { retries:3, timeout:30000 }).catch(function(){});
   await acceptCookies(page);
-
-  console.log("STATE: initial 10s continuous scroll to trigger lazy-loading");
-  await continuousScroll(page, 10000, 900, 180);
 
   var sel = null;
   for (var si = 0; si < SELECTORS.length; si++) {
-    try { await page.waitForSelector(SELECTORS[si], { timeout:5000 }); sel = SELECTORS[si]; break; }
-    catch(e) {}
+    try {
+      await page.waitForSelector(SELECTORS[si], { timeout:15000 });
+      sel = SELECTORS[si];
+      break;
+    } catch(e) {}
   }
   if (!sel) {
     console.error(col("STATE: no card selector found — aborting", A.red));
+    console.error(col("STATE: current URL: " + page.url(), A.red));
+    await page.screenshot({ path:"debug.png", fullPage:false }).catch(function(){});
+    console.error(col("STATE: screenshot saved to debug.png", A.red));
     await pool.closeAll(); await browser.close(); process.exit(1);
   }
   console.log("STATE: card selector: " + sel);
 
-  // Pagination loop
-  var pageNum     = 0;
-  var emptyStreak = 0;
+  await smartScroll(page, sel, { maxMs:15000, step:600, stableMs:3000, tick:200 });
+  await clickLoadMore(page);
+  await waitIdle(page, { domMs:600, netMs:600, maxMs:6000 });
+
+  var pageNum    = 0;
+  var firstEmpty = false;
 
   while (collected < MAX_PROPS) {
     pageNum++;
@@ -657,11 +764,10 @@ async function main() {
     if (pageNum > 1) {
       await nav(page, buildUrl(CITY, CHECKIN, CHECKOUT, offset), { retries:3 }).catch(function(){});
       await acceptCookies(page);
-      await waitIdle(page);
+      await smartScroll(page, sel, { maxMs:12000, step:600, stableMs:3000, tick:200 });
+      await clickLoadMore(page);
+      await waitIdle(page, { domMs:600, netMs:600, maxMs:6000 });
     }
-
-    await scrollPage(page);
-    await waitIdle(page, { domMs:800, netMs:800, maxMs:10000 });
 
     var before = collected;
     collected = await processCards({
@@ -669,31 +775,30 @@ async function main() {
       results:results, collected:collected, fallback:fallback
     });
     var added = collected - before;
-
     console.log("STATE: page " + pageNum + " added " + added + " new properties");
 
     if (added === 0) {
-      emptyStreak++;
-      if (emptyStreak >= 2) { console.log("STATE: 2 empty pages in a row — stopping"); break; }
+      if (firstEmpty) { console.log("STATE: 2 empty pages in a row — stopping"); break; }
+      firstEmpty = true;
     } else {
-      emptyStreak = 0;
+      firstEmpty = false;
     }
 
     offset += PAGE_SIZE;
-    await sleep(500 + Math.random() * 500);
+    await sleep(300 + Math.random() * 300);
   }
 
-  // Teardown
   await pool.closeAll();
   console.log("STATE: fetch complete");
 
-  // ── Display results ───────────────────────────────────────────────────────
+  // ── Display ───────────────────────────────────────────────────────────────
   results.sort(function(a,b){ return a.index - b.index; });
 
   var nums = [];
   for (var ri = 0; ri < results.length; ri++) {
-    var n = parsePrice(results[ri].price);
-    if (typeof n === "number" && !isNaN(n)) nums.push(n);
+    if (typeof results[ri].parsed === "number" && !isNaN(results[ri].parsed)) {
+      nums.push(results[ri].parsed);
+    }
   }
   var st   = calcStats(nums);
   var minP = st ? st.min : null;
@@ -701,24 +806,25 @@ async function main() {
 
   var maxNameLen = 0;
   for (var ri2 = 0; ri2 < results.length; ri2++) {
-    if (results[ri2].name.length > maxNameLen) maxNameLen = results[ri2].name.length;
+    var labelLen = String(results[ri2].index).length + 2 + results[ri2].name.length;
+    if (labelLen > maxNameLen) maxNameLen = labelLen;
   }
   var divider = col(repeat("\u2500", maxNameLen + 18), A.gray);
 
-  console.log("\n" + bld(col("  Hotel / Motel", A.blue)) + repeat(" ", maxNameLen - 14) + bld(col("| Price / Night", A.blue)));
+  console.log("\n" + bld(col("  #. Hotel / Motel", A.blue)) + repeat(" ", maxNameLen - 16) + bld(col("| Price / Night", A.blue)));
   console.log(divider);
 
   for (var ri3 = 0; ri3 < results.length; ri3++) {
-    var r    = results[ri3];
-    var n2   = parsePrice(r.price);
-    var pad  = repeat(" ", maxNameLen - r.name.length + 2);
-    var pnum = r.price.replace(/[^0-9.]/g, "");
-    var raw  = "  " + r.index + ". " + r.name + pad + "| $" + pnum
+    var r     = results[ri3];
+    var label = r.index + ". " + r.name;
+    var pad   = repeat(" ", maxNameLen - label.length + 2);
+    var pnum  = r.price.replace(/[^0-9.]/g, "");
+    var raw   = "  " + label + pad + "| \$" + pnum;
     var line;
-    if (typeof n2 === "number" && !isNaN(n2)) {
-      if      (minP !== null && n2 === minP) line = col(bld(raw), A.green);
-      else if (maxP !== null && n2 === maxP) line = col(bld(raw), A.red);
-      else                                   line = col(raw, A.white);
+    if (typeof r.parsed === "number" && !isNaN(r.parsed)) {
+      if      (minP !== null && r.parsed === minP) line = col(bld(raw), A.green);
+      else if (maxP !== null && r.parsed === maxP) line = col(bld(raw), A.red);
+      else                                         line = col(raw, A.white);
     } else {
       line = col(raw, A.white);
     }
@@ -729,10 +835,10 @@ async function main() {
 
   if (st) {
     console.log(col(
-      "  Average: \$" + st.avg.toFixed(2) +
-      "   Median: \$" + st.med.toFixed(2) +
-      "   Min: \$"    + st.min +
-      "   Max: \$"    + st.max +
+      "  Average: $" + st.avg.toFixed(2) +
+      "   Median: $" + st.med.toFixed(2) +
+      "   Min: $"    + st.min +
+      "   Max: $"    + st.max +
       "   Count: "   + st.count,
       A.cyan
     ));
