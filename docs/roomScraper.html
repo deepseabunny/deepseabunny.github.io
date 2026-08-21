@@ -197,7 +197,7 @@ function spinStop() {
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
-var MAX_PROPS   = Number(process.env.MAX_PROPERTIES || 444);
+var MAX_PROPS   = Number(process.env.MAX_PROPERTIES || 100);
 var CONCURRENCY = Math.max(1, Number(process.env.CONCURRENCY || 4));
 var CITY        = process.env.CITY || "Mesa, Arizona";
 var KEEP_OPEN   = !!process.env.KEEP_OPEN;
@@ -421,24 +421,34 @@ async function smartScroll(page, sel, opts) {
   return lastCount;
 }
 
-// ── Click load-more if present ────────────────────────────────────────────────
-async function clickLoadMore(page) {
+// ── Click load-more — returns count of clicks made ───────────────────────────
+async function clickLoadMore(page, sel) {
   var btns = [
     "button:has-text(\"Show more\")", "button:has-text(\"Load more\")",
     "a:has-text(\"Show more\")",      "a:has-text(\"Load more\")"
   ];
+  var clicks = 0;
   for (var j = 0; j < btns.length; j++) {
     try {
       var btn = await page.$(btns[j]);
       if (btn) {
+        var before = await page.$$eval(sel, function(els){ return els.length; }).catch(function(){ return 0; });
         console.log(col("STATE: clicking load-more: " + btns[j], A.dim));
         await btn.click().catch(function(){});
-        await page.waitForTimeout(400);
-        return true;
+        // wait for new cards to appear after click
+        await page.waitForFunction(
+          function(args) { return document.querySelectorAll(args[0]).length > args[1]; },
+          [sel, before],
+          { timeout: 8000 }
+        ).catch(function(){});
+        // scroll to bottom again to catch any newly loaded cards
+        await smartScroll(page, sel, { maxMs:10000, step:600, stableMs:2000, tick:200 });
+        clicks++;
+        break;
       }
     } catch(e) {}
   }
-  return false;
+  return clicks;
 }
 
 // ── Lazy worker pool ──────────────────────────────────────────────────────────
@@ -581,7 +591,6 @@ async function processCards(opts) {
   var collected = opts.collected;
   var fallback  = opts.fallback;
 
-  // single round-trip for all card data
   var infos = await batchCardInfo(page, sel);
   console.log("STATE: found " + infos.length + " visible cards");
 
@@ -639,12 +648,16 @@ async function processCards(opts) {
   return collected;
 }
 
-// ── Build search URL ──────────────────────────────────────────────────────────
+// ── Build search URL — stable price sort prevents page overlap ────────────────
 function buildUrl(city, checkin, checkout, offset) {
   return "https://www.booking.com/searchresults.html?" +
     new URLSearchParams({
-      ss: city, checkin: checkin, checkout: checkout,
-      group_adults: "2", offset: String(offset || 0)
+      ss:           city,
+      checkin:      checkin,
+      checkout:     checkout,
+      group_adults: "2",
+      order:        "price",
+      offset:       String(offset || 0)
     }).toString();
 }
 
@@ -751,11 +764,10 @@ async function main() {
   console.log("STATE: card selector: " + sel);
 
   await smartScroll(page, sel, { maxMs:15000, step:600, stableMs:3000, tick:200 });
-  await clickLoadMore(page);
+  var loadMoreClicks = await clickLoadMore(page, sel);
   await waitIdle(page, { domMs:600, netMs:600, maxMs:6000 });
 
-  var pageNum    = 0;
-  var firstEmpty = false;
+  var pageNum = 0;
 
   while (collected < MAX_PROPS) {
     pageNum++;
@@ -765,7 +777,7 @@ async function main() {
       await nav(page, buildUrl(CITY, CHECKIN, CHECKOUT, offset), { retries:3 }).catch(function(){});
       await acceptCookies(page);
       await smartScroll(page, sel, { maxMs:12000, step:600, stableMs:3000, tick:200 });
-      await clickLoadMore(page);
+      await clickLoadMore(page, sel);
       await waitIdle(page, { domMs:600, netMs:600, maxMs:6000 });
     }
 
@@ -777,11 +789,16 @@ async function main() {
     var added = collected - before;
     console.log("STATE: page " + pageNum + " added " + added + " new properties");
 
+    // if load-more already pulled everything on page 1, skip pagination
+    if (pageNum === 1 && loadMoreClicks > 0 && added > PAGE_SIZE) {
+      console.log("STATE: load-more captured full market — skipping pagination");
+      break;
+    }
+
+    // stop as soon as a page yields nothing new
     if (added === 0) {
-      if (firstEmpty) { console.log("STATE: 2 empty pages in a row — stopping"); break; }
-      firstEmpty = true;
-    } else {
-      firstEmpty = false;
+      console.log("STATE: no new properties — market exhausted, stopping");
+      break;
     }
 
     offset += PAGE_SIZE;
@@ -789,10 +806,16 @@ async function main() {
   }
 
   await pool.closeAll();
-  console.log("STATE: fetch complete");
+  console.log("STATE: fetch complete — " + collected + " total properties");
 
-  // ── Display ───────────────────────────────────────────────────────────────
-  results.sort(function(a,b){ return a.index - b.index; });
+  // ── Display — sort by price ascending, re-number ──────────────────────────
+  results.sort(function(a,b) {
+    var ap = (typeof a.parsed === "number" && !isNaN(a.parsed)) ? a.parsed : Infinity;
+    var bp = (typeof b.parsed === "number" && !isNaN(b.parsed)) ? b.parsed : Infinity;
+    if (ap !== bp) return ap - bp;
+    return a.index - b.index;
+  });
+  for (var ri0 = 0; ri0 < results.length; ri0++) results[ri0].index = ri0 + 1;
 
   var nums = [];
   for (var ri = 0; ri < results.length; ri++) {
@@ -835,10 +858,10 @@ async function main() {
 
   if (st) {
     console.log(col(
-      "  Average: $" + st.avg.toFixed(2) +
-      "   Median: $" + st.med.toFixed(2) +
-      "   Min: $"    + st.min +
-      "   Max: $"    + st.max +
+      "  Average: \$" + st.avg.toFixed(2) +
+      "   Median: \$" + st.med.toFixed(2) +
+      "   Min: \$"    + st.min +
+      "   Max: \$"    + st.max +
       "   Count: "   + st.count,
       A.cyan
     ));
@@ -857,7 +880,6 @@ main().catch(function(err) {
   console.error("STATE: fatal: " + (err && err.stack ? err.stack : String(err)));
   process.exit(1);
 });
-
 </code></pre>
       </details>
     </div>
