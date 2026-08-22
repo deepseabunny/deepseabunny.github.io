@@ -22,13 +22,16 @@
     footer{margin-top:18px;color:var(--muted);font-size:13px}
     .meta{font-size:12px;color:var(--muted);margin-bottom:8px}
     .note{font-size:13px;color:#ffd580;background:rgba(255,213,122,0.06);padding:10px;border-radius:8px;border:1px solid rgba(255,213,122,0.06);margin-bottom:12px}
+    .examples{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .small{font-size:12px;color:var(--muted);margin-top:8px}
+    @media (max-width:800px){ .examples{grid-template-columns:1fr} }
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
       <h1>roomScraper Setup</h1>
-      <p class="lead">One file you can open in a browser to copy the installer and README. The page includes a fully copyable <code>setup.sh</code> and a README for quick start.</p>
+      <p class="lead">Copy the installer and README below. The page includes a fully copyable <code>setup.sh</code>, README, and platform launch examples for macOS (OSX) and Windows.</p>
     </header>
 
     <div class="grid">
@@ -527,7 +530,7 @@ async function processCards(opts) {
     }
 
     var item = { keys:keys, info:info, price:price, src:src };
-    if (src === "not-found" and info.href) slow.push(item);
+    if (src === "not-found" && info.href) slow.push(item);
     else instant.push(item);
   }
 
@@ -835,7 +838,7 @@ node $NODE_ARGS "$SCRIPT"
 
       <section class="card" id="readme">
         <div class="meta">README</div>
-        <div class="label">Quick start and notes</div>
+        <div class="label">Quick start, platform launch examples, and notes</div>
 
         <div class="note">
           Tip: run this on a machine with Node.js installed. The script will create <code>roomScraper.mjs</code> if missing, install Playwright and Chromium, then run the scraper.
@@ -846,30 +849,73 @@ node $NODE_ARGS "$SCRIPT"
 - <code>setup.sh</code> — installer and runner (this script).
 - <code>roomScraper.mjs</code> — the Playwright scraper (created if missing).
 
-<strong>Quick start</strong>
+<strong>Quick start (macOS / Linux)</strong>
 1. Make the installer executable:
    - <code>chmod +x setup.sh</code>
 2. Run it:
    - <code>./setup.sh</code>
-3. Environment variables you can set:
-   - <code>MAX_PROPERTIES</code> — number of properties to collect (default 100)
-   - <code>CONCURRENCY</code> — parallel page workers (default 4)
-   - <code>CITY</code> — search city (default "Mesa, Arizona")
-   - <code>KEEP_OPEN</code> — leave browser open (set to any value)
-   - <code>HEADFUL</code> — run headed (set to any value)
-   - <code>SLOWMO</code> — slowMo ms when HEADFUL
-   - <code>PAGE_SIZE</code> — booking.com page size (default 25)
 
-<strong>Two example log lines from the scraper</strong>
-- <code>STATE: scraper starting — target 100 properties</code>
-- <code>STATE: opening Booking.com homepage</code>
+<strong>Launch examples (macOS / OSX Terminal)</strong>
+- One-line with temporary env vars:
+  <code>MAX_PROPERTIES=50 CONCURRENCY=6 CITY="New York, NY" ./setup.sh</code>
 
-These lines appear in the scraper output to indicate startup and that the homepage was opened.
+- Export then run (session persistent):
+  <code>export MAX_PROPERTIES=200</code>
+  <code>export CONCURRENCY=4</code>
+  <code>export CITY="Mesa, Arizona"</code>
+  <code>./setup.sh</code>
+
+- Headed run with slow motion:
+  <code>HEADFUL=1 SLOWMO=120 ./setup.sh</code>
+
+- Background run with logs:
+  <code>MAX_PROPERTIES=100 CITY="San Diego, California" nohup ./setup.sh &gt; scraper.log 2&gt;&amp;1 &amp;</code>
+
+<strong>Launch examples (Windows)</strong>
+
+<em>PowerShell (recommended)</em>
+- One-line temporary env vars:
+  <code>$env:MAX_PROPERTIES='50'; $env:CONCURRENCY='6'; $env:CITY='New York, NY'; ./setup.sh</code>
+
+- Export then run (session):
+  <code>$env:MAX_PROPERTIES='200'</code>
+  <code>$env:CONCURRENCY='4'</code>
+  <code>$env:CITY='Mesa, Arizona'</code>
+  <code>./setup.sh</code>
+
+- Run with extra Node args:
+  <code>$env:SETUP_NODE_ARGS='--trace-warnings'; $env:MAX_PROPERTIES='30'; ./setup.sh</code>
+
+<em>Command Prompt (cmd.exe)</em>
+- Set env vars for the session then run:
+  <code>set MAX_PROPERTIES=50</code>
+  <code>set CONCURRENCY=6</code>
+  <code>set CITY=New York, NY</code>
+  <code>bash setup.sh</code>
+
+(Windows: use Git Bash, WSL, or a Bash-capable shell to run the provided <code>setup.sh</code>. PowerShell can run it directly if Bash is available.)
+
+<strong>Examples for repeatable runs</strong>
+- Use an env file on macOS / Linux:
+  <code>set -o allexport; source ./envfile; set +o allexport; ./setup.sh</code>
+
+- Crontab example (macOS / Linux) — run nightly at 02:30:
+  <code>30 2 * * * cd /path/to/scraper &amp;&amp; MAX_PROPERTIES=50 CITY="Mesa, Arizona" ./setup.sh &gt;&gt; /var/log/roomscraper.log 2&gt;&amp;1</code>
+
+<strong>Environment variables (quick reference)</strong>
+- <code>MAX_PROPERTIES</code> — number of properties to collect (default 100)  
+- <code>CONCURRENCY</code> — parallel page workers (default 4)  
+- <code>CITY</code> — search city (default "Mesa, Arizona")  
+- <code>KEEP_OPEN</code> — leave browser open if set  
+- <code>HEADFUL</code> — run browser headed if set  
+- <code>SLOWMO</code> — slowMo ms when HEADFUL (default 60)  
+- <code>PAGE_SIZE</code> — booking.com page size (default 25)  
+- <code>SETUP_NODE_ARGS</code> — extra args passed to node when running the script
 
 <strong>Security & usage notes</strong>
-- Use responsibly and respect target site terms of service.
-- Running many concurrent headless browsers may consume significant CPU and memory.
-- If you need a Docker image, systemd service, or scheduled run, I can provide those next.
+- Use responsibly and respect target site terms of service.  
+- Running many concurrent headless browsers may consume significant CPU and memory.  
+- If you want a Dockerfile, systemd service, or scheduled run, I can provide those next.
         </div>
 
         <div style="margin-top:12px">
@@ -879,7 +925,7 @@ These lines appear in the scraper output to indicate startup and that the homepa
     </div>
 
     <footer>
-      <div class="meta">Generated for you — copy the script and run it locally.</div>
+      <div class="meta">Copy the script and run it locally. Use PowerShell, WSL, or Git Bash on Windows for best compatibility.</div>
     </footer>
   </div>
 
