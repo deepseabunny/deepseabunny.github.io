@@ -1,0 +1,902 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>roomScraper Setup</title>
+  <style>
+    :root{--bg:#0f1720;--card:#0b1220;--muted:#9aa4b2;--accent:#60a5fa;--mono:#dbeafe}
+    body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial; background:linear-gradient(180deg,#071025 0%, #071827 100%); color:#e6eef8; margin:0; padding:32px;}
+    .wrap{max-width:1100px;margin:0 auto;}
+    header{margin-bottom:20px}
+    h1{font-size:20px;margin:0 0 6px;color:var(--accent)}
+    p.lead{margin:0;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:1fr;gap:18px}
+    .card{background:var(--card);border:1px solid rgba(255,255,255,0.03);padding:18px;border-radius:10px;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
+    .label{font-size:12px;color:var(--muted);margin-bottom:8px}
+    pre.code{background:#020617;color:var(--mono);padding:14px;border-radius:8px;overflow:auto;max-height:520px;border:1px solid rgba(255,255,255,0.03);font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace;font-size:12px;line-height:1.45}
+    .actions{display:flex;gap:8px;margin-top:12px}
+    .btn{background:var(--accent);color:#041025;padding:8px 12px;border-radius:8px;text-decoration:none;font-weight:600;border:none;cursor:pointer}
+    .btn.secondary{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.04)}
+    .readme{white-space:pre-wrap;font-family:inherit;color:var(--muted);font-size:13px}
+    footer{margin-top:18px;color:var(--muted);font-size:13px}
+    .meta{font-size:12px;color:var(--muted);margin-bottom:8px}
+    .note{font-size:13px;color:#ffd580;background:rgba(255,213,122,0.06);padding:10px;border-radius:8px;border:1px solid rgba(255,213,122,0.06);margin-bottom:12px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>roomScraper Setup</h1>
+      <p class="lead">One file you can open in a browser to copy the installer and README. The page includes a fully copyable <code>setup.sh</code> and a README for quick start.</p>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <div class="meta">Copyable installer script</div>
+        <div class="label">setup.sh — creates <code>roomScraper.mjs</code> if missing, installs dependencies, installs Playwright Chromium, and runs the scraper</div>
+
+        <pre class="code" id="setupScript" tabindex="0">
+#!/usr/bin/env bash
+# setup.sh — create roomScraper.mjs if missing, install dependencies, Playwright browsers, and run the scraper
+# Place this file in the directory where you want the scraper to live.
+# Make executable: chmod +x setup.sh
+# Run: ./setup.sh
+
+set -euo pipefail
+
+SCRIPT="roomScraper.mjs"
+
+echo
+echo ">>> Setup script for roomScraper"
+echo
+
+# --- Check Node.js ---
+echo ">>> Checking Node.js..."
+if ! command -v node >/dev/null 2>&1; then
+  echo "ERROR: Node.js is not installed. Install Node.js (v16+) and re-run."
+  exit 1
+fi
+echo "Node: $(node -v)"
+
+# --- Create roomScraper.mjs if it doesn't exist ---
+if [ -f "$SCRIPT" ]; then
+  echo ">>> $SCRIPT already exists — skipping creation."
+else
+  echo ">>> Creating $SCRIPT with embedded scraper source..."
+  cat > "$SCRIPT" <<'EOF'
+// roomScraper.mjs
+import { chromium } from "playwright";
+import readline from "readline";
+
+// ── ANSI ──────────────────────────────────────────────────────────────────────
+var A = {
+  reset:"\x1b[0m", bold:"\x1b[1m", dim:"\x1b[2m",
+  red:"\x1b[31m",  green:"\x1b[32m", yellow:"\x1b[33m",
+  blue:"\x1b[34m", cyan:"\x1b[36m",  white:"\x1b[37m", gray:"\x1b[90m"
+};
+function col(txt, code) { return code + txt + A.reset; }
+function bld(txt)       { return A.bold + txt + A.reset; }
+function dim(txt)       { return A.dim  + txt + A.reset; }
+function repeat(ch, n)  { var s = ""; for (var i = 0; i < n; i++) s += ch; return s; }
+
+// ── Spinner ───────────────────────────────────────────────────────────────────
+var FRAMES = ["⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠇","⠏"];
+var _si = 0, _st = null;
+function spinStart(lbl) {
+  if (_st) return;
+  _st = setInterval(function() {
+    readline.clearLine(process.stdout, 0);
+    readline.cursorTo(process.stdout, 0);
+    process.stdout.write(col(FRAMES[_si++ % FRAMES.length], A.cyan) + " " + lbl);
+  }, 80);
+}
+function spinStop() {
+  if (!_st) return;
+  clearInterval(_st); _st = null;
+  readline.clearLine(process.stdout, 0);
+  readline.cursorTo(process.stdout, 0);
+}
+
+// ── Config ────────────────────────────────────────────────────────────────────
+var MAX_PROPS   = Number(process.env.MAX_PROPERTIES || 100);
+var CONCURRENCY = Math.max(1, Number(process.env.CONCURRENCY || 4));
+var CITY        = process.env.CITY || "Mesa, Arizona";
+var KEEP_OPEN   = !!process.env.KEEP_OPEN;
+var HEADFUL     = !!process.env.HEADFUL;
+var SLOWMO      = Number(process.env.SLOWMO || 60);
+var PAGE_SIZE   = Number(process.env.PAGE_SIZE || 25);
+
+// ── Pure helpers ─────────────────────────────────────────────────────────────
+function sleep(ms)    { return new Promise(function(r){ setTimeout(r, ms); }); }
+function isoDate(d)   { return d.toISOString().slice(0, 10); }
+function addDays(d,n) { var x = new Date(d); x.setDate(x.getDate()+n); return x; }
+
+function normName(s) {
+  return (s || "").toLowerCase().replace(/[^\w\s-]+/g, "").replace(/\s+/g, " ").trim();
+}
+
+function parsePrice(raw) {
+  if (!raw) return null;
+  var s = raw.replace(/[^0-9.,]/g, "").trim();
+  if (!s) return null;
+  var hasC = s.indexOf(",") !== -1;
+  var hasD = s.indexOf(".") !== -1;
+  if (hasC && hasD) {
+    return s.lastIndexOf(",") > s.lastIndexOf(".")
+      ? Number(s.replace(/\./g, "").replace(",", "."))
+      : Number(s.replace(/,/g, ""));
+  }
+  if (hasC) {
+    var p = s.split(",");
+    return (p.length === 2 && p[1].length === 2)
+      ? Number(s.replace(",", "."))
+      : Number(s.replace(/,/g, ""));
+  }
+  if (hasD) {
+    var p2 = s.split(".");
+    return (p2.length === 2 && p2[1].length === 2)
+      ? Number(s)
+      : Number(s.replace(/\./g, ""));
+  }
+  return Number(s);
+}
+
+function calcStats(nums) {
+  var n = nums.length;
+  if (!n) return null;
+  var sum = nums.reduce(function(a,b){ return a+b; }, 0);
+  var avg = sum / n;
+  var sorted = nums.slice().sort(function(a,b){ return a-b; });
+  var med = n%2 ? sorted[(n-1)/2] : (sorted[n/2-1]+sorted[n/2])/2;
+  return {
+    count: n, sum: sum, avg: avg, med: med,
+    min: sorted[0], max: sorted[n-1],
+    below: nums.filter(function(x){ return x < avg; }).length,
+    above: nums.filter(function(x){ return x > avg; }).length
+  };
+}
+
+// ── Cookie consent — fires at most once ───────────────────────────────────────
+var _cookiesDone = false;
+async function acceptCookies(page) {
+  if (_cookiesDone) return;
+  try {
+    var btn = page.locator("button:has-text(\"Accept\")");
+    if (await btn.isVisible({ timeout: 1500 })) {
+      await btn.click();
+      _cookiesDone = true;
+      console.log("STATE: accepted cookies");
+    }
+  } catch(e) {}
+}
+
+// ── Safe navigation ───────────────────────────────────────────────────────────
+async function nav(page, url, opts) {
+  var retries = (opts && opts.retries) || 3;
+  var timeout = (opts && opts.timeout) || 30000;
+  for (var i = 1; i <= retries; i++) {
+    try {
+      console.log(col("STATE: navigating (attempt " + i + ") -> " + url, A.gray));
+      var res = await page.goto(url, { waitUntil:"domcontentloaded", timeout: timeout * i });
+      var status = res ? res.status() : "?";
+      if (page.url().indexOf("chal_t") !== -1) {
+        console.log(col("STATE: bot challenge detected — waiting for redirect", A.yellow));
+        await page.waitForNavigation({ waitUntil:"domcontentloaded", timeout:15000 }).catch(function(){});
+      }
+      console.log(col("STATE: navigation response " + status, A.gray));
+      return res;
+    } catch(err) {
+      console.warn(col("STATE: attempt " + i + " failed: " + err.message, A.yellow));
+      if (i === retries) throw err;
+      var wait = 500 * i + Math.random() * 300;
+      console.log(col("STATE: retrying in " + Math.round(wait) + "ms", A.dim));
+      await sleep(wait);
+    }
+  }
+}
+
+// ── waitIdle — Promise.race, listeners cleaned up ─────────────────────────────
+function waitIdle(page, opts) {
+  var domMs = (opts && opts.domMs) || 600;
+  var netMs = (opts && opts.netMs) || 600;
+  var maxMs = (opts && opts.maxMs) || 8000;
+
+  return Promise.race([
+    new Promise(function(resolve) {
+      var inflight = 0;
+      var domTimer = null, netTimer = null;
+      var settled  = false;
+
+      function done() {
+        if (settled) return;
+        settled = true;
+        clearTimeout(domTimer);
+        clearTimeout(netTimer);
+        page.removeListener("request",         onReq);
+        page.removeListener("requestfinished", onDone);
+        page.removeListener("requestfailed",   onDone);
+        resolve(true);
+      }
+      function checkIdle() { if (inflight === 0) done(); }
+      function resetDom()  { clearTimeout(domTimer); domTimer = setTimeout(checkIdle, domMs); }
+      function resetNet()  { clearTimeout(netTimer); netTimer = setTimeout(checkIdle, netMs); }
+      function onReq()     { inflight++; resetNet(); }
+      function onDone()    { inflight = Math.max(0, inflight-1); resetNet(); }
+
+      page.on("request",         onReq);
+      page.on("requestfinished", onDone);
+      page.on("requestfailed",   onDone);
+
+      page.evaluate(function() {
+        window.__ldc = Date.now();
+        if (window.__mobs) window.__mobs.disconnect();
+        window.__mobs = new MutationObserver(function(){ window.__ldc = Date.now(); });
+        window.__mobs.observe(document, { childList:true, subtree:true });
+      }).catch(function(){});
+
+      resetDom();
+      resetNet();
+    }),
+    sleep(maxMs).then(function(){ return false; })
+  ]).finally(function() {
+    page.evaluate(function() {
+      try { if (window.__mobs) { window.__mobs.disconnect(); window.__mobs = null; } } catch(e) {}
+    }).catch(function(){});
+  });
+}
+
+// ── Smart scroll ─────────────────────────────────────────────────────────────
+async function smartScroll(page, sel, opts) {
+  var maxMs    = (opts && opts.maxMs)    || 15000;
+  var step     = (opts && opts.step)     || 600;
+  var stableMs = (opts && opts.stableMs) || 3000;
+  var tick     = (opts && opts.tick)     || 200;
+
+  var t0          = Date.now();
+  var lastCount   = 0;
+  var stableSince = Date.now();
+  var atBottom    = false;
+
+  console.log("STATE: smart scroll starting");
+  spinStart(col("scrolling...", A.cyan));
+
+  while (Date.now() - t0 < maxMs) {
+    var pos = await page.evaluate(function(s) {
+      window.scrollBy(0, s);
+      return {
+        scrollY: window.scrollY,
+        innerH:  window.innerHeight,
+        scrollH: document.documentElement.scrollHeight
+      };
+    }, step).catch(function(){ return null; });
+
+    await page.waitForTimeout(tick);
+
+    var count = await page.$$eval(sel, function(els){ return els.length; })
+      .catch(function(){ return lastCount; });
+
+    if (count > lastCount) {
+      lastCount   = count;
+      stableSince = Date.now();
+      atBottom    = false;
+    }
+
+    if (pos && (pos.scrollY + pos.innerH >= pos.scrollH - 50)) {
+      if (!atBottom) {
+        atBottom = true;
+        spinStop();
+        console.log("STATE: reached page bottom (" + lastCount + " cards) — waiting for trailing batch");
+        spinStart(col("waiting for trailing batch...", A.cyan));
+        await page.waitForTimeout(stableMs);
+        var finalCount = await page.$$eval(sel, function(els){ return els.length; })
+          .catch(function(){ return lastCount; });
+        if (finalCount > lastCount) {
+          lastCount   = finalCount;
+          stableSince = Date.now();
+          atBottom    = false;
+          continue;
+        }
+        break;
+      }
+    }
+
+    if ((Date.now() - stableSince) >= stableMs && !atBottom) {
+      await page.evaluate(function(){
+        window.scrollTo(0, document.documentElement.scrollHeight);
+      }).catch(function(){});
+      await page.waitForTimeout(stableMs);
+      var afterJump = await page.$$eval(sel, function(els){ return els.length; })
+        .catch(function(){ return lastCount; });
+      if (afterJump > lastCount) {
+        lastCount   = afterJump;
+        stableSince = Date.now();
+      } else {
+        break;
+      }
+    }
+  }
+
+  spinStop();
+  await page.evaluate(function(){ window.scrollTo(0, 0); }).catch(function(){});
+  console.log("STATE: smart scroll done — " + lastCount + " cards visible, reset to top");
+  return lastCount;
+}
+
+// ── Click load-more — returns count of clicks made ───────────────────────────
+async function clickLoadMore(page, sel) {
+  var btns = [
+    "button:has-text(\"Show more\")", "button:has-text(\"Load more\")",
+    "a:has-text(\"Show more\")",      "a:has-text(\"Load more\")"
+  ];
+  var clicks = 0;
+  for (var j = 0; j < btns.length; j++) {
+    try {
+      var btn = await page.$(btns[j]);
+      if (btn) {
+        var before = await page.$$eval(sel, function(els){ return els.length; }).catch(function(){ return 0; });
+        console.log(col("STATE: clicking load-more: " + btns[j], A.dim));
+        await btn.click().catch(function(){});
+        // wait for new cards to appear after click
+        await page.waitForFunction(
+          function(args) { return document.querySelectorAll(args[0]).length > args[1]; },
+          [sel, before],
+          { timeout: 8000 }
+        ).catch(function(){});
+        // scroll to bottom again to catch any newly loaded cards
+        await smartScroll(page, sel, { maxMs:10000, step:600, stableMs:2000, tick:200 });
+        clicks++;
+        break;
+      }
+    } catch(e) {}
+  }
+  return clicks;
+}
+
+// ── Lazy worker pool ──────────────────────────────────────────────────────────
+function LazyPool(ctx, maxSize, navTimeout) {
+  this._ctx        = ctx;
+  this._maxSize    = maxSize;
+  this._navTimeout = navTimeout || 45000;
+  this._free       = [];
+  this._q          = [];
+  this._total      = 0;
+}
+LazyPool.prototype.get = async function() {
+  if (this._free.length) return this._free.shift();
+  if (this._total < this._maxSize) {
+    this._total++;
+    var wp = await this._ctx.newPage();
+    wp.setDefaultNavigationTimeout(this._navTimeout);
+    return wp;
+  }
+  var self = this;
+  return new Promise(function(res){ self._q.push(res); });
+};
+LazyPool.prototype.put = function(pg) {
+  if (this._q.length) this._q.shift()(pg);
+  else this._free.push(pg);
+};
+LazyPool.prototype.run = async function(fn) {
+  var pg = await this.get();
+  try   { return await fn(pg); }
+  finally { this.put(pg); }
+};
+LazyPool.prototype.closeAll = async function() {
+  for (var i = 0; i < this._free.length; i++) {
+    await this._free[i].close().catch(function(){});
+  }
+};
+
+// ── Batch card info — single \$$eval round-trip ────────────────────────────────
+async function batchCardInfo(page, sel) {
+  return page.$$eval(sel, function(cards) {
+    return cards.map(function(el) {
+      function pick(root, sels) {
+        for (var i = 0; i < sels.length; i++) {
+          var n = root.querySelector(sels[i]);
+          if (n && n.innerText && n.innerText.trim()) return n.innerText.trim();
+        }
+        return null;
+      }
+      var name = pick(el, [
+        "[data-testid=\"title\"]", ".sr-hotel__name", ".fcab3ed991", "h3", "h2"
+      ]) || "Unknown";
+      var price = pick(el, [
+        "[data-testid=\"price-and-discounted-price\"]",
+        ".bui-price-display__value",
+        ".prco-inline-block-maker-helper",
+        ".price_total", ".sr_price", ".price"
+      ]);
+      var linkEl  = el.querySelector("a[href*=\"/hotel/\"],a[href*=\"booking.com/\"]");
+      var href    = linkEl ? linkEl.href : null;
+      var hotelId = el.getAttribute("data-hotelid")
+                 || el.getAttribute("data-hotel-id")
+                 || (el.dataset && el.dataset.hotelId)
+                 || null;
+      return { name:name, price:price, href:href, hotelId:hotelId };
+    });
+  }).catch(function(){ return []; });
+}
+
+// ── Fallback price ────────────────────────────────────────────────────────────
+function makeFallback(pool) {
+  return async function fallback(href) {
+    return pool.run(async function(pg) {
+      try {
+        console.log("STATE: fallback fetch -> " + href);
+        await nav(pg, href, { retries:2, timeout:20000 }).catch(function(){});
+        var doms = [
+          ".bui-price-display__value",
+          ".hp__hotel-price .prco-valign-middle-helper",
+          ".hprt-price-price-standard",
+          ".prco-inline-block-maker-helper",
+          ".roomstable .price"
+        ];
+        for (var i = 0; i < doms.length; i++) {
+          try {
+            var el  = await pg.waitForSelector(doms[i], { timeout:3000 });
+            var txt = (await el.innerText()).trim();
+            if (txt) { console.log("STATE: fallback price via selector"); return txt; }
+          } catch(e) {}
+        }
+        var blocks = await pg.$$eval(
+          "script[type=\"application/ld+json\"]",
+          function(ns){ return ns.map(function(n){ return n.innerText; }); }
+        ).catch(function(){ return []; });
+        for (var j = 0; j < blocks.length; j++) {
+          try {
+            var obj = JSON.parse(blocks[j]);
+            if (obj && obj.offers && obj.offers.price) {
+              return (obj.offers.price + " " + (obj.offers.priceCurrency || "")).trim();
+            }
+          } catch(e) {}
+        }
+        return null;
+      } catch(e) {
+        console.warn("STATE: fallback error: " + e.message);
+        return null;
+      }
+    });
+  };
+}
+
+// ── Apply item to results ─────────────────────────────────────────────────────
+function applyItem(item, seenKeys, results, collected) {
+  for (var ki = 0; ki < item.keys.length; ki++) {
+    if (seenKeys.has(item.keys[ki])) return collected;
+  }
+  for (var ki2 = 0; ki2 < item.keys.length; ki2++) seenKeys.add(item.keys[ki2]);
+
+  var row = {
+    index:  results.length + 1,
+    name:   item.info.name,
+    price:  item.price || "N/A",
+    parsed: parsePrice(item.price),
+    src:    item.src,
+    href:   item.info.href || null,
+    key:    item.keys[0]
+  };
+  results.push(row);
+  collected++;
+  console.log("STATE: #" + row.index + " " + row.name + " [" + row.src + "]");
+  return collected;
+}
+
+// ── Process visible cards ─────────────────────────────────────────────────────
+async function processCards(opts) {
+  var page      = opts.page;
+  var sel       = opts.sel;
+  var priceMap  = opts.priceMap;
+  var seenKeys  = opts.seenKeys;
+  var results   = opts.results;
+  var collected = opts.collected;
+  var fallback  = opts.fallback;
+
+  var infos = await batchCardInfo(page, sel);
+  console.log("STATE: found " + infos.length + " visible cards");
+
+  var instant = [];
+  var slow    = [];
+
+  for (var i = 0; i < infos.length; i++) {
+    if (collected >= MAX_PROPS) break;
+    var info = infos[i];
+    if (!info) continue;
+
+    var keys = [];
+    if (info.hotelId) keys.push(String(info.hotelId));
+    if (info.href)    keys.push(String(info.href));
+    if (info.name)    keys.push(normName(info.name));
+    keys = keys.filter(function(k){ return !!k; });
+    if (!keys.length) continue;
+
+    var dup = false;
+    for (var ki = 0; ki < keys.length; ki++) {
+      if (seenKeys.has(keys[ki])) { dup = true; break; }
+    }
+    if (dup) continue;
+
+    var price = null, src = "not-found";
+    if (info.hotelId && priceMap.has(String(info.hotelId))) {
+      price = priceMap.get(String(info.hotelId)); src = "network-json";
+    } else if (info.href && priceMap.has(String(info.href))) {
+      price = priceMap.get(String(info.href)); src = "network-json";
+    } else if (info.price && info.price !== "N/A") {
+      price = info.price; src = "card-dom";
+    }
+
+    var item = { keys:keys, info:info, price:price, src:src };
+    if (src === "not-found" and info.href) slow.push(item);
+    else instant.push(item);
+  }
+
+  for (var ii = 0; ii < instant.length; ii++) {
+    if (collected >= MAX_PROPS) break;
+    collected = applyItem(instant[ii], seenKeys, results, collected);
+  }
+
+  if (slow.length) {
+    await Promise.all(slow.map(async function(item) {
+      item.price = await fallback(item.info.href);
+      item.src   = item.price ? "fallback-nav" : "not-found";
+    }));
+    for (var si = 0; si < slow.length; si++) {
+      if (collected >= MAX_PROPS) break;
+      collected = applyItem(slow[si], seenKeys, results, collected);
+    }
+  }
+
+  return collected;
+}
+
+// ── Build search URL — stable price sort prevents page overlap ────────────────
+function buildUrl(city, checkin, checkout, offset) {
+  return "https://www.booking.com/searchresults.html?" +
+    new URLSearchParams({
+      ss:           city,
+      checkin:      checkin,
+      checkout:     checkout,
+      group_adults: "2",
+      order:        "price",
+      offset:       String(offset || 0)
+    }).toString();
+}
+
+// ── MAIN ─────────────────────────────────────────────────────────────────────
+async function main() {
+  console.log("STATE: scraper starting — target " + MAX_PROPS + " properties");
+
+  var launchOpts = { headless: !HEADFUL, args:["--no-sandbox","--disable-setuid-sandbox"] };
+  if (HEADFUL) launchOpts.slowMo = SLOWMO;
+
+  var browser = await chromium.launch(launchOpts);
+
+  // ── Graceful shutdown ─────────────────────────────────────────────────────
+  async function shutdown(reason) {
+    spinStop();
+    console.log("\nSTATE: " + reason + " — closing browser");
+    await browser.close().catch(function(){});
+    process.exit(0);
+  }
+  process.on("SIGINT",  function(){ shutdown("SIGINT");  });
+  process.on("SIGTERM", function(){ shutdown("SIGTERM"); });
+
+  var ctx = await browser.newContext({
+    userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
+    viewport:  { width:1280, height:900 }
+  });
+  await ctx.setExtraHTTPHeaders({ "accept-language":"en-US,en;q=0.9" });
+
+  var page = await ctx.newPage();
+  page.setDefaultNavigationTimeout(60000);
+
+  // ── Network price capture ─────────────────────────────────────────────────
+  var priceMap = new Map();
+  page.on("response", async function(res) {
+    try {
+      if (res.url().indexOf("booking.com") === -1) return;
+      var ct = res.headers()["content-type"] || "";
+      if (ct.indexOf("application/json") === -1) return;
+      var txt = await res.text().catch(function(){ return null; });
+      if (!txt) return;
+      if (txt.indexOf('"price"')     === -1 &&
+          txt.indexOf('"min_price"') === -1 &&
+          txt.indexOf('"offers"')    === -1) return;
+      var obj; try { obj = JSON.parse(txt); } catch(e) { return; }
+      var list = obj.results || obj.result || obj.properties || obj.hotels || obj.items;
+      if (Array.isArray(list)) {
+        list.forEach(function(it) {
+          var id    = it.hotel_id || it.id || it.property_id || it.hotelId;
+          var href  = it.url || it.hotel_url || it.link;
+          var price = it.price || it.min_price || it.price_with_currency ||
+                      (it.offers && it.offers[0] && it.offers[0].price);
+          if (id    && price) priceMap.set(String(id),   String(price));
+          if (href  && price) priceMap.set(String(href), String(price));
+        });
+      } else if (Array.isArray(obj.offers)) {
+        obj.offers.forEach(function(o) {
+          if (o.price && o.url) priceMap.set(String(o.url), String(o.price));
+        });
+      }
+    } catch(e) {}
+  });
+
+  // ── Homepage — establish session cleanly ──────────────────────────────────
+  console.log("STATE: opening Booking.com homepage");
+  await page.goto("https://www.booking.com/", { waitUntil:"domcontentloaded" }).catch(function(){});
+  await acceptCookies(page);
+  await sleep(1000 + Math.random() * 500);
+
+  var collected = 0;
+  var offset    = 0;
+  var results   = [];
+  var seenKeys  = new Set();
+
+  var pool     = new LazyPool(ctx, Math.min(CONCURRENCY, 6), 45000);
+  var fallback = makeFallback(pool);
+
+  var SELECTORS = [
+    "[data-testid=\"property-card\"]",
+    ".sr_property_block", ".sr_item", ".sr_item_content"
+  ];
+
+  var CHECKIN  = isoDate(new Date());
+  var CHECKOUT = isoDate(addDays(new Date(), 1));
+
+  // ── First search page ─────────────────────────────────────────────────────
+  await nav(page, buildUrl(CITY, CHECKIN, CHECKOUT, 0), { retries:3, timeout:30000 }).catch(function(){});
+  await acceptCookies(page);
+
+  var sel = null;
+  for (var si = 0; si < SELECTORS.length; si++) {
+    try {
+      await page.waitForSelector(SELECTORS[si], { timeout:15000 });
+      sel = SELECTORS[si];
+      break;
+    } catch(e) {}
+  }
+  if (!sel) {
+    console.error(col("STATE: no card selector found — aborting", A.red));
+    console.error(col("STATE: current URL: " + page.url(), A.red));
+    await page.screenshot({ path:"debug.png", fullPage:false }).catch(function(){});
+    console.error(col("STATE: screenshot saved to debug.png", A.red));
+    await pool.closeAll(); await browser.close(); process.exit(1);
+  }
+  console.log("STATE: card selector: " + sel);
+
+  await smartScroll(page, sel, { maxMs:15000, step:600, stableMs:3000, tick:200 });
+  var loadMoreClicks = await clickLoadMore(page, sel);
+  await waitIdle(page, { domMs:600, netMs:600, maxMs:6000 });
+
+  var pageNum = 0;
+
+  while (collected < MAX_PROPS) {
+    pageNum++;
+    console.log("STATE: page " + pageNum + " | offset " + offset + " | collected " + collected + "/" + MAX_PROPS);
+
+    if (pageNum > 1) {
+      await nav(page, buildUrl(CITY, CHECKIN, CHECKOUT, offset), { retries:3 }).catch(function(){});
+      await acceptCookies(page);
+      await smartScroll(page, sel, { maxMs:12000, step:600, stableMs:3000, tick:200 });
+      await clickLoadMore(page, sel);
+      await waitIdle(page, { domMs:600, netMs:600, maxMs:6000 });
+    }
+
+    var before = collected;
+    collected = await processCards({
+      page:page, sel:sel, priceMap:priceMap, seenKeys:seenKeys,
+      results:results, collected:collected, fallback:fallback
+    });
+    var added = collected - before;
+    console.log("STATE: page " + pageNum + " added " + added + " new properties");
+
+    // if load-more already pulled everything on page 1, skip pagination
+    if (pageNum === 1 && loadMoreClicks > 0 && added > PAGE_SIZE) {
+      console.log("STATE: load-more captured full market — skipping pagination");
+      break;
+    }
+
+    // stop as soon as a page yields nothing new
+    if (added === 0) {
+      console.log("STATE: no new properties — market exhausted, stopping");
+      break;
+    }
+
+    offset += PAGE_SIZE;
+    await sleep(300 + Math.random() * 300);
+  }
+
+  await pool.closeAll();
+  console.log("STATE: fetch complete — " + collected + " total properties");
+
+  // ── Display — sort by price ascending, re-number ──────────────────────────
+  results.sort(function(a,b) {
+    var ap = (typeof a.parsed === "number" && !isNaN(a.parsed)) ? a.parsed : Infinity;
+    var bp = (typeof b.parsed === "number" && !isNaN(b.parsed)) ? b.parsed : Infinity;
+    if (ap !== bp) return ap - bp;
+    return a.index - b.index;
+  });
+  for (var ri0 = 0; ri0 < results.length; ri0++) results[ri0].index = ri0 + 1;
+
+  var nums = [];
+  for (var ri = 0; ri < results.length; ri++) {
+    if (typeof results[ri].parsed === "number" && !isNaN(results[ri].parsed)) {
+      nums.push(results[ri].parsed);
+    }
+  }
+  var st   = calcStats(nums);
+  var minP = st ? st.min : null;
+  var maxP = st ? st.max : null;
+
+  var maxNameLen = 0;
+  for (var ri2 = 0; ri2 < results.length; ri2++) {
+    var labelLen = String(results[ri2].index).length + 2 + results[ri2].name.length;
+    if (labelLen > maxNameLen) maxNameLen = labelLen;
+  }
+  var divider = col(repeat("\u2500", maxNameLen + 18), A.gray);
+
+  console.log("\n" + bld(col("  #. Hotel / Motel", A.blue)) + repeat(" ", maxNameLen - 16) + bld(col("| Price / Night", A.blue)));
+  console.log(divider);
+
+  for (var ri3 = 0; ri3 < results.length; ri3++) {
+    var r     = results[ri3];
+    var label = r.index + ". " + r.name;
+    var pad   = repeat(" ", maxNameLen - label.length + 2);
+    var pnum  = r.price.replace(/[^0-9.]/g, "");
+    var raw   = "  " + label + pad + "| \$" + pnum;
+    var line;
+    if (typeof r.parsed === "number" && !isNaN(r.parsed)) {
+      if      (minP !== null && r.parsed === minP) line = col(bld(raw), A.green);
+      else if (maxP !== null && r.parsed === maxP) line = col(bld(raw), A.red);
+      else                                         line = col(raw, A.white);
+    } else {
+      line = col(raw, A.white);
+    }
+    console.log(line);
+  }
+
+  console.log(divider);
+
+  if (st) {
+    console.log(col(
+      "  Average: $" + st.avg.toFixed(2) +
+      "   Median: $" + st.med.toFixed(2) +
+      "   Min: $"    + st.min +
+      "   Max: $"    + st.max +
+      "   Count: "   + st.count,
+      A.cyan
+    ));
+    console.log(dim("  Legend: ") + col("lowest price", A.green) + dim("   ") + col("highest price", A.red));
+  } else {
+    console.log(col("  No numeric prices found.", A.yellow));
+  }
+
+  if (KEEP_OPEN || HEADFUL) { console.log("STATE: leaving browser open"); return; }
+  await browser.close();
+  console.log("STATE: done");
+}
+
+main().catch(function(err) {
+  spinStop();
+  console.error("STATE: fatal: " + (err && err.stack ? err.stack : String(err)));
+  process.exit(1);
+});
+EOF
+  echo ">>> $SCRIPT created."
+fi
+
+# --- Initialize npm project if missing ---
+if [ ! -f package.json ]; then
+  echo ">>> Initializing npm project..."
+  npm init -y >/dev/null
+else
+  echo ">>> package.json exists — skipping npm init"
+fi
+
+# --- Ensure package.json type is module for .mjs imports ---
+if ! grep -q '"type": *"module"' package.json >/dev/null 2>&1; then
+  echo ">>> Setting package.json type to module..."
+  TMP_PKG="package.json.tmp.$$"
+  node -e "
+    const fs = require('fs');
+    const p = JSON.parse(fs.readFileSync('package.json','utf8'));
+    p.type = p.type || 'module';
+    fs.writeFileSync('$TMP_PKG', JSON.stringify(p, null, 2) + '\\n');
+  "
+  mv "$TMP_PKG" package.json
+fi
+
+# --- Install dependencies ---
+echo ">>> Installing dependencies: playwright readline"
+npm install --no-audit --no-fund playwright readline
+
+# --- Install Playwright browsers (chromium only) ---
+echo ">>> Installing Playwright Chromium browser"
+npx playwright install chromium
+
+# --- Make script executable ---
+if [ -f "$SCRIPT" ]; then
+  chmod +x "$SCRIPT"
+fi
+
+# --- Run the script ---
+echo ">>> Running $SCRIPT"
+# Allow passing extra node args via SETUP_NODE_ARGS env var
+NODE_ARGS="${SETUP_NODE_ARGS:-}"
+node $NODE_ARGS "$SCRIPT"
+        </pre>
+
+        <div class="actions">
+          <button class="btn" onclick="copyToClipboard('setupScript')">Copy setup.sh</button>
+          <a class="btn secondary" href="#readme" onclick="scrollToReadme()">View README</a>
+        </div>
+      </section>
+
+      <section class="card" id="readme">
+        <div class="meta">README</div>
+        <div class="label">Quick start and notes</div>
+
+        <div class="note">
+          Tip: run this on a machine with Node.js installed. The script will create <code>roomScraper.mjs</code> if missing, install Playwright and Chromium, then run the scraper.
+        </div>
+
+        <div class="readme">
+<strong>Files created</strong>
+- <code>setup.sh</code> — installer and runner (this script).
+- <code>roomScraper.mjs</code> — the Playwright scraper (created if missing).
+
+<strong>Quick start</strong>
+1. Make the installer executable:
+   - <code>chmod +x setup.sh</code>
+2. Run it:
+   - <code>./setup.sh</code>
+3. Environment variables you can set:
+   - <code>MAX_PROPERTIES</code> — number of properties to collect (default 100)
+   - <code>CONCURRENCY</code> — parallel page workers (default 4)
+   - <code>CITY</code> — search city (default "Mesa, Arizona")
+   - <code>KEEP_OPEN</code> — leave browser open (set to any value)
+   - <code>HEADFUL</code> — run headed (set to any value)
+   - <code>SLOWMO</code> — slowMo ms when HEADFUL
+   - <code>PAGE_SIZE</code> — booking.com page size (default 25)
+
+<strong>Two example log lines from the scraper</strong>
+- <code>STATE: scraper starting — target 100 properties</code>
+- <code>STATE: opening Booking.com homepage</code>
+
+These lines appear in the scraper output to indicate startup and that the homepage was opened.
+
+<strong>Security & usage notes</strong>
+- Use responsibly and respect target site terms of service.
+- Running many concurrent headless browsers may consume significant CPU and memory.
+- If you need a Docker image, systemd service, or scheduled run, I can provide those next.
+        </div>
+
+        <div style="margin-top:12px">
+          <a class="btn" href="#" onclick="copyReadme()">Copy README</a>
+        </div>
+      </section>
+    </div>
+
+    <footer>
+      <div class="meta">Generated for you — copy the script and run it locally.</div>
+    </footer>
+  </div>
+
+  <script>
+    function copyToClipboard(id){
+      const el = document.getElementById(id);
+      if(!el) return;
+      const text = el.innerText;
+      navigator.clipboard.writeText(text).then(function(){
+        alert('Copied to clipboard');
+      }, function(){ alert('Copy failed'); });
+    }
+    function copyReadme(){
+      const readme = document.querySelector('.readme').innerText;
+      navigator.clipboard.writeText(readme).then(function(){ alert('README copied'); }, function(){ alert('Copy failed'); });
+    }
+    function scrollToReadme(){ document.getElementById('readme').scrollIntoView({behavior:'smooth'}); }
+  </script>
+</body>
+</html>
