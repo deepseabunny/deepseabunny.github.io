@@ -1,7 +1,7 @@
 // roomScraper.mjs
 // Usage:
 //   node roomScraper.mjs
-//   CITY="New York" MAX_PROPERTIES=50 node roomScraper.mjs
+//   CITY="New York" MAX_PROPERTIES=300 node roomScraper.mjs
 //   HEADFUL=1 CITY="Las Vegas" node roomScraper.mjs
 //
 // Dependencies:
@@ -17,17 +17,21 @@ import ora           from "ora";
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const CFG = {
-  city:       process.env.CITY                          || "Mesa, Arizona",
-  maxProps:   Number(process.env.MAX_PROPERTIES         || 100),
+  city:       process.env.CITY                           || "San Diego, California",
+  maxProps:   Number(process.env.MAX_PROPERTIES          || 500),
   concurrent: Math.max(1, Number(process.env.CONCURRENCY || 4)),
-  pageSize:   Number(process.env.PAGE_SIZE              || 25),
+  pageSize:   Number(process.env.PAGE_SIZE               || 25),
   headful:    !!process.env.HEADFUL,
   keepOpen:   !!process.env.KEEP_OPEN,
-  slowMo:     Number(process.env.SLOWMO                 || 60),
-  retries:    Number(process.env.RETRIES                || 3),
-  navTimeout: Number(process.env.NAV_TIMEOUT            || 45_000),
-  checkin:    process.env.CHECKIN                       || isoToday(),
-  checkout:   process.env.CHECKOUT                      || isoTomorrow(),
+  slowMo:     Number(process.env.SLOWMO                  || 60),
+  retries:    Number(process.env.RETRIES                 || 3),
+  navTimeout: Number(process.env.NAV_TIMEOUT             || 45_000),
+  checkin:    process.env.CHECKIN                        || isoToday(),
+  checkout:   process.env.CHECKOUT                       || isoTomorrow(),
+  scrollStep: Number(process.env.SCROLL_STEP             || 600),
+  scrollTick: Number(process.env.SCROLL_TICK             || 250),
+  idleMs:     Number(process.env.IDLE_MS                 || 10_000),
+  scrollMax:  Number(process.env.SCROLL_MAX              || 300_000),
 };
 
 function isoToday() {
@@ -47,26 +51,24 @@ function parsePrice(raw) {
   if (!raw) return null;
   const s = raw.replace(/[^0-9.,]/g, "").trim();
   if (!s) return null;
-
   const hasComma = s.includes(",");
   const hasDot   = s.includes(".");
-
   if (hasComma && hasDot) {
     return s.lastIndexOf(",") > s.lastIndexOf(".")
-      ? Number(s.replace(/\./g, "").replace(",", "."))  // 1.299,00 → 1299.00
-      : Number(s.replace(/,/g, ""));                     // 1,299.00 → 1299.00
+      ? Number(s.replace(/\./g, "").replace(",", "."))
+      : Number(s.replace(/,/g, ""));
   }
   if (hasComma) {
     const p = s.split(",");
     return p.length === 2 && p[1].length === 2
-      ? Number(s.replace(",", "."))   // 89,50 → 89.50
-      : Number(s.replace(/,/g, ""));  // 1,200 → 1200
+      ? Number(s.replace(",", "."))
+      : Number(s.replace(/,/g, ""));
   }
   if (hasDot) {
     const p = s.split(".");
     return p.length === 2 && p[1].length === 2
-      ? Number(s)                     // 89.50 → 89.50
-      : Number(s.replace(/\./g, "")); // 1.200 → 1200
+      ? Number(s)
+      : Number(s.replace(/\./g, ""));
   }
   return Number(s);
 }
@@ -86,8 +88,7 @@ function calcStats(nums) {
     : (sorted[mid - 1] + sorted[mid]) / 2;
   return {
     count: nums.length,
-    avg,
-    med,
+    avg, med,
     min:   sorted[0],
     max:   sorted[sorted.length - 1],
     below: nums.filter(x => x < avg).length,
@@ -103,7 +104,6 @@ const UI = (() => {
 
   const spinner = ora({ spinner: "dots2", color: "cyan" });
 
-  // ── divider ──────────────────────────────────────────────────────────────────
   function divider(label = "", width = 72) {
     if (label) {
       const pad   = Math.max(0, width - label.length - 4);
@@ -119,7 +119,6 @@ const UI = (() => {
     }
   }
 
-  // ── banner ───────────────────────────────────────────────────────────────────
   function banner() {
     console.clear();
     console.log();
@@ -134,21 +133,16 @@ const UI = (() => {
     console.log();
   }
 
-  // ── spinner progress ─────────────────────────────────────────────────────────
-  function progress(collected, total, page, extra = "") {
+  function progress(collected, total, label = "") {
     const pct  = Math.min(100, Math.round((collected / total) * 100));
     const done = Math.round(pct / 5);
-    const bar  =
-      chalk.green("█".repeat(done)) +
-      chalk.gray("░".repeat(20 - done));
+    const bar  = chalk.green("█".repeat(done)) + chalk.gray("░".repeat(20 - done));
     spinner.text =
       `${bar} ${chalk.bold.white(pct + "%")}  ` +
-      `${chalk.cyan(collected + "/" + total)} properties  ` +
-      `${chalk.gray("page " + page)}` +
-      (extra ? "  " + chalk.gray(extra) : "");
+      `${chalk.cyan(collected + "/" + total)} cards` +
+      (label ? `  ${chalk.gray(label)}` : "");
   }
 
-  // ── rating badge ─────────────────────────────────────────────────────────────
   function formatRating(raw) {
     const n = parseFloat(raw);
     if (isNaN(n))  return chalk.gray("  N/A  ");
@@ -159,7 +153,6 @@ const UI = (() => {
     return           chalk.red(`  ${n.toFixed(1)}  `);
   }
 
-  // ── source badge ─────────────────────────────────────────────────────────────
   function formatSrc(src) {
     switch (src) {
       case "network-json": return chalk.bold.cyan("net-json");
@@ -169,12 +162,10 @@ const UI = (() => {
     }
   }
 
-  // ── results table ─────────────────────────────────────────────────────────────
   function resultsTable(results, stats) {
     console.log();
     divider("RESULTS");
     console.log();
-
     const table = new Table({
       head: [
         chalk.bold.blueBright("#"),
@@ -187,62 +178,30 @@ const UI = (() => {
       colAligns:  ["right", "left", "center", "right", "center"],
       style:      { head: [], border: ["gray"] },
       chars: {
-        top:           "─", "top-mid":    "┬", "top-left":  "┌", "top-right":  "┐",
-        bottom:        "─", "bottom-mid": "┴", "bottom-left":"└", "bottom-right":"┘",
-        left:          "│", "left-mid":   "├", mid:         "─", "mid-mid":    "┼",
-        right:         "│", "right-mid":  "┤", middle:      "│",
+        top: "─", "top-mid": "┬", "top-left": "┌", "top-right": "┐",
+        bottom: "─", "bottom-mid": "┴", "bottom-left": "└", "bottom-right": "┘",
+        left: "│", "left-mid": "├", mid: "─", "mid-mid": "┼",
+        right: "│", "right-mid": "┤", middle: "│",
       },
     });
-
     for (const r of results) {
       const isMin = stats && typeof r.parsed === "number" && r.parsed === stats.min;
       const isMax = stats && typeof r.parsed === "number" && r.parsed === stats.max;
-
-      const idxCell = isMin
-        ? chalk.bold.green(String(r.index))
-        : isMax
-          ? chalk.bold.red(String(r.index))
-          : chalk.gray(String(r.index));
-
-      const rawName  = r.name.length > 43 ? r.name.slice(0, 40) + "…" : r.name;
-      const nameCell = isMin
-        ? chalk.bold.green(rawName)
-        : isMax
-          ? chalk.bold.red(rawName)
-          : chalk.white(rawName);
-
+      const rawName   = r.name.length > 43 ? r.name.slice(0, 40) + "…" : r.name;
       const priceStr  = r.parsed != null ? `$${r.parsed.toFixed(2)}` : r.price;
-      const priceCell = isMin
-        ? chalk.bold.green(priceStr)
-        : isMax
-          ? chalk.bold.red(priceStr)
-          : typeof r.parsed === "number"
-            ? chalk.yellowBright(priceStr)
-            : chalk.gray(priceStr);
-
-      table.push([
-        idxCell,
-        nameCell,
-        formatRating(r.rating),
-        priceCell,
-        formatSrc(r.src),
-      ]);
+      const idxCell   = isMin ? chalk.bold.green(String(r.index))  : isMax ? chalk.bold.red(String(r.index))  : chalk.gray(String(r.index));
+      const nameCell  = isMin ? chalk.bold.green(rawName)           : isMax ? chalk.bold.red(rawName)           : chalk.white(rawName);
+      const priceCell = isMin ? chalk.bold.green(priceStr)          : isMax ? chalk.bold.red(priceStr)          : typeof r.parsed === "number" ? chalk.yellowBright(priceStr) : chalk.gray(priceStr);
+      table.push([idxCell, nameCell, formatRating(r.rating), priceCell, formatSrc(r.src)]);
     }
-
     console.log(table.toString());
   }
 
-  // ── stats panel ──────────────────────────────────────────────────────────────
   function statsPanel(stats) {
-    if (!stats) {
-      console.log(chalk.yellow("  No numeric prices found."));
-      return;
-    }
-
+    if (!stats) { console.log(chalk.yellow("  No numeric prices found.")); return; }
     console.log();
     divider("STATISTICS");
     console.log();
-
     const rows = [
       ["Properties found", chalk.cyan(String(stats.count))],
       ["Average price",    chalk.yellowBright(`$${stats.avg.toFixed(2)}`)],
@@ -252,33 +211,26 @@ const UI = (() => {
       ["Below average",    chalk.gray(`${stats.below} properties`)],
       ["Above average",    chalk.gray(`${stats.above} properties`)],
     ];
-
     for (const [label, value] of rows) {
       console.log(`  ${chalk.gray((label + " ").padEnd(22, "·"))} ${value}`);
     }
   }
 
-  // ── histogram ────────────────────────────────────────────────────────────────
   function histogram(results, stats) {
     if (!stats || stats.max === stats.min) return;
-
     console.log();
     divider("PRICE DISTRIBUTION");
     console.log();
-
     const BUCKETS    = 8;
     const BAR_W      = 24;
     const bucketSize = (stats.max - stats.min) / BUCKETS;
     const counts     = new Array(BUCKETS).fill(0);
-
     for (const r of results) {
       if (typeof r.parsed !== "number") continue;
       const i = Math.min(BUCKETS - 1, Math.floor((r.parsed - stats.min) / bucketSize));
       counts[i]++;
     }
-
     const maxCount = Math.max(...counts);
-
     for (let i = 0; i < BUCKETS; i++) {
       const lo    = (stats.min + i * bucketSize).toFixed(0);
       const hi    = (stats.min + (i + 1) * bucketSize).toFixed(0);
@@ -290,7 +242,6 @@ const UI = (() => {
     }
   }
 
-  // ── footer ───────────────────────────────────────────────────────────────────
   function footer(elapsed) {
     console.log();
     divider();
@@ -299,16 +250,7 @@ const UI = (() => {
     console.log();
   }
 
-  return {
-    spinner,
-    divider,
-    banner,
-    progress,
-    resultsTable,
-    statsPanel,
-    histogram,
-    footer,
-  };
+  return { spinner, divider, banner, progress, resultsTable, statsPanel, histogram, footer };
 })();
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -318,41 +260,26 @@ const UI = (() => {
 function makeEmit(state) {
   return function emit(event, data) {
     switch (event) {
-
       case "log":
         if (!UI.spinner.isSpinning)
           console.log(`  ${chalk.gray(new Date().toLocaleTimeString())}  ${chalk.cyan("ℹ")}  ${chalk.white(data)}`);
         break;
-
       case "warn":
         if (!UI.spinner.isSpinning)
           console.log(`  ${chalk.gray(new Date().toLocaleTimeString())}  ${chalk.yellow("⚠")}  ${chalk.yellow(data)}`);
         break;
-
       case "error":
         console.log(`  ${chalk.gray(new Date().toLocaleTimeString())}  ${chalk.red("✖")}  ${chalk.red(data)}`);
         break;
-
-      case "scroll":
+      case "cards":
         if (UI.spinner.isSpinning)
-          UI.progress(state.collected, CFG.maxProps, state.page, `scrolling ${data}`);
+          UI.progress(data, CFG.maxProps, `scrolling – ${data} cards loaded`);
         break;
-
       case "item":
         state.collected = data.index;
         if (UI.spinner.isSpinning)
-          UI.progress(
-            state.collected,
-            CFG.maxProps,
-            state.page,
-            chalk.gray(data.name.slice(0, 30) + (data.name.length > 30 ? "…" : ""))
-          );
-        break;
-
-      case "page":
-        state.page = data;
-        if (UI.spinner.isSpinning)
-          UI.progress(state.collected, CFG.maxProps, state.page);
+          UI.progress(state.collected, CFG.maxProps,
+            chalk.gray(data.name.slice(0, 30) + (data.name.length > 30 ? "…" : "")));
         break;
     }
   };
@@ -365,24 +292,13 @@ function makeEmit(state) {
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function normName(s) {
-  return (s || "")
-    .toLowerCase()
-    .replace(/[^\w\s-]+/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+  return (s || "").toLowerCase().replace(/[^\w\s-]+/g, "").replace(/\s+/g, " ").trim();
 }
 
 function buildUrl(city, checkin, checkout, offset = 0) {
   return (
     "https://www.booking.com/searchresults.html?" +
-    new URLSearchParams({
-      ss:           city,
-      checkin,
-      checkout,
-      group_adults: "2",
-      order:        "price",
-      offset:       String(offset),
-    })
+    new URLSearchParams({ ss: city, checkin, checkout, group_adults: "2", order: "price", offset: String(offset) })
   );
 }
 
@@ -393,13 +309,61 @@ function buildUrl(city, checkin, checkout, offset = 0) {
 let _cookiesDone = false;
 async function acceptCookies(page) {
   if (_cookiesDone) return;
-  try {
-    const btn = page.locator('button:has-text("Accept")');
-    if (await btn.isVisible({ timeout: 2_000 })) {
-      await btn.click();
-      _cookiesDone = true;
-    }
-  } catch (_) {}
+  const selectors = [
+    'button:has-text("Accept")',
+    'button:has-text("Accept all")',
+    'button:has-text("Agree")',
+    "#onetrust-accept-btn-handler",
+    '[data-testid="accept-button"]',
+  ];
+  for (const s of selectors) {
+    try {
+      const btn = page.locator(s).first();
+      if (await btn.isVisible({ timeout: 1_500 })) {
+        await btn.click();
+        _cookiesDone = true;
+        await sleep(400);
+        return;
+      }
+    } catch (_) {}
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DISMISS POPUPS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function dismissPopups(page, emit) {
+  const selectors = [
+    '[aria-label="Dismiss sign-in info."]',
+    '[aria-label="Dismiss sign in info."]',
+    '[aria-label="Dismiss"]',
+    '[aria-label="Close"]',
+    '[aria-label="close"]',
+    'button[class*="close"]',
+    'button[class*="dismiss"]',
+    'dialog button[aria-label]',
+    '[role="dialog"] button[aria-label]',
+  ];
+  let dismissed = 0;
+  for (const s of selectors) {
+    try {
+      const all = page.locator(s);
+      const cnt = await all.count();
+      for (let i = 0; i < cnt; i++) {
+        try {
+          const btn = all.nth(i);
+          if (await btn.isVisible({ timeout: 600 })) {
+            await btn.click({ timeout: 2_000 });
+            dismissed++;
+            emit("log", `Dismissed popup: ${s}`);
+            await sleep(300);
+          }
+        } catch (_) {}
+      }
+    } catch (_) {}
+  }
+  return dismissed;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -409,19 +373,13 @@ async function acceptCookies(page) {
 async function nav(page, url, emit, opts = {}) {
   const retries = opts.retries ?? CFG.retries;
   const timeout = opts.timeout ?? 30_000;
-
   for (let i = 1; i <= retries; i++) {
     try {
       emit("log", `Navigating (attempt ${i}) → ${url}`);
-      const res = await page.goto(url, {
-        waitUntil: "domcontentloaded",
-        timeout:   timeout * i,
-      });
+      const res = await page.goto(url, { waitUntil: "domcontentloaded", timeout: timeout * i });
       if (page.url().includes("chal_t")) {
         emit("warn", "Bot challenge — waiting for redirect…");
-        await page
-          .waitForNavigation({ waitUntil: "domcontentloaded", timeout: 15_000 })
-          .catch(() => {});
+        await page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 15_000 }).catch(() => {});
       }
       return res;
     } catch (err) {
@@ -439,16 +397,11 @@ async function nav(page, url, emit, opts = {}) {
 function waitIdle(page, opts = {}) {
   const netMs = opts.netMs ?? 600;
   const maxMs = opts.maxMs ?? 8_000;
-
   return Promise.race([
     new Promise(resolve => {
-      let inflight = 0;
-      let timer    = null;
-      let settled  = false;
-
+      let inflight = 0, timer = null, settled = false;
       const done  = () => {
-        if (settled) return;
-        settled = true;
+        if (settled) return; settled = true;
         clearTimeout(timer);
         page.removeListener("request",         onReq);
         page.removeListener("requestfinished", onEnd);
@@ -458,7 +411,6 @@ function waitIdle(page, opts = {}) {
       const reset = () => { clearTimeout(timer); timer = setTimeout(() => { if (!inflight) done(); }, netMs); };
       const onReq = () => { inflight++; reset(); };
       const onEnd = () => { inflight = Math.max(0, inflight - 1); reset(); };
-
       page.on("request",         onReq);
       page.on("requestfinished", onEnd);
       page.on("requestfailed",   onEnd);
@@ -469,98 +421,129 @@ function waitIdle(page, opts = {}) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SMART SCROLL
+// SCROLL + LOAD-MORE LOOP
+// Single unified loop — replaces smartScroll + clickLoadMore.
+// Scrolls continuously, clicks load-more every time it appears,
+// dismisses popups whenever scroll stalls, stops only when cards
+// stop growing for idleMs or hard scrollMax cap is hit.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-async function smartScroll(page, sel, emit, opts = {}) {
-  const maxMs    = opts.maxMs    ?? 15_000;
-  const step     = opts.step     ?? 600;
-  const stableMs = opts.stableMs ?? 3_000;
-  const tick     = opts.tick     ?? 200;
+async function scrollAndLoadAll(page, sel, emit) {
+  const t0          = Date.now();
+  let lastCount     = 0;
+  let lastGrowth    = Date.now();
+  let lastDismiss   = 0;
+  let clickTotal    = 0;
 
-  const t0 = Date.now();
-  let lastCount   = 0;
-  let stableSince = Date.now();
-  let atBottom    = false;
+  emit("log", `Scroll loop starting — idle threshold ${CFG.idleMs / 1000}s`);
 
-  while (Date.now() - t0 < maxMs) {
-    const pos = await page
-      .evaluate(s => {
-        window.scrollBy(0, s);
-        return {
-          scrollY: window.scrollY,
-          innerH:  window.innerHeight,
-          scrollH: document.documentElement.scrollHeight,
-        };
-      }, step)
-      .catch(() => null);
+  // dismiss anything blocking before we start
+  await dismissPopups(page, emit);
 
-    await sleep(tick);
+  while (true) {
 
-    const count = await page.$$eval(sel, els => els.length).catch(() => lastCount);
-
-    if (count > lastCount) {
-      lastCount   = count;
-      stableSince = Date.now();
-      atBottom    = false;
-      emit("scroll", `${count} cards`);
+    // hard time cap
+    if (Date.now() - t0 >= CFG.scrollMax) {
+      emit("log", "Scroll max time reached");
+      break;
     }
 
-    if (pos && pos.scrollY + pos.innerH >= pos.scrollH - 50) {
-      if (!atBottom) {
-        atBottom = true;
-        await sleep(stableMs);
-        const fin = await page.$$eval(sel, els => els.length).catch(() => lastCount);
-        if (fin > lastCount) {
-          lastCount = fin; stableSince = Date.now(); atBottom = false; continue;
-        }
-        break;
+    // count visible cards
+    const count = await page.$$eval(sel, els => els.length).catch(() => lastCount);
+    if (count > lastCount) {
+      lastCount  = count;
+      lastGrowth = Date.now();
+      emit("cards", count);
+    }
+
+    // target reached — no need to load more
+    if (lastCount >= CFG.maxProps) {
+      emit("log", `Target reached (${lastCount} cards)`);
+      break;
+    }
+
+    const idleElapsed = Date.now() - lastGrowth;
+
+    // every 4s of no growth — try dismissing popups that may be blocking scroll
+    if (idleElapsed > 4_000 && Date.now() - lastDismiss > 4_000) {
+      const dismissed = await dismissPopups(page, emit);
+      lastDismiss = Date.now();
+      if (dismissed > 0) {
+        lastGrowth = Date.now(); // popup was blocking — reset idle timer
+        await sleep(400);
+        continue;
       }
     }
 
-    if (Date.now() - stableSince >= stableMs && !atBottom) {
-      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight)).catch(() => {});
-      await sleep(stableMs);
-      const after = await page.$$eval(sel, els => els.length).catch(() => lastCount);
-      if (after > lastCount) { lastCount = after; stableSince = Date.now(); }
-      else break;
+    // scroll one step, detect bottom
+    const atBottom = await page.evaluate(step => {
+      window.scrollBy(0, step);
+      return (window.scrollY + window.innerHeight) >= (document.documentElement.scrollHeight - 150);
+    }, CFG.scrollStep).catch(() => false);
+
+    await sleep(CFG.scrollTick);
+
+    // at bottom or stalled — try load-more button
+    if (atBottom || idleElapsed >= CFG.idleMs) {
+
+      // always dismiss before clicking load-more — popup may cover the button
+      await dismissPopups(page, emit);
+      lastDismiss = Date.now();
+
+      const texts = ["Load more results", "Show more results", "Load more", "Show more"];
+      let clicked = false;
+
+      for (const txt of texts) {
+        if (clicked) break;
+        const candidates = [
+          page.locator(`button:has-text("${txt}")`).first(),
+          page.locator(`a:has-text("${txt}")`).first(),
+        ];
+        for (const loc of candidates) {
+          if (clicked) break;
+          try {
+            if (!await loc.isVisible({ timeout: 1_000 })) continue;
+            await loc.scrollIntoViewIfNeeded({ timeout: 2_000 });
+            await sleep(300);
+            emit("log", `Clicking "${txt}"…`);
+            await loc.click({ timeout: 3_000 });
+
+            // wait up to 8s for new cards to appear
+            const grew = await page.waitForFunction(
+              ([s, n]) => document.querySelectorAll(s).length > n,
+              [sel, lastCount],
+              { timeout: 8_000 }
+            ).then(() => true).catch(() => false);
+
+            if (grew) {
+              const newCount = await page.$$eval(sel, els => els.length).catch(() => lastCount);
+              emit("log", `Load-more clicked — ${lastCount} → ${newCount} cards`);
+              lastCount  = newCount;
+              lastGrowth = Date.now();
+              clickTotal++;
+              clicked = true;
+              // nudge scroll so the next iteration sees the new cards
+              await page.evaluate(() => window.scrollBy(0, 600)).catch(() => {});
+              await sleep(600);
+            } else {
+              emit("log", "Clicked but no new cards appeared");
+            }
+          } catch (_) {}
+        }
+      }
+
+      // no button found and truly idle — done
+      if (!clicked && idleElapsed >= CFG.idleMs) {
+        emit("log", `No load-more button and idle ${(idleElapsed / 1000).toFixed(1)}s — done`);
+        break;
+      }
     }
   }
 
+  // scroll back to top so card extraction sees the full DOM
   await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
+  emit("log", `Scroll done — ${lastCount} cards, load-more clicked ${clickTotal}×`);
   return lastCount;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// LOAD MORE
-// ═══════════════════════════════════════════════════════════════════════════════
-
-async function clickLoadMore(page, sel, emit) {
-  const candidates = [
-    'button:has-text("Show more")',
-    'button:has-text("Load more")',
-    'a:has-text("Show more")',
-    'a:has-text("Load more")',
-  ];
-  for (const loc of candidates) {
-    try {
-      const btn = await page.$(loc);
-      if (!btn) continue;
-      const before = await page.$$eval(sel, els => els.length).catch(() => 0);
-      emit("log", `Clicking load-more: ${loc}`);
-      await btn.click().catch(() => {});
-      await page
-        .waitForFunction(
-          ([s, n]) => document.querySelectorAll(s).length > n,
-          [sel, before],
-          { timeout: 8_000 }
-        )
-        .catch(() => {});
-      await smartScroll(page, sel, emit, { maxMs: 10_000, stableMs: 2_000 });
-      return true;
-    } catch (_) {}
-  }
-  return false;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -575,33 +558,26 @@ class LazyPool {
     this._queue = [];
     this._total = 0;
   }
-
   async get() {
     if (this._free.length) return this._free.shift();
     if (this._total < this._max) {
       this._total++;
       const pg = await this._ctx.newPage();
       pg.setDefaultNavigationTimeout(CFG.navTimeout);
-      await pg.route(
-        /\.(png|jpg|jpeg|gif|webp|svg|woff2?|ttf|eot|mp4|mp3)(\?.*)?$/i,
-        r => r.abort()
-      );
+      await pg.route(/\.(png|jpg|jpeg|gif|webp|svg|woff2?|ttf|eot|mp4|mp3)(\?.*)?$/i, r => r.abort());
       return pg;
     }
     return new Promise(res => this._queue.push(res));
   }
-
   put(pg) {
     if (this._queue.length) this._queue.shift()(pg);
     else this._free.push(pg);
   }
-
   async run(fn) {
     const pg = await this.get();
     try   { return await fn(pg); }
     finally { this.put(pg); }
   }
-
   async closeAll() {
     for (const pg of this._free) await pg.close().catch(() => {});
     this._free = [];
@@ -613,62 +589,31 @@ class LazyPool {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 async function batchCardInfo(page, sel) {
-  return page
-    .$$eval(sel, cards =>
-      cards.map(el => {
-        const pick = (root, sels) => {
-          for (const s of sels) {
-            const n = root.querySelector(s);
-            if (n?.innerText?.trim()) return n.innerText.trim();
-          }
-          return null;
-        };
-
-        const name = pick(el, [
-          '[data-testid="title"]',
-          ".sr-hotel__name",
-          ".fcab3ed991",
-          "h3", "h2",
-        ]) || "Unknown";
-
-        const price = pick(el, [
-          '[data-testid="price-and-discounted-price"]',
-          ".bui-price-display__value",
-          ".prco-inline-block-maker-helper",
-          ".price_total", ".sr_price", ".price",
-        ]);
-
-        // ── rating — try every selector Booking.com has used ─────────────────
-        const ratingSelectors = [
-          '[data-testid="review-score"]',
-          ".bui-review-score__badge",
-          ".bui-review-score__score",
-          '[aria-label*="Scored"]',
-          '[aria-label*="scored"]',
-          ".review-score-badge",
-        ];
-        let rating = null;
-        for (const rs of ratingSelectors) {
-          const rEl = el.querySelector(rs);
-          if (!rEl) continue;
-          const txt = rEl.innerText?.trim() || rEl.getAttribute("aria-label") || "";
-          const m   = txt.match(/\d[.,]\d/);
-          if (m) { rating = m[0].replace(",", "."); break; }
-          if (/^\d(\.\d)?$/.test(txt.slice(0, 3))) { rating = txt.slice(0, 3); break; }
-        }
-
-        const linkEl  = el.querySelector('a[href*="/hotel/"],a[href*="booking.com/"]');
-        const href    = linkEl?.href ?? null;
-        const hotelId =
-          el.getAttribute("data-hotelid") ||
-          el.getAttribute("data-hotel-id") ||
-          el.dataset?.hotelId ||
-          null;
-
-        return { name, price, rating, href, hotelId };
-      })
-    )
-    .catch(() => []);
+  return page.$$eval(sel, cards => cards.map(el => {
+    const pick = (root, sels) => {
+      for (const s of sels) {
+        const n = root.querySelector(s);
+        if (n?.innerText?.trim()) return n.innerText.trim();
+      }
+      return null;
+    };
+    const name  = pick(el, ['[data-testid="title"]', ".sr-hotel__name", ".fcab3ed991", "h3", "h2"]) || "Unknown";
+    const price = pick(el, ['[data-testid="price-and-discounted-price"]', ".bui-price-display__value", ".prco-inline-block-maker-helper", ".price_total", ".sr_price", ".price"]);
+    const ratingSelectors = ['[data-testid="review-score"]', ".bui-review-score__badge", ".bui-review-score__score", '[aria-label*="Scored"]', '[aria-label*="scored"]', ".review-score-badge"];
+    let rating = null;
+    for (const rs of ratingSelectors) {
+      const rEl = el.querySelector(rs);
+      if (!rEl) continue;
+      const txt = rEl.innerText?.trim() || rEl.getAttribute("aria-label") || "";
+      const m   = txt.match(/\d[.,]\d/);
+      if (m) { rating = m[0].replace(",", "."); break; }
+      if (/^\d(\.\d)?$/.test(txt.slice(0, 3))) { rating = txt.slice(0, 3); break; }
+    }
+    const linkEl  = el.querySelector('a[href*="/hotel/"],a[href*="booking.com/"]');
+    const href    = linkEl?.href ?? null;
+    const hotelId = el.getAttribute("data-hotelid") || el.getAttribute("data-hotel-id") || el.dataset?.hotelId || null;
+    return { name, price, rating, href, hotelId };
+  })).catch(() => []);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -677,50 +622,32 @@ async function batchCardInfo(page, sel) {
 
 function makeFallback(pool, emit) {
   const cache = new Map();
-
   return async function fallback(href) {
     if (cache.has(href)) return cache.get(href);
-
     const result = await pool.run(async pg => {
       try {
         await nav(pg, href, emit, { retries: 2, timeout: 20_000 }).catch(() => {});
-
-        const selectors = [
-          ".bui-price-display__value",
-          ".hp__hotel-price .prco-valign-middle-helper",
-          ".hprt-price-price-standard",
-          ".prco-inline-block-maker-helper",
-          ".roomstable .price",
-        ];
-
-        for (const s of selectors) {
+        const doms = [".bui-price-display__value", ".hp__hotel-price .prco-valign-middle-helper", ".hprt-price-price-standard", ".prco-inline-block-maker-helper", ".roomstable .price"];
+        for (const s of doms) {
           try {
             const el  = await pg.waitForSelector(s, { timeout: 3_000 });
             const txt = (await el.innerText()).trim();
             if (txt) return txt;
           } catch (_) {}
         }
-
-        // JSON-LD last resort
-        const blocks = await pg
-          .$$eval('script[type="application/ld+json"]', ns => ns.map(n => n.innerText))
-          .catch(() => []);
-
+        const blocks = await pg.$$eval('script[type="application/ld+json"]', ns => ns.map(n => n.innerText)).catch(() => []);
         for (const block of blocks) {
           try {
             const obj = JSON.parse(block);
-            if (obj?.offers?.price)
-              return `${obj.offers.price} ${obj.offers.priceCurrency ?? ""}`.trim();
+            if (obj?.offers?.price) return `${obj.offers.price} ${obj.offers.priceCurrency ?? ""}`.trim();
           } catch (_) {}
         }
-
         return null;
       } catch (err) {
         emit("warn", `Fallback error: ${err.message}`);
         return null;
       }
     });
-
     cache.set(href, result);
     return result;
   };
@@ -733,7 +660,6 @@ function makeFallback(pool, emit) {
 function applyItem(item, seenKeys, results) {
   for (const k of item.keys) if (seenKeys.has(k)) return false;
   for (const k of item.keys) seenKeys.add(k);
-
   results.push({
     index:  results.length + 1,
     name:   item.info.name,
@@ -755,32 +681,23 @@ async function processCards({ page, sel, priceMap, seenKeys, results, collected,
   const infos = await batchCardInfo(page, sel);
   emit("log", `Extracted ${infos.length} cards from DOM`);
 
-  const instant = [];
-  const slow    = [];
+  const instant = [], slow = [];
 
   for (const info of infos) {
     if (collected >= CFG.maxProps) break;
     if (!info) continue;
-
     const keys = [
       info.hotelId && String(info.hotelId),
       info.href    && String(info.href),
       info.name    && normName(info.name),
     ].filter(Boolean);
-
     if (!keys.length) continue;
     if (keys.some(k => seenKeys.has(k))) continue;
 
-    let price = null;
-    let src   = "not-found";
-
-    if (info.hotelId && priceMap.has(String(info.hotelId))) {
-      price = priceMap.get(String(info.hotelId)); src = "network-json";
-    } else if (info.href && priceMap.has(String(info.href))) {
-      price = priceMap.get(String(info.href));    src = "network-json";
-    } else if (info.price) {
-      price = info.price; src = "card-dom";
-    }
+    let price = null, src = "not-found";
+    if (info.hotelId && priceMap.has(String(info.hotelId))) { price = priceMap.get(String(info.hotelId)); src = "network-json"; }
+    else if (info.href && priceMap.has(String(info.href)))  { price = priceMap.get(String(info.href));    src = "network-json"; }
+    else if (info.price)                                    { price = info.price;                          src = "card-dom"; }
 
     const item = { keys, info, price, src };
     if (src === "not-found" && info.href) slow.push(item);
@@ -789,25 +706,17 @@ async function processCards({ page, sel, priceMap, seenKeys, results, collected,
 
   for (const item of instant) {
     if (collected >= CFG.maxProps) break;
-    if (applyItem(item, seenKeys, results)) {
-      collected++;
-      emit("item", results[results.length - 1]);
-    }
+    if (applyItem(item, seenKeys, results)) { collected++; emit("item", results[results.length - 1]); }
   }
 
   if (slow.length) {
-    await Promise.all(
-      slow.map(async item => {
-        item.price = await fallback(item.info.href);
-        item.src   = item.price ? "fallback-nav" : "not-found";
-      })
-    );
+    await Promise.all(slow.map(async item => {
+      item.price = await fallback(item.info.href);
+      item.src   = item.price ? "fallback-nav" : "not-found";
+    }));
     for (const item of slow) {
       if (collected >= CFG.maxProps) break;
-      if (applyItem(item, seenKeys, results)) {
-        collected++;
-        emit("item", results[results.length - 1]);
-      }
+      if (applyItem(item, seenKeys, results)) { collected++; emit("item", results[results.length - 1]); }
     }
   }
 
@@ -820,7 +729,7 @@ async function processCards({ page, sel, priceMap, seenKeys, results, collected,
 
 async function main() {
   const startTime = Date.now();
-  const state     = { collected: 0, page: 0 };
+  const state     = { collected: 0 };
   const emit      = makeEmit(state);
 
   UI.banner();
@@ -839,7 +748,6 @@ async function main() {
     emit("log", `${reason} — shutting down`);
     await browser.close().catch(() => {});
   };
-
   process.on("SIGINT",  () => shutdown("SIGINT").then(() => process.exit(0)));
   process.on("SIGTERM", () => shutdown("SIGTERM").then(() => process.exit(0)));
 
@@ -853,11 +761,7 @@ async function main() {
   // ── main page ─────────────────────────────────────────────────────────────────
   const page = await ctx.newPage();
   page.setDefaultNavigationTimeout(CFG.navTimeout);
-
-  await page.route(
-    /\.(png|jpg|jpeg|gif|webp|svg|woff2?|ttf|eot|mp4|mp3)(\?.*)?$/i,
-    r => r.abort()
-  );
+  await page.route(/\.(png|jpg|jpeg|gif|webp|svg|woff2?|ttf|eot|mp4|mp3)(\?.*)?$/i, r => r.abort());
 
   // ── network price intercept ───────────────────────────────────────────────────
   const priceMap = new Map();
@@ -869,15 +773,13 @@ async function main() {
       const txt = await res.text().catch(() => null);
       if (!txt) return;
       if (!txt.includes('"price"') && !txt.includes('"min_price"') && !txt.includes('"offers"')) return;
-      let obj;
-      try { obj = JSON.parse(txt); } catch (_) { return; }
+      let obj; try { obj = JSON.parse(txt); } catch (_) { return; }
       const list = obj.results || obj.result || obj.properties || obj.hotels || obj.items;
       if (Array.isArray(list)) {
         for (const it of list) {
           const id    = it.hotel_id || it.id || it.property_id || it.hotelId;
           const href  = it.url || it.hotel_url || it.link;
-          const price = it.price || it.min_price ||
-                        (it.offers?.[0]?.price);
+          const price = it.price || it.min_price || (it.offers?.[0]?.price);
           if (id    && price) priceMap.set(String(id),   String(price));
           if (href  && price) priceMap.set(String(href), String(price));
         }
@@ -893,33 +795,29 @@ async function main() {
   emit("log", "Opening Booking.com homepage…");
   await page.goto("https://www.booking.com/", { waitUntil: "domcontentloaded" }).catch(() => {});
   await acceptCookies(page);
-  await sleep(1000 + Math.random() * 500);
+  await sleep(800 + Math.random() * 400);
 
   // ── pool + fallback ───────────────────────────────────────────────────────────
   const pool     = new LazyPool(ctx, Math.min(CFG.concurrent, 6));
   const fallback = makeFallback(pool, emit);
 
-  // ── selector probe ────────────────────────────────────────────────────────────
+  // ── navigate to search results ────────────────────────────────────────────────
+  await nav(page, buildUrl(CFG.city, CFG.checkin, CFG.checkout, 0), emit, { retries: 3 }).catch(() => {});
+  await acceptCookies(page);
+  await dismissPopups(page, emit);
+  await sleep(600);
+
+  // ── detect card selector ──────────────────────────────────────────────────────
   const SELECTORS = [
     '[data-testid="property-card"]',
     ".sr_property_block",
     ".sr_item",
     ".sr_item_content",
   ];
-
-  // ── first page ────────────────────────────────────────────────────────────────
-  await nav(page, buildUrl(CFG.city, CFG.checkin, CFG.checkout, 0), emit, { retries: 3 }).catch(() => {});
-  await acceptCookies(page);
-
   let sel = null;
   for (const s of SELECTORS) {
-    try {
-      await page.waitForSelector(s, { timeout: 15_000 });
-      sel = s;
-      break;
-    } catch (_) {}
+    try { await page.waitForSelector(s, { timeout: 15_000 }); sel = s; break; } catch (_) {}
   }
-
   if (!sel) {
     emit("error", "No card selector matched — aborting.");
     emit("error", `Current URL: ${page.url()}`);
@@ -929,72 +827,36 @@ async function main() {
     await browser.close();
     process.exit(1);
   }
-
   emit("log", `Card selector: ${sel}`);
 
-  // ── start spinner ─────────────────────────────────────────────────────────────
+  // ── spinner on ────────────────────────────────────────────────────────────────
   UI.spinner.start();
-  UI.progress(0, CFG.maxProps, 0, "initialising…");
+  UI.progress(0, CFG.maxProps, "starting scroll…");
 
-  await smartScroll(page, sel, emit, { maxMs: 15_000, stableMs: 3_000 });
-  const loadedMore = await clickLoadMore(page, sel, emit);
+  // ── scroll + load-more until target or exhaustion ────────────────────────────
+  await scrollAndLoadAll(page, sel, emit);
   await waitIdle(page, { maxMs: 6_000 });
 
-  // ── pagination loop ───────────────────────────────────────────────────────────
-  let collected   = 0;
-  let offset      = 0;
-  let pageNum     = 0;
-  let emptyStreak = 0;
-  const results   = [];
-  const seenKeys  = new Set();
+  // ── parse all loaded cards (single pass) ──────────────────────────────────────
+  UI.progress(0, CFG.maxProps, "parsing cards…");
+  let collected = 0;
+  const results  = [];
+  const seenKeys = new Set();
 
-  while (collected < CFG.maxProps) {
-    pageNum++;
-    emit("page", pageNum);
+  collected = await processCards({
+    page, sel, priceMap, seenKeys,
+    results, collected, fallback, emit,
+  });
 
-    if (pageNum > 1) {
-      await nav(page, buildUrl(CFG.city, CFG.checkin, CFG.checkout, offset), emit, { retries: 3 }).catch(() => {});
-      await acceptCookies(page);
-      await smartScroll(page, sel, emit, { maxMs: 12_000, stableMs: 3_000 });
-      await clickLoadMore(page, sel, emit);
-      await waitIdle(page, { maxMs: 6_000 });
-    }
+  emit("log", `Done — ${collected} properties collected`);
 
-    const before = collected;
-    collected = await processCards({
-      page, sel, priceMap, seenKeys,
-      results, collected, fallback, emit,
-    });
-
-    const added = collected - before;
-    emit("log", `Page ${pageNum} → +${added} properties (total ${collected})`);
-
-    if (pageNum === 1 && loadedMore && added > CFG.pageSize) {
-      emit("log", "Load-more captured full market — skipping pagination");
-      break;
-    }
-
-    if (added === 0) {
-      emptyStreak++;
-      if (emptyStreak >= 2) {
-        emit("log", "Market exhausted — stopping");
-        break;
-      }
-    } else {
-      emptyStreak = 0;
-    }
-
-    offset += CFG.pageSize;
-    await sleep(300 + Math.random() * 300);
-  }
-
-  // ── stop spinner ──────────────────────────────────────────────────────────────
+  // ── spinner off ───────────────────────────────────────────────────────────────
   UI.spinner.stop();
 
   await pool.closeAll();
   if (!CFG.keepOpen && !CFG.headful) await browser.close();
 
-  // ── sort by price ascending ───────────────────────────────────────────────────
+  // ── sort by price ─────────────────────────────────────────────────────────────
   results.sort((a, b) => {
     const ap = typeof a.parsed === "number" && !isNaN(a.parsed) ? a.parsed : Infinity;
     const bp = typeof b.parsed === "number" && !isNaN(b.parsed) ? b.parsed : Infinity;
@@ -1002,11 +864,10 @@ async function main() {
   });
   results.forEach((r, i) => { r.index = i + 1; });
 
-  // ── stats ─────────────────────────────────────────────────────────────────────
+  // ── stats + render ────────────────────────────────────────────────────────────
   const nums  = results.filter(r => typeof r.parsed === "number" && !isNaN(r.parsed)).map(r => r.parsed);
   const stats = calcStats(nums);
 
-  // ── render ────────────────────────────────────────────────────────────────────
   UI.resultsTable(results, stats);
   UI.statsPanel(stats);
   UI.histogram(results, stats);
